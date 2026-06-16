@@ -1,17 +1,22 @@
+import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AdventureBreadcrumbs } from '@/components/adventures/AdventureBreadcrumbs'
 import { PreparedMapEditor } from '@/components/adventures/PreparedMapEditor'
+import { PreparedMapDetailCard } from '@/components/adventures/PreparedMapDetailCard'
 import { fetchCampaignPlayers } from '@/lib/actions/codex'
 import type { Adventure, Chapter, PreparedMap } from '@/lib/types/adventure'
 import type { CampaignDoc, CampaignDocLink } from '@/lib/types/database'
 
 interface PageProps {
   params: Promise<{ id: string; adventureId: string; chapterId: string; preparedMapId: string }>
+  searchParams: Promise<{ edit?: string }>
 }
 
-export default async function PreparedMapEditorPage({ params }: PageProps) {
+export default async function PreparedMapEditorPage({ params, searchParams }: PageProps) {
   const { id, adventureId, chapterId, preparedMapId } = await params
+  const { edit } = await searchParams
+  const editMode = edit === '1'
   const supabase = await createClient()
 
   const {
@@ -66,6 +71,45 @@ export default async function PreparedMapEditorPage({ params }: PageProps) {
   const chapter = chapterRow as Chapter
   const preparedMap = mapRow as unknown as PreparedMap
 
+  const breadcrumbs = (
+    <AdventureBreadcrumbs
+      crumbs={[
+        { label: 'Adventure Maker', href: `/campaigns/${id}/adventures` },
+        { label: adventure.title, href: `/campaigns/${id}/adventures/${adventureId}` },
+        {
+          label: chapter.title,
+          href: `/campaigns/${id}/adventures/${adventureId}/chapters/${chapterId}`,
+        },
+        { label: preparedMap.title },
+      ]}
+    />
+  )
+
+  // Default view: the Notion-style map detail card. The editor opens behind the
+  // "Edit Map and Tokens" pill (?edit=1).
+  if (!editMode) {
+    const { data: preparedMapRows } = await supabase
+      .from('prepared_maps')
+      .select('id, adventure_id, chapter_id, title')
+      .eq('campaign_id', id)
+
+    return (
+      <div className="mx-auto w-full max-w-[1100px] px-4 py-5 sm:px-6 lg:px-8">
+        {breadcrumbs}
+        <PreparedMapDetailCard
+          campaignId={id}
+          adventureId={adventureId}
+          chapterId={chapterId}
+          map={preparedMap}
+          codexDocs={(codexDocs ?? []) as CampaignDoc[]}
+          codexLinks={(codexLinks ?? []) as CampaignDocLink[]}
+          players={players}
+          preparedMaps={(preparedMapRows ?? []) as { id: string; adventure_id: string; chapter_id: string; title: string }[]}
+        />
+      </div>
+    )
+  }
+
   let imageUrl: string | null = null
   if (preparedMap.storage_path) {
     const { data: signed } = await supabase.storage
@@ -76,17 +120,16 @@ export default async function PreparedMapEditorPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8">
-      <AdventureBreadcrumbs
-        crumbs={[
-          { label: 'Adventure Maker', href: `/campaigns/${id}/adventures` },
-          { label: adventure.title, href: `/campaigns/${id}/adventures/${adventureId}` },
-          {
-            label: chapter.title,
-            href: `/campaigns/${id}/adventures/${adventureId}/chapters/${chapterId}`,
-          },
-          { label: preparedMap.title },
-        ]}
-      />
+      {breadcrumbs}
+      <Link
+        href={`/campaigns/${id}/adventures/${adventureId}/chapters/${chapterId}/maps/${preparedMapId}`}
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-amber-400 hover:text-amber-300"
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+        </svg>
+        Back to map card
+      </Link>
       <PreparedMapEditor
         map={preparedMap}
         imageUrl={imageUrl}

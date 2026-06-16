@@ -1,26 +1,173 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: #0c0c10;
+  --color-surface: #16161f;
+  --color-surface-2: #1e1e2a;
+  --color-border: #2e2e3e;
+  --color-border-subtle: #232330;
+  --color-foreground: #e8e8f0;
+  --color-muted: #6b6b80;
+  --color-primary: #d4a82a;
+  --color-primary-hover: #e8bb3a;
+  --color-primary-foreground: #0c0c10;
+  --color-danger: #e05252;
+  --color-success: #4caf82;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  min-height: 100%;
+}
+
+* {
+  min-width: 0;
+}
+
+p,
+li,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: anywhere;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
+
+/* Roll outcome effects (Player Roll Outcome Popup Styling) */
+@keyframes roll-fx-thumb-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.55) rotate(0deg);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1) rotate(-10deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-48px) scale(1.05) rotate(10deg);
+  }
+}
+
+@keyframes roll-fx-flame-flicker {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateY(-5px) scale(1.08);
+  }
+}
+
+@keyframes roll-fx-shake-once {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+.roll-fx-thumb {
+  position: absolute;
+  bottom: 8px;
+  font-size: 1.05rem;
+  line-height: 1;
+  animation: roll-fx-thumb-pop 1.1s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+.roll-fx-flame {
+  position: absolute;
+  bottom: -8px;
+  font-size: 1.35rem;
+  line-height: 1;
+  opacity: 0.7;
+  animation: roll-fx-flame-flicker 1.7s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.roll-fx-shake-once {
+  animation: roll-fx-shake-once 420ms ease-in-out 1;
+}
+
+/* Token "!" alert badge — pulses when a player has an active action request. */
+@keyframes action-alert-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 6px rgba(220, 38, 38, 0.8);
+  }
+  50% {
+    transform: scale(1.18);
+    box-shadow: 0 0 14px rgba(220, 38, 38, 1);
+  }
+}
+
+.action-alert-badge {
+  animation: action-alert-pulse 1.2s ease-in-out infinite;
+  will-change: transform, box-shadow;
+}
+
+/* Nudged DM action card — red edge/glow until the DM opens or acts on it. */
+@keyframes action-nudge-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.6), 0 0 12px -2px rgba(220, 38, 38, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.9), 0 0 22px -2px rgba(248, 113, 113, 0.7);
+  }
+}
+
+.action-nudge-highlight {
+  border-color: rgb(220, 38, 38) !important;
+  animation: action-nudge-glow 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roll-fx-thumb,
+  .roll-fx-flame,
+  .roll-fx-shake-once,
+  .action-alert-badge,
+  .action-nudge-highlight {
+    animation: none !important;
+  }
 }

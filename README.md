@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Companion
 
-## Getting Started
+Companion is a Next.js/Supabase tabletop campaign app for running live D&D-style sessions, managing campaign documentation, and safely revealing information to players.
 
-First, run the development server:
+## Architecture Principles
+
+- **Notion is a documentation source.** It can provide prep notes, lore, locations, NPCs, rumors, factions, quests, and reference text.
+- **Adventure Codex is the app-safe cache.** Notion content is normalized into `campaign_docs` and related Codex tables before it appears in the app.
+- **The live engine owns gameplay state.** Token position, HP, initiative, dice, action approvals, fog, map reveal state, movement, combat, and active session state are owned by Companion, not Notion.
+- **Player-safe reveal rules are enforced.** Players read safe projection tables/RPCs and scoped reveal records; they do not subscribe to DM-only Codex source tables.
+- **Notion sync never controls combat or map state.** Synced combat stats are treated as DM reference text until a dedicated structured stat-mapping feature exists.
+
+## Local Development
+
+Read the local Next.js 16 docs before changing routing, server actions, proxy behavior, or request APIs:
+
+```bash
+node_modules/next/dist/docs/
+```
+
+This project uses the Next.js 16 `proxy.ts` convention rather than the older `middleware.ts` convention.
+
+Run the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Verification Gates
 
-## Learn More
+Use these gates for Adventure Codex, Notion sync, and live-map bridge changes:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npx.cmd tsc --noEmit
+npm.cmd run lint
+npm.cmd run build
+npx.cmd playwright test tests/e2e/app-smoke.spec.ts
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Authenticated runtime QA requires:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```text
+E2E_DM_EMAIL
+E2E_DM_PASSWORD
+E2E_CAMPAIGN_ID
+```
 
-## Deploy on Vercel
+Notion API runtime QA also requires the relevant Supabase migrations plus server-only environment values such as `SUPABASE_SERVICE_ROLE_KEY`, and optional webhook QA requires `NOTION_WEBHOOK_SECRET` and a public HTTPS deployment.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Documentation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `docs/AdventureCodex_NotionBridge.md` - source of truth for Codex/Notion architecture and rollback notes.
+- `docs/Implementation_Log.md` - phase-by-phase implementation notes.
+- `docs/ChangeLog.md` - compact phase change records.
+- `docs/QA_Reports/AdventureCodex_QA.md` - manual and static QA checklists.
+- `docs/QA_Reports/AdventureCodex_Phase12_Final_QA_Report.md` - final QA/regression report for Adventure Codex, Notion sync, and live-map bridge.

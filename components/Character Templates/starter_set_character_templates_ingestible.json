@@ -1,0 +1,2905 @@
+{
+  "metadata": {
+    "profilePackName": "D&D Starter Set Character Templates",
+    "version": "1.0.0",
+    "createdFor": "DnD Companion app player template selection and customization flow",
+    "sourceUploadedFile": "StarterSet_Characters (1).pdf",
+    "sourcePathUsed": "/mnt/data/StarterSet_Characters (1).pdf",
+    "sourcePageCount": 10,
+    "gameSystem": "Dungeons & Dragons 5th Edition, 2014 starter character sheets",
+    "intendedUse": "Coding-agent-ingestible character templates. Players choose a template, fill required identity/customization fields, then finalize.",
+    "copyrightNoticeFromSource": "TM & © 2014 Wizards of the Coast LLC. Permission is granted to photocopy the source document for personal use.",
+    "notes": [
+      "CharacterName, PlayerName, current HP, temporary HP, death saves, and XP are intentionally left as null or zeroed where the source sheet has blanks.",
+      "All listed proficiencies, languages, attacks, equipment, background hooks, traits, and level advancement notes from the character pages are represented.",
+      "Some subclass/archetype labels are marked inferred where the sheet gives features but not an explicit subclass name."
+    ]
+  },
+  "ingestionGuidance": {
+    "recommendedImportBehavior": [
+      "Load each object in characterTemplates as a selectable player template card.",
+      "Display templateName, playstyleSummary, roleTags, identity, coreStats, and personality on the selection screen.",
+      "After selection, copy the template into a player-owned character instance and keep this pack immutable.",
+      "Require characterName and playerName before finalizing.",
+      "For casters, present prepared spell choices according to the spellcasting object. Keep always-prepared domain spells locked.",
+      "Track sourcePages for audit/debug display.",
+      "Preserve level progression so the app can auto-suggest changes at XP thresholds.",
+      "Use customization.safePlayerEditableFields to decide what the player can edit without DM review.",
+      "Use customization.dmReviewRecommendedFor to flag changes that should be confirmed by the DM."
+    ],
+    "suggestedTemplateCardFields": [
+      "templateName",
+      "roleTags",
+      "playstyleSummary",
+      "race",
+      "class",
+      "background",
+      "alignment",
+      "armorClass",
+      "hitPointMaximum",
+      "primaryAttacks",
+      "spellcastingAbility"
+    ],
+    "suggestedFinalizeChecklist": [
+      "characterName",
+      "playerName",
+      "portrait/token",
+      "review personality",
+      "review bond/flaw",
+      "confirm prepared spells if applicable",
+      "confirm equipment",
+      "DM approval"
+    ]
+  },
+  "characterTemplates": [
+    {
+      "id": "starter_human_fighter_noble",
+      "templateName": "Human Fighter - Noble",
+      "templateStatus": "starter_pregen_template_needs_player_finalization",
+      "sourcePages": [
+        1,
+        2
+      ],
+      "roleTags": [
+        "frontline",
+        "armored",
+        "melee",
+        "social_status",
+        "leader"
+      ],
+      "playstyleSummary": "Heavy armor melee fighter with strong Athletics, Persuasion, noble authority, and a greataxe family heirloom.",
+      "identity": {
+        "characterName": null,
+        "playerName": null,
+        "race": "Human",
+        "subrace": null,
+        "class": "Fighter",
+        "classLevelText": "Fighter 1",
+        "level": 1,
+        "background": "Noble",
+        "alignment": "Lawful neutral",
+        "experiencePoints": null
+      },
+      "coreStats": {
+        "proficiencyBonus": 2,
+        "armorClass": 17,
+        "initiative": -1,
+        "speed": {
+          "value": 30,
+          "unit": "feet"
+        },
+        "hitPointMaximum": 12,
+        "currentHitPoints": null,
+        "temporaryHitPoints": null,
+        "hitDice": {
+          "total": "1d10",
+          "die": "d10",
+          "available": null
+        },
+        "deathSaves": {
+          "successes": 0,
+          "failures": 0
+        },
+        "passiveWisdomPerception": 13
+      },
+      "abilityScores": {
+        "strength": {
+          "score": 16,
+          "modifier": 3
+        },
+        "dexterity": {
+          "score": 9,
+          "modifier": -1
+        },
+        "constitution": {
+          "score": 15,
+          "modifier": 2
+        },
+        "intelligence": {
+          "score": 11,
+          "modifier": 0
+        },
+        "wisdom": {
+          "score": 13,
+          "modifier": 1
+        },
+        "charisma": {
+          "score": 14,
+          "modifier": 2
+        }
+      },
+      "savingThrows": {
+        "strength": {
+          "modifier": 5,
+          "proficient": true
+        },
+        "dexterity": {
+          "modifier": -1,
+          "proficient": false
+        },
+        "constitution": {
+          "modifier": 4,
+          "proficient": true
+        },
+        "intelligence": {
+          "modifier": 0,
+          "proficient": false
+        },
+        "wisdom": {
+          "modifier": 1,
+          "proficient": false
+        },
+        "charisma": {
+          "modifier": 2,
+          "proficient": false
+        }
+      },
+      "skills": {
+        "acrobatics": {
+          "ability": "Dex",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "animalHandling": {
+          "ability": "Wis",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "arcana": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "athletics": {
+          "ability": "Str",
+          "modifier": 5,
+          "proficient": true,
+          "expertise": false
+        },
+        "deception": {
+          "ability": "Cha",
+          "modifier": 2,
+          "proficient": false,
+          "expertise": false
+        },
+        "history": {
+          "ability": "Int",
+          "modifier": 2,
+          "proficient": true,
+          "expertise": false
+        },
+        "insight": {
+          "ability": "Wis",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "intimidation": {
+          "ability": "Cha",
+          "modifier": 2,
+          "proficient": false,
+          "expertise": false
+        },
+        "investigation": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "medicine": {
+          "ability": "Wis",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "nature": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "perception": {
+          "ability": "Wis",
+          "modifier": 3,
+          "proficient": true,
+          "expertise": false
+        },
+        "performance": {
+          "ability": "Cha",
+          "modifier": 2,
+          "proficient": false,
+          "expertise": false
+        },
+        "persuasion": {
+          "ability": "Cha",
+          "modifier": 4,
+          "proficient": true,
+          "expertise": false
+        },
+        "religion": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "sleightOfHand": {
+          "ability": "Dex",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "stealth": {
+          "ability": "Dex",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false,
+          "notes": "Disadvantage while wearing chain mail."
+        },
+        "survival": {
+          "ability": "Wis",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        }
+      },
+      "attacksAndSpellcasting": {
+        "attacks": [
+          {
+            "name": "Greataxe",
+            "attackBonus": 5,
+            "damage": "1d12 + 3",
+            "damageType": "slashing",
+            "properties": [
+              "melee"
+            ]
+          },
+          {
+            "name": "Javelin",
+            "attackBonus": 5,
+            "damage": "1d6 + 3",
+            "damageType": "piercing",
+            "quantity": 3,
+            "properties": [
+              "thrown"
+            ],
+            "range": {
+              "normal": 30,
+              "long": 120,
+              "unit": "feet"
+            },
+            "longRangeRule": "Attacks beyond normal range up to long range have disadvantage."
+          }
+        ],
+        "spellcasting": null
+      },
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 25,
+        "pp": 0
+      },
+      "personality": {
+        "traits": [
+          "My flattery makes those I talk to feel wonderful and important.",
+          "I do not like to get dirty, and I will not be caught dead in unsuitable accommodations."
+        ],
+        "ideal": "Responsibility. It is the duty of a noble to protect the common people, not bully them.",
+        "bond": "My greataxe is a family heirloom, and it is by far my most precious possession.",
+        "flaw": "I have a hard time resisting the allure of wealth, especially gold. Wealth can help me restore my legacy."
+      },
+      "proficienciesAndLanguages": {
+        "armor": [
+          "All armor",
+          "Shields"
+        ],
+        "weapons": [
+          "Simple weapons",
+          "Martial weapons"
+        ],
+        "tools": [],
+        "gamingSets": [
+          "Playing cards"
+        ],
+        "vehicles": [],
+        "languages": [
+          "Common",
+          "Draconic",
+          "Dwarvish"
+        ]
+      },
+      "equipment": {
+        "weapons": [
+          "Greataxe",
+          "3 javelins"
+        ],
+        "armor": [
+          "Chain mail"
+        ],
+        "adventuringGear": [
+          "Backpack",
+          "Blanket",
+          "Tinderbox",
+          "2 days of rations",
+          "Waterskin"
+        ],
+        "clothingAndPersonalItems": [
+          "Set of fine clothes",
+          "Signet ring",
+          "Scroll of pedigree"
+        ],
+        "notes": [
+          "While wearing chain mail, this character has disadvantage on Dexterity (Stealth) checks."
+        ]
+      },
+      "featuresAndTraits": [
+        {
+          "name": "Second Wind",
+          "source": "Fighter 1",
+          "actionType": "Bonus action",
+          "uses": "Once per short or long rest",
+          "description": "Regain hit points equal to 1d10 + fighter level."
+        },
+        {
+          "name": "Fighting Style - Defense",
+          "source": "Fighter 1",
+          "description": "While wearing armor, gain +1 bonus to AC. Included in displayed AC."
+        },
+        {
+          "name": "Position of Privilege",
+          "source": "Noble background",
+          "description": "People tend to think the best of the character because of noble birth. The character is welcome in high society, common folk try to accommodate and avoid displeasing them, nobles treat them as part of the same social sphere, and the character can secure an audience with a local noble if needed."
+        }
+      ],
+      "loreAndCampaignHooks": {
+        "raceLore": {
+          "race": "Human",
+          "coreTraits": [
+            "Humans are described as the youngest of the common races, arriving late compared with dwarves, elves, and dragons.",
+            "They are innovators, achievers, pioneers, adaptable, and ambitious.",
+            "When humans settle somewhere, they build lasting cities and kingdoms.",
+            "Humans live fully in the present, which suits the adventuring life, while also planning for a legacy.",
+            "Human culture varies widely by region in the Forgotten Realms.",
+            "Humans of Neverwinter can have many different colorations and features because of ancient migrations.",
+            "Humans have no single typical name tradition."
+          ],
+          "nameExamples": {
+            "Calishite": [
+              "Haseid"
+            ],
+            "Chondathan": [
+              "Kerri"
+            ],
+            "Damaran": [
+              "Kosef"
+            ],
+            "Illuskan": [
+              "Amafrey"
+            ],
+            "Mulan": [
+              "So-Kehur"
+            ],
+            "Rashemi": [
+              "Madislak"
+            ],
+            "Shou": [
+              "Mei"
+            ],
+            "Turami": [
+              "Salazar"
+            ],
+            "note": "Some human parents choose names from other languages such as Dwarvish or Elvish."
+          }
+        },
+        "classLore": {
+          "class": "Fighter",
+          "classFantasy": [
+            "Fighters are diverse warriors including questing knights, conquering overlords, royal champions, elite soldiers, mercenaries, and bandit kings.",
+            "They share mastery with weapons and armor and strong knowledge of combat.",
+            "They are familiar with death, both dealing it and facing it."
+          ]
+        },
+        "backgroundStoryFacts": [
+          "The character's family once held wealth, power, and privilege.",
+          "In the glory days of Neverwinter, the character's parents were count and countess of Corlinn Hill.",
+          "Corlinn Hill was a large estate northeast of Neverwinter.",
+          "Mount Hotenow erupted thirty years ago, devastating Neverwinter and erasing Corlinn Hill from the map.",
+          "The character was raised in a small but comfortable town house in Waterdeep instead of on an estate.",
+          "As an adult, the character stands to inherit a meaningless title and little else."
+        ],
+        "personalGoal": {
+          "title": "Civilize Phandalin",
+          "details": [
+            "The character believes they were meant for more than ruling nothing.",
+            "Rebuilding Corlinn Hill is impractical because of the volcano.",
+            "Settlers have been rebuilding Phandalin, an old town sacked by orcs five centuries ago.",
+            "The character believes Phandalin needs a civilizing influence, law, and order.",
+            "Sildar Hallwinter recently traveled to Phandalin with Gundren Rockseeker.",
+            "Hallwinter and Gundren plan to reclaim an ancient mine and restore Phandalin as a center of wealth and prosperity.",
+            "Because their goals align, Hallwinter should be willing to assist."
+          ]
+        },
+        "alignmentExplanation": "Law and order are essential, even if enforced with an iron fist. Nobility must protect people from threats to stability. Organized society leaves no room for evil and chaos."
+      },
+      "levelingPlan": {
+        "hitPointGainPerLevel": "Gain one additional Hit Die and add 1d10 + 2 to hit point maximum.",
+        "levels": [
+          {
+            "level": 2,
+            "xpRequired": 300,
+            "gains": [
+              {
+                "name": "Action Surge",
+                "description": "On your turn, take one additional action on top of your regular action and possible bonus action. Recharges after short or long rest."
+              }
+            ]
+          },
+          {
+            "level": 3,
+            "xpRequired": 900,
+            "subclassOrArchetype": {
+              "name": "Champion",
+              "inferredFromFeature": "Improved Critical"
+            },
+            "gains": [
+              {
+                "name": "Improved Critical",
+                "description": "Weapon attacks score a critical hit on a roll of 19 or 20."
+              }
+            ]
+          },
+          {
+            "level": 4,
+            "xpRequired": 2700,
+            "gains": [
+              {
+                "name": "Ability Score Improvement",
+                "description": "Strength increases to 18.",
+                "effects": [
+                  "Strength modifier becomes +4.",
+                  "Attack bonus and damage for Strength-based attacks such as greataxe and javelin increase by 1.",
+                  "Strength saving throw modifier increases by 1.",
+                  "Athletics modifier increases by 1."
+                ]
+              }
+            ]
+          },
+          {
+            "level": 5,
+            "xpRequired": 6500,
+            "gains": [
+              {
+                "name": "Extra Attack",
+                "description": "When taking the Attack action, make two attacks instead of one."
+              },
+              {
+                "name": "Proficiency Bonus +3",
+                "effects": [
+                  "Attack bonus increases by 1 for proficient weapons.",
+                  "Proficient saving throw and skill modifiers increase by 1.",
+                  "Passive Wisdom (Perception) increases by 1 because Perception modifier increases."
+                ]
+              }
+            ]
+          }
+        ],
+        "improvingArmor": "As treasure is acquired, the character can buy better armor to improve Armor Class."
+      },
+      "customization": {
+        "requiredBeforePlay": [
+          "characterName",
+          "playerName",
+          "confirmPronounsOrDisplayNameIfUsedByApp",
+          "confirmPreparedSpellsIfCaster",
+          "confirmStartingEquipmentIfDMAllowsChanges"
+        ],
+        "safePlayerEditableFields": [
+          "characterName",
+          "playerName",
+          "portraitToken",
+          "pronouns",
+          "personalityTraits",
+          "ideal",
+          "bond",
+          "flaw",
+          "backstoryDetailsThatDoNotContradictCampaignHooks",
+          "knownLanguagesIfDMAllows",
+          "equipmentIfDMAllows",
+          "spellPreparationIfCaster",
+          "visualTheme",
+          "voiceNotes",
+          "notes"
+        ],
+        "dmReviewRecommendedFor": [
+          "abilityScores",
+          "class",
+          "race",
+          "backgroundFeature",
+          "proficiencies",
+          "startingGold",
+          "magicItems",
+          "spellbookContents",
+          "levelProgression"
+        ]
+      }
+    },
+    {
+      "id": "starter_hill_dwarf_cleric_soldier",
+      "templateName": "Hill Dwarf Cleric - Soldier",
+      "templateStatus": "starter_pregen_template_needs_player_finalization",
+      "sourcePages": [
+        3,
+        4
+      ],
+      "roleTags": [
+        "healer",
+        "support",
+        "armored",
+        "divine_magic",
+        "durable"
+      ],
+      "playstyleSummary": "Armored Life cleric with healing, support magic, strong Medicine, and a soldier background connected to the Rockseeker family.",
+      "identity": {
+        "characterName": null,
+        "playerName": null,
+        "race": "Hill dwarf",
+        "subrace": "Hill dwarf",
+        "class": "Cleric",
+        "classLevelText": "Cleric 1",
+        "level": 1,
+        "background": "Soldier",
+        "alignment": "Neutral good",
+        "experiencePoints": null,
+        "deity": "Marthammor Duin",
+        "divineDomain": "Life"
+      },
+      "coreStats": {
+        "proficiencyBonus": 2,
+        "armorClass": 18,
+        "initiative": -1,
+        "speed": {
+          "value": 25,
+          "unit": "feet"
+        },
+        "hitPointMaximum": 11,
+        "currentHitPoints": null,
+        "temporaryHitPoints": null,
+        "hitDice": {
+          "total": "1d8",
+          "die": "d8",
+          "available": null
+        },
+        "deathSaves": {
+          "successes": 0,
+          "failures": 0
+        },
+        "passiveWisdomPerception": 13
+      },
+      "abilityScores": {
+        "strength": {
+          "score": 14,
+          "modifier": 2
+        },
+        "dexterity": {
+          "score": 8,
+          "modifier": -1
+        },
+        "constitution": {
+          "score": 15,
+          "modifier": 2
+        },
+        "intelligence": {
+          "score": 10,
+          "modifier": 0
+        },
+        "wisdom": {
+          "score": 16,
+          "modifier": 3
+        },
+        "charisma": {
+          "score": 12,
+          "modifier": 1
+        }
+      },
+      "savingThrows": {
+        "strength": {
+          "modifier": 2,
+          "proficient": false
+        },
+        "dexterity": {
+          "modifier": -1,
+          "proficient": false
+        },
+        "constitution": {
+          "modifier": 2,
+          "proficient": false
+        },
+        "intelligence": {
+          "modifier": 0,
+          "proficient": false
+        },
+        "wisdom": {
+          "modifier": 5,
+          "proficient": true
+        },
+        "charisma": {
+          "modifier": 3,
+          "proficient": true
+        }
+      },
+      "skills": {
+        "acrobatics": {
+          "ability": "Dex",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "animalHandling": {
+          "ability": "Wis",
+          "modifier": 3,
+          "proficient": false,
+          "expertise": false
+        },
+        "arcana": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "athletics": {
+          "ability": "Str",
+          "modifier": 4,
+          "proficient": true,
+          "expertise": false
+        },
+        "deception": {
+          "ability": "Cha",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "history": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "insight": {
+          "ability": "Wis",
+          "modifier": 3,
+          "proficient": false,
+          "expertise": false
+        },
+        "intimidation": {
+          "ability": "Cha",
+          "modifier": 3,
+          "proficient": true,
+          "expertise": false
+        },
+        "investigation": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "medicine": {
+          "ability": "Wis",
+          "modifier": 5,
+          "proficient": true,
+          "expertise": false
+        },
+        "nature": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "perception": {
+          "ability": "Wis",
+          "modifier": 3,
+          "proficient": false,
+          "expertise": false
+        },
+        "performance": {
+          "ability": "Cha",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "persuasion": {
+          "ability": "Cha",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "religion": {
+          "ability": "Int",
+          "modifier": 2,
+          "proficient": true,
+          "expertise": false
+        },
+        "sleightOfHand": {
+          "ability": "Dex",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "stealth": {
+          "ability": "Dex",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false,
+          "notes": "Disadvantage while wearing chain mail."
+        },
+        "survival": {
+          "ability": "Wis",
+          "modifier": 3,
+          "proficient": false,
+          "expertise": false
+        }
+      },
+      "attacksAndSpellcasting": {
+        "attacks": [
+          {
+            "name": "Warhammer",
+            "attackBonus": 4,
+            "damage": "1d8 + 2",
+            "damageType": "bludgeoning",
+            "properties": [
+              "melee"
+            ]
+          },
+          {
+            "name": "Handaxe",
+            "attackBonus": 4,
+            "damage": "1d6 + 2",
+            "damageType": "slashing",
+            "quantity": 2,
+            "properties": [
+              "thrown"
+            ],
+            "range": {
+              "normal": 20,
+              "long": 60,
+              "unit": "feet"
+            },
+            "longRangeRule": "Attacks beyond normal range up to long range have disadvantage."
+          }
+        ],
+        "spellcasting": {
+          "ability": "Wisdom",
+          "spellSaveDC": 13,
+          "spellAttackBonus": 5,
+          "cantripsKnown": [
+            "light",
+            "sacred flame",
+            "thaumaturgy"
+          ],
+          "cantripsAtWill": true,
+          "spellSlots": {
+            "1st": 2
+          },
+          "preparedSpellCountAtLevel1": 4,
+          "preparedSpellsRule": "Prepare four 1st-level spells from the cleric spell list. Domain spells are always prepared.",
+          "alwaysPreparedDomainSpells": {
+            "1st": [
+              "bless",
+              "cure wounds"
+            ],
+            "2ndLevelClericUnlocksAtCharacterLevel3": [
+              "lesser restoration",
+              "spiritual weapon"
+            ],
+            "3rdLevelClericUnlocksAtCharacterLevel5": [
+              "beacon of hope",
+              "revivify"
+            ]
+          }
+        }
+      },
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 10,
+        "pp": 0
+      },
+      "personality": {
+        "traits": [
+          "I am always polite and respectful.",
+          "I do not trust my gut feelings, so I tend to wait for others to act."
+        ],
+        "ideal": "Respect. People deserve to be treated with dignity and courtesy.",
+        "bond": "I have three cousins - Gundren, Tharden, and Nundro Rockseeker - who are my friends and cherished clan members.",
+        "flaw": "I secretly wonder whether the gods care about mortal affairs at all."
+      },
+      "proficienciesAndLanguages": {
+        "armor": [
+          "All armor",
+          "Shields"
+        ],
+        "weapons": [
+          "Simple weapons",
+          "Battleaxes",
+          "Handaxes",
+          "Light hammers",
+          "Warhammers"
+        ],
+        "tools": [
+          "Mason's tools"
+        ],
+        "gamingSets": [
+          "Playing cards"
+        ],
+        "vehicles": [
+          "Vehicles (land)"
+        ],
+        "languages": [
+          "Common",
+          "Dwarvish"
+        ],
+        "specialProficiencies": [
+          {
+            "name": "Stonecunning",
+            "description": "Whenever making an Intelligence (History) check related to the origin of stonework, considered proficient in History and add double proficiency bonus instead of normal proficiency bonus."
+          }
+        ]
+      },
+      "equipment": {
+        "weapons": [
+          "Warhammer",
+          "2 handaxes",
+          "Dagger taken from a fallen enemy as a trophy"
+        ],
+        "armor": [
+          "Chain mail",
+          "Shield"
+        ],
+        "adventuringGear": [
+          "Holy symbol",
+          "Backpack",
+          "Crowbar",
+          "Hammer",
+          "10 pitons",
+          "10 torches",
+          "Tinderbox",
+          "10 days of rations",
+          "Waterskin",
+          "50 feet of hempen rope"
+        ],
+        "tools": [
+          "Mason's tools",
+          "Deck of playing cards"
+        ],
+        "clothingAndPersonalItems": [
+          "Set of common clothes",
+          "Pouch",
+          "Rank insignia (sergeant)"
+        ],
+        "notes": [
+          "While wearing chain mail, this character has disadvantage on Dexterity (Stealth) checks."
+        ]
+      },
+      "featuresAndTraits": [
+        {
+          "name": "Spellcasting Ability",
+          "source": "Cleric 1",
+          "description": "Wisdom is the spellcasting ability. Spell save DC is 13. Spell attack bonus is +5."
+        },
+        {
+          "name": "Disciple of Life",
+          "source": "Life Domain Cleric 1",
+          "description": "Whenever restoring hit points with a spell of 1st level or higher, the target regains additional hit points equal to 2 + the spell's level."
+        },
+        {
+          "name": "Darkvision",
+          "source": "Dwarf",
+          "range": {
+            "value": 60,
+            "unit": "feet"
+          },
+          "description": "See in dim light as bright light and darkness as dim light within range. Cannot discern color in darkness, only shades of gray."
+        },
+        {
+          "name": "Dwarven Resilience",
+          "source": "Dwarf",
+          "description": "Advantage on saving throws against poison and resistance against poison damage."
+        },
+        {
+          "name": "Dwarven Toughness",
+          "source": "Hill dwarf",
+          "description": "Hit point maximum increases by 1 and increases by 1 whenever gaining a level. Included in displayed HP."
+        },
+        {
+          "name": "Mercenary Sergeant",
+          "source": "Soldier background",
+          "description": "Former minor officer among Mintarn mercenaries. Mintarn soldiers recognize the character's authority and influence and defer if lower rank. Can requisition simple equipment and horses for temporary use and access Mintarn mercenary encampments and fortresses."
+        }
+      ],
+      "loreAndCampaignHooks": {
+        "raceLore": {
+          "race": "Dwarf",
+          "subrace": "Hill dwarf",
+          "forgottenRealmsIdentity": "Gold dwarf who moved to the northern realm of shield dwarves.",
+          "coreTraits": [
+            "Dwarves are tied to ancient grandeur, mountain halls, mines, forges, clan, tradition, and hatred of goblins and orcs.",
+            "They are bold, hardy, skilled warriors, miners, and workers of stone and metal.",
+            "They can live more than 400 years.",
+            "They are solid, enduring, determined, loyal, true to their word, and sometimes stubborn.",
+            "Gold dwarves typically have remote southern kingdoms and keep their distance from human affairs.",
+            "Shield dwarves of the north are strong, hardy, and used to rugged terrain."
+          ],
+          "nameExamples": {
+            "male": [
+              "Adrik",
+              "Baern",
+              "Brottor",
+              "Dain",
+              "Darrak",
+              "Eberk",
+              "Einkil",
+              "Fargrim",
+              "Gardain",
+              "Harbek",
+              "Kildrak",
+              "Morgran",
+              "Orsik",
+              "Rurik",
+              "Taklinn",
+              "Thoradin",
+              "Tordek",
+              "Traubon",
+              "Travok",
+              "Veit",
+              "Vondal"
+            ],
+            "female": [
+              "Amber",
+              "Artin",
+              "Bardryn",
+              "Dagnal",
+              "Diesa",
+              "Eldeth",
+              "Finellen",
+              "Gunnloda",
+              "Gurdis",
+              "Helja",
+              "Hlin",
+              "Kathra",
+              "Kristryd",
+              "Ilde",
+              "Liftrasa",
+              "Mardred",
+              "Riswynn",
+              "Sannl",
+              "Torbera",
+              "Torgga",
+              "Vistra"
+            ],
+            "clan": [
+              "Battlehammer",
+              "Brawnanvil",
+              "Dankil",
+              "Frostbeard",
+              "Gorunn",
+              "Ironfist",
+              "Loderr",
+              "Strakeln",
+              "Torunn",
+              "Ungart"
+            ]
+          }
+        },
+        "classLore": {
+          "class": "Cleric",
+          "classFantasy": [
+            "Clerics are intermediaries between the mortal world and distant planes of the gods.",
+            "They strive to embody the work of their deities.",
+            "A cleric is more than an ordinary priest or temple servant and is imbued with divine magic."
+          ],
+          "divineDomain": {
+            "domain": "Life",
+            "description": "The Life domain is affiliated with many gods of good and gives certain spells, such as bless and cure wounds, always prepared.",
+            "deity": "Marthammor Duin",
+            "deityPortfolio": "Dwarf god of wanderers, travelers, and outcasts who move among strange lands and foreign peoples.",
+            "holySymbol": "A boot overlaid by an upright mace, often worn on a necklace made of silver and iron."
+          }
+        },
+        "backgroundStoryFacts": [
+          "The character trained as a soldier on the island of Mintarn.",
+          "The character traveled to Neverwinter as part of a mercenary company serving as both army and city watch.",
+          "The character grew disillusioned with soldiers who enjoyed authority at the expense of people they were supposed to protect.",
+          "The character recently disobeyed an order and followed their conscience.",
+          "The character was suspended from active duty but kept rank and mercenary connections.",
+          "Since suspension, the character has devoted themself to Marthammor Duin."
+        ],
+        "personalGoal": {
+          "title": "Teach the Redbrands a Lesson",
+          "details": [
+            "Daran Edermath in Phandalin is looking for courageous and principled people to teach bullies a lesson.",
+            "The Redbrands have been throwing their weight around in Phandalin.",
+            "The Redbrands remind the character of abusive compatriots in Neverwinter.",
+            "Stopping the Redbrands' villainy is a worthy goal."
+          ]
+        },
+        "alignmentExplanation": "Conscience, not law or authority, guides the character to do the right thing. Power should benefit all, not oppress the weak."
+      },
+      "levelingPlan": {
+        "hitPointGainPerLevel": "Gain one additional Hit Die and add 1d8 + 3 to hit point maximum.",
+        "spellcastingAdvancement": {
+          "level2": {
+            "preparedSpells": 5,
+            "spellSlots": {
+              "1st": 3,
+              "2nd": 0,
+              "3rd": 0
+            }
+          },
+          "level3": {
+            "preparedSpells": 6,
+            "spellSlots": {
+              "1st": 4,
+              "2nd": 2,
+              "3rd": 0
+            }
+          },
+          "level4": {
+            "preparedSpells": 8,
+            "spellSlots": {
+              "1st": 4,
+              "2nd": 3,
+              "3rd": 0
+            }
+          },
+          "level5": {
+            "preparedSpells": 9,
+            "spellSlots": {
+              "1st": 4,
+              "2nd": 3,
+              "3rd": 2
+            }
+          }
+        },
+        "levels": [
+          {
+            "level": 2,
+            "xpRequired": 300,
+            "gains": [
+              {
+                "name": "Channel Divinity",
+                "description": "Use divine energy to fuel Turn Undead or Preserve Life. Requires an action and presentation of holy symbol. Choose effect when used. Recharges after short or long rest."
+              },
+              {
+                "name": "Turn Undead",
+                "description": "Each undead that can see or hear the character within 30 feet must make a Wisdom save DC 13. Failed save turns the creature for 1 minute or until it takes damage. Turned creature must move away, cannot willingly move within 30 feet, cannot take reactions, and can only Dash or escape effects preventing movement. If nowhere to move, it Dodges."
+              },
+              {
+                "name": "Preserve Life",
+                "description": "Choose one or more creatures within 30 feet and distribute up to 10 HP among them. Cannot restore a creature above half its HP maximum. Amount becomes 15 at level 3, 20 at level 4, and 25 at level 5."
+              }
+            ]
+          },
+          {
+            "level": 3,
+            "xpRequired": 900,
+            "gains": [
+              {
+                "name": "2nd-level Cleric Spells",
+                "description": "Can prepare and cast 2nd-level spells."
+              },
+              {
+                "name": "Additional Domain Spells",
+                "description": "lesser restoration and spiritual weapon are always prepared."
+              }
+            ]
+          },
+          {
+            "level": 4,
+            "xpRequired": 2700,
+            "gains": [
+              {
+                "name": "Additional Cleric Cantrip",
+                "description": "Learn one more cleric cantrip of choice."
+              },
+              {
+                "name": "Ability Score Improvement",
+                "description": "Wisdom increases to 18.",
+                "effects": [
+                  "Wisdom modifier becomes +4.",
+                  "Spell save DC and Turn Undead DC increase by 1.",
+                  "Spell attack bonus increases by 1.",
+                  "Wisdom saving throw modifier increases by 1.",
+                  "Wisdom-based skill modifiers increase by 1.",
+                  "Passive Wisdom (Perception) increases by 1."
+                ]
+              }
+            ]
+          },
+          {
+            "level": 5,
+            "xpRequired": 6500,
+            "gains": [
+              {
+                "name": "3rd-level Cleric Spells",
+                "description": "Can prepare and cast 3rd-level spells."
+              },
+              {
+                "name": "Additional Domain Spells",
+                "description": "beacon of hope and revivify are always prepared."
+              },
+              {
+                "name": "Proficiency Bonus +3",
+                "effects": [
+                  "Attack bonus increases by 1 for spell attacks and proficient weapons.",
+                  "Spell save DC and Turn Undead DC increase by 1.",
+                  "Proficient saving throw and skill modifiers increase by 1."
+                ]
+              },
+              {
+                "name": "Destroy Undead",
+                "description": "When an undead fails its save against Turn Undead, it is instantly destroyed if its challenge rating is 1/2 or lower."
+              }
+            ]
+          }
+        ],
+        "improvingArmor": "As treasure is acquired, the character can buy better armor to improve Armor Class."
+      },
+      "customization": {
+        "requiredBeforePlay": [
+          "characterName",
+          "playerName",
+          "confirmPronounsOrDisplayNameIfUsedByApp",
+          "confirmPreparedSpellsIfCaster",
+          "confirmStartingEquipmentIfDMAllowsChanges"
+        ],
+        "safePlayerEditableFields": [
+          "characterName",
+          "playerName",
+          "portraitToken",
+          "pronouns",
+          "personalityTraits",
+          "ideal",
+          "bond",
+          "flaw",
+          "backstoryDetailsThatDoNotContradictCampaignHooks",
+          "knownLanguagesIfDMAllows",
+          "equipmentIfDMAllows",
+          "spellPreparationIfCaster",
+          "visualTheme",
+          "voiceNotes",
+          "notes"
+        ],
+        "dmReviewRecommendedFor": [
+          "abilityScores",
+          "class",
+          "race",
+          "backgroundFeature",
+          "proficiencies",
+          "startingGold",
+          "magicItems",
+          "spellbookContents",
+          "levelProgression"
+        ]
+      }
+    },
+    {
+      "id": "starter_lightfoot_halfling_rogue_criminal",
+      "templateName": "Lightfoot Halfling Rogue - Criminal",
+      "templateStatus": "starter_pregen_template_needs_player_finalization",
+      "sourcePages": [
+        5,
+        6
+      ],
+      "roleTags": [
+        "stealth",
+        "skills",
+        "scout",
+        "criminal_contact",
+        "revenge_hook"
+      ],
+      "playstyleSummary": "Stealth-focused rogue with Sneak Attack, thieves' tools expertise, social trickery, and a built-in Redbrands revenge hook.",
+      "identity": {
+        "characterName": null,
+        "playerName": null,
+        "race": "Lightfoot halfling",
+        "subrace": "Lightfoot halfling",
+        "class": "Rogue",
+        "classLevelText": "Rogue 1",
+        "level": 1,
+        "background": "Criminal",
+        "alignment": "Neutral",
+        "experiencePoints": null
+      },
+      "coreStats": {
+        "proficiencyBonus": 2,
+        "armorClass": 14,
+        "initiative": 3,
+        "speed": {
+          "value": 25,
+          "unit": "feet"
+        },
+        "hitPointMaximum": 9,
+        "currentHitPoints": null,
+        "temporaryHitPoints": null,
+        "hitDice": {
+          "total": "1d8",
+          "die": "d8",
+          "available": null
+        },
+        "deathSaves": {
+          "successes": 0,
+          "failures": 0
+        },
+        "passiveWisdomPerception": 10
+      },
+      "abilityScores": {
+        "strength": {
+          "score": 8,
+          "modifier": -1
+        },
+        "dexterity": {
+          "score": 16,
+          "modifier": 3
+        },
+        "constitution": {
+          "score": 12,
+          "modifier": 1
+        },
+        "intelligence": {
+          "score": 13,
+          "modifier": 1
+        },
+        "wisdom": {
+          "score": 10,
+          "modifier": 0
+        },
+        "charisma": {
+          "score": 16,
+          "modifier": 3
+        }
+      },
+      "savingThrows": {
+        "strength": {
+          "modifier": -1,
+          "proficient": false
+        },
+        "dexterity": {
+          "modifier": 5,
+          "proficient": true
+        },
+        "constitution": {
+          "modifier": 1,
+          "proficient": false
+        },
+        "intelligence": {
+          "modifier": 3,
+          "proficient": true
+        },
+        "wisdom": {
+          "modifier": 0,
+          "proficient": false
+        },
+        "charisma": {
+          "modifier": 3,
+          "proficient": false
+        }
+      },
+      "skills": {
+        "acrobatics": {
+          "ability": "Dex",
+          "modifier": 5,
+          "proficient": true,
+          "expertise": false
+        },
+        "animalHandling": {
+          "ability": "Wis",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "arcana": {
+          "ability": "Int",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "athletics": {
+          "ability": "Str",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "deception": {
+          "ability": "Cha",
+          "modifier": 5,
+          "proficient": true,
+          "expertise": false
+        },
+        "history": {
+          "ability": "Int",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "insight": {
+          "ability": "Wis",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "intimidation": {
+          "ability": "Cha",
+          "modifier": 3,
+          "proficient": false,
+          "expertise": false
+        },
+        "investigation": {
+          "ability": "Int",
+          "modifier": 3,
+          "proficient": true,
+          "expertise": false
+        },
+        "medicine": {
+          "ability": "Wis",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "nature": {
+          "ability": "Int",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "perception": {
+          "ability": "Wis",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "performance": {
+          "ability": "Cha",
+          "modifier": 5,
+          "proficient": true,
+          "expertise": false
+        },
+        "persuasion": {
+          "ability": "Cha",
+          "modifier": 3,
+          "proficient": false,
+          "expertise": false
+        },
+        "religion": {
+          "ability": "Int",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "sleightOfHand": {
+          "ability": "Dex",
+          "modifier": 5,
+          "proficient": true,
+          "expertise": false
+        },
+        "stealth": {
+          "ability": "Dex",
+          "modifier": 7,
+          "proficient": true,
+          "expertise": true,
+          "notes": "Expertise doubles proficiency bonus for Stealth."
+        },
+        "survival": {
+          "ability": "Wis",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        }
+      },
+      "attacksAndSpellcasting": {
+        "attacks": [
+          {
+            "name": "Shortsword",
+            "attackBonus": 5,
+            "damage": "1d6 + 3",
+            "damageType": "piercing",
+            "properties": [
+              "finesse",
+              "melee"
+            ]
+          },
+          {
+            "name": "Shortbow",
+            "attackBonus": 5,
+            "damage": "1d6 + 3",
+            "damageType": "piercing",
+            "properties": [
+              "ranged"
+            ],
+            "range": {
+              "normal": 80,
+              "long": 320,
+              "unit": "feet"
+            },
+            "longRangeRule": "Attacks beyond normal range up to long range have disadvantage."
+          }
+        ],
+        "spellcasting": null,
+        "sneakAttack": {
+          "damage": "1d6",
+          "frequency": "Once per turn",
+          "trigger": "Hit with a Dexterity-based attack such as shortsword or shortbow and either have advantage, or another enemy of the target is within 5 feet of it and is not incapacitated.",
+          "restriction": "Cannot apply if the attack roll has disadvantage."
+        }
+      },
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 15,
+        "pp": 0
+      },
+      "personality": {
+        "traits": [
+          "I never have a plan, but I am great at making things up as I go along.",
+          "The best way to get me to do something is to tell me I cannot do it."
+        ],
+        "ideal": "People. I am loyal to my friends, not to any ideals. Everyone else can take a trip on the River Styx for all I care.",
+        "bond": "Qelline Alderlead, my aunt, has a farm in Phandalin. I always give her some of my ill-gotten gains.",
+        "flaw": "My aunt must never know the deeds I did as a member of the Redbrands."
+      },
+      "proficienciesAndLanguages": {
+        "armor": [
+          "Light armor"
+        ],
+        "weapons": [
+          "Simple weapons",
+          "Hand crossbows",
+          "Longswords",
+          "Rapiers",
+          "Shortswords"
+        ],
+        "tools": [
+          "Thieves' tools",
+          "Carpenter's tools"
+        ],
+        "gamingSets": [
+          "Playing cards"
+        ],
+        "vehicles": [],
+        "languages": [
+          "Common",
+          "Halfling"
+        ],
+        "specialProficiencies": [
+          {
+            "name": "Expertise",
+            "description": "Dexterity (Stealth) checks and checks using thieves' tools use doubled proficiency bonus. Stealth bonus already includes this."
+          }
+        ]
+      },
+      "equipment": {
+        "weapons": [
+          "Shortsword",
+          "Shortbow",
+          "20 arrows"
+        ],
+        "armor": [
+          "Leather armor"
+        ],
+        "tools": [
+          "Thieves' tools"
+        ],
+        "adventuringGear": [
+          "Backpack",
+          "Bell",
+          "5 candles",
+          "Crowbar",
+          "Hammer",
+          "10 pitons",
+          "50 feet of hempen rope",
+          "Hooded lantern",
+          "2 flasks of oil",
+          "5 days rations",
+          "Tinderbox",
+          "Waterskin",
+          "Crowbar"
+        ],
+        "clothingAndPersonalItems": [
+          "Set of dark common clothes including a hood",
+          "Pouch"
+        ],
+        "notes": [
+          "Crowbar appears twice on the source sheet and is preserved here as listed."
+        ]
+      },
+      "featuresAndTraits": [
+        {
+          "name": "Thieves' Cant",
+          "source": "Rogue 1",
+          "description": "Secret mix of dialect, jargon, and code that hides messages in normal conversation. Also includes secret signs and symbols for messages such as danger, nearby loot, easy marks, or safe houses."
+        },
+        {
+          "name": "Sneak Attack",
+          "source": "Rogue 1",
+          "description": "Once per turn on a qualifying Dexterity-based attack, deal an extra 1d6 damage."
+        },
+        {
+          "name": "Lucky",
+          "source": "Halfling",
+          "description": "When rolling a natural 1 on an attack roll, ability check, or saving throw, reroll the die and use the new roll."
+        },
+        {
+          "name": "Brave",
+          "source": "Halfling",
+          "description": "Advantage on saving throws against being frightened."
+        },
+        {
+          "name": "Halfling Nimbleness",
+          "source": "Halfling",
+          "description": "Can move through the space of any creature larger than the halfling."
+        },
+        {
+          "name": "Naturally Stealthy",
+          "source": "Lightfoot halfling",
+          "description": "Can attempt to hide when obscured by a creature at least one size larger."
+        },
+        {
+          "name": "Criminal Contact",
+          "source": "Criminal background",
+          "description": "A liaison to a criminal network. Can send messages through local messengers, corrupt caravan masters, and seedy sailors. Can move secret information or stolen goods through the contact in exchange for money or information."
+        }
+      ],
+      "loreAndCampaignHooks": {
+        "raceLore": {
+          "race": "Halfling",
+          "subrace": "Lightfoot halfling",
+          "coreTraits": [
+            "Most halflings seek comfort, home, peace, quiet, a blazing fire, generous food, fine drink, and fine conversation.",
+            "Some live in agricultural communities while others form nomadic bands drawn by the open road.",
+            "Even wandering halflings love peace, food, hearth, and home.",
+            "Halflings stand about 3 feet tall and survive among larger creatures by avoiding notice or avoiding offense.",
+            "They are concerned with basic needs and simple pleasures and have little use for ostentation.",
+            "They are affable and cheerful, cherishing family, friendship, hearth, and home.",
+            "Halfling adventurers often adventure for community, friendship, wanderlust, or curiosity.",
+            "A halfling has a given name, family name, and possibly a nickname. Family names often began as nicknames."
+          ],
+          "nameExamples": {
+            "male": [
+              "Alton",
+              "Ander",
+              "Cade",
+              "Corrin",
+              "Eldon",
+              "Errich",
+              "Finnan",
+              "Garret",
+              "Lindal",
+              "Lyle",
+              "Merric",
+              "Milo",
+              "Osborn",
+              "Perrin",
+              "Reed",
+              "Roscoe",
+              "Wellby"
+            ],
+            "female": [
+              "Andry",
+              "Bree",
+              "Callie",
+              "Cora",
+              "Euphemia",
+              "Jillian",
+              "Kithri",
+              "Lavinia",
+              "Lidda",
+              "Merla",
+              "Nedda",
+              "Paela",
+              "Portia",
+              "Seraphina",
+              "Shaena",
+              "Trym",
+              "Vani",
+              "Verna"
+            ],
+            "family": [
+              "Brushgather",
+              "Goodbarrel",
+              "Greenbottle",
+              "High-hill",
+              "Hilltopple",
+              "Leagallow",
+              "Tealeaf",
+              "Thorngage",
+              "Tosscobble",
+              "Underbough"
+            ]
+          }
+        },
+        "classLore": {
+          "class": "Rogue",
+          "classFantasy": [
+            "Rogues rely on skill, stealth, and enemy vulnerabilities.",
+            "They have a knack for finding solutions to nearly any problem."
+          ]
+        },
+        "backgroundStoryFacts": [
+          "Phandalin is built on ruins of an older settlement that was vacant for five centuries.",
+          "Settlers began rebuilding Phandalin some years ago.",
+          "Stories of gold and platinum in the nearby foothills drew the character to Phandalin.",
+          "The character came not to earn a living but to prey on people who struck it rich.",
+          "The character joined a gang called the Redbrands and earned coin as a burglar, enforcer, or fence.",
+          "The character made an enemy among the Redbrands.",
+          "Someone set the character up.",
+          "On that person's word, Glasstaff, wizard leader of the Redbrands, tried to have the character killed.",
+          "The character escaped barely alive, thanking Tymora, goddess of good fortune, for luck.",
+          "The character fled Phandalin almost penniless with only the tools of the trade."
+        ],
+        "personalGoal": {
+          "title": "Get Your Revenge",
+          "details": [
+            "Someone in the Redbrands nearly killed the character.",
+            "The character wants to know who did it.",
+            "The character wants revenge on that person, Glasstaff, possibly all Redbrands.",
+            "A tip says Halia Thornton also has it out for the Redbrands.",
+            "Halia Thornton lives in Phandalin.",
+            "Returning to Phandalin means showing their face to Redbrands who still want them dead."
+          ]
+        },
+        "alignmentExplanation": "The character tends to do whatever seems best at the time. They have done things they are not proud of and are not committed to improving the world, but do not want to cause suffering or make things worse."
+      },
+      "levelingPlan": {
+        "hitPointGainPerLevel": "Gain one additional Hit Die and add 1d8 + 1 to hit point maximum.",
+        "levels": [
+          {
+            "level": 2,
+            "xpRequired": 300,
+            "gains": [
+              {
+                "name": "Cunning Action",
+                "description": "Can take a bonus action on each turn in combat, limited to Dash, Disengage, or Hide."
+              }
+            ]
+          },
+          {
+            "level": 3,
+            "xpRequired": 900,
+            "subclassOrArchetype": {
+              "name": "Thief",
+              "inferredFromFeatures": [
+                "Second-Story Work",
+                "Fast Hands"
+              ]
+            },
+            "gains": [
+              {
+                "name": "Second-Story Work",
+                "description": "Climbing no longer costs extra movement. Running jump distance increases by feet equal to Dexterity modifier."
+              },
+              {
+                "name": "Fast Hands",
+                "description": "Can use Cunning Action bonus action to make a Dexterity (Sleight of Hand) check, take the Use an Object action, or use thieves' tools to disarm a trap or open a lock."
+              },
+              {
+                "name": "Sneak Attack Improvement",
+                "description": "Sneak Attack becomes 2d6."
+              }
+            ]
+          },
+          {
+            "level": 4,
+            "xpRequired": 2700,
+            "gains": [
+              {
+                "name": "Ability Score Improvement",
+                "description": "Dexterity increases to 18.",
+                "effects": [
+                  "Dexterity modifier becomes +4.",
+                  "Attack bonus and damage for Dexterity-based attacks such as shortsword and shortbow increase by 1.",
+                  "Dexterity saving throw modifier increases by 1.",
+                  "Dexterity-based skill modifiers increase by 1.",
+                  "Armor Class increases by 1 while wearing light or no armor.",
+                  "Initiative increases by 1."
+                ]
+              }
+            ]
+          },
+          {
+            "level": 5,
+            "xpRequired": 6500,
+            "gains": [
+              {
+                "name": "Proficiency Bonus +3",
+                "effects": [
+                  "Attack bonus increases by 1 for proficient weapons.",
+                  "Proficient saving throw and skill modifiers increase by 1.",
+                  "Expertise bonuses for Stealth and thieves' tools each increase by 2."
+                ]
+              },
+              {
+                "name": "Sneak Attack Improvement",
+                "description": "Sneak Attack becomes 3d6."
+              },
+              {
+                "name": "Uncanny Dodge",
+                "description": "When an attacker the rogue can see hits with an attack roll, use reaction to halve the attack's damage."
+              }
+            ]
+          }
+        ],
+        "improvingArmor": "As treasure is acquired, the character can buy better armor to improve Armor Class."
+      },
+      "customization": {
+        "requiredBeforePlay": [
+          "characterName",
+          "playerName",
+          "confirmPronounsOrDisplayNameIfUsedByApp",
+          "confirmPreparedSpellsIfCaster",
+          "confirmStartingEquipmentIfDMAllowsChanges"
+        ],
+        "safePlayerEditableFields": [
+          "characterName",
+          "playerName",
+          "portraitToken",
+          "pronouns",
+          "personalityTraits",
+          "ideal",
+          "bond",
+          "flaw",
+          "backstoryDetailsThatDoNotContradictCampaignHooks",
+          "knownLanguagesIfDMAllows",
+          "equipmentIfDMAllows",
+          "spellPreparationIfCaster",
+          "visualTheme",
+          "voiceNotes",
+          "notes"
+        ],
+        "dmReviewRecommendedFor": [
+          "abilityScores",
+          "class",
+          "race",
+          "backgroundFeature",
+          "proficiencies",
+          "startingGold",
+          "magicItems",
+          "spellbookContents",
+          "levelProgression"
+        ]
+      }
+    },
+    {
+      "id": "starter_high_elf_wizard_acolyte",
+      "templateName": "High Elf Wizard - Acolyte",
+      "templateStatus": "starter_pregen_template_needs_player_finalization",
+      "sourcePages": [
+        7,
+        8
+      ],
+      "roleTags": [
+        "arcane_magic",
+        "utility",
+        "knowledge",
+        "ranged_spells",
+        "lore_hook"
+      ],
+      "playstyleSummary": "Intelligence-based wizard with a strong spellbook, knowledge skills, Oghma faith hook, and future School of Evocation progression.",
+      "identity": {
+        "characterName": null,
+        "playerName": null,
+        "race": "High elf",
+        "subrace": "High elf",
+        "class": "Wizard",
+        "classLevelText": "Wizard 1",
+        "level": 1,
+        "background": "Acolyte",
+        "alignment": "Chaotic good",
+        "experiencePoints": null,
+        "deity": "Oghma"
+      },
+      "coreStats": {
+        "proficiencyBonus": 2,
+        "armorClass": 12,
+        "initiative": 2,
+        "speed": {
+          "value": 30,
+          "unit": "feet"
+        },
+        "hitPointMaximum": 8,
+        "currentHitPoints": null,
+        "temporaryHitPoints": null,
+        "hitDice": {
+          "total": "1d6",
+          "die": "d6",
+          "available": null
+        },
+        "deathSaves": {
+          "successes": 0,
+          "failures": 0
+        },
+        "passiveWisdomPerception": 13
+      },
+      "abilityScores": {
+        "strength": {
+          "score": 10,
+          "modifier": 0
+        },
+        "dexterity": {
+          "score": 15,
+          "modifier": 2
+        },
+        "constitution": {
+          "score": 14,
+          "modifier": 2
+        },
+        "intelligence": {
+          "score": 16,
+          "modifier": 3
+        },
+        "wisdom": {
+          "score": 12,
+          "modifier": 1
+        },
+        "charisma": {
+          "score": 8,
+          "modifier": -1
+        }
+      },
+      "savingThrows": {
+        "strength": {
+          "modifier": 0,
+          "proficient": false
+        },
+        "dexterity": {
+          "modifier": 2,
+          "proficient": false
+        },
+        "constitution": {
+          "modifier": 2,
+          "proficient": false
+        },
+        "intelligence": {
+          "modifier": 5,
+          "proficient": true
+        },
+        "wisdom": {
+          "modifier": 3,
+          "proficient": true
+        },
+        "charisma": {
+          "modifier": -1,
+          "proficient": false
+        }
+      },
+      "skills": {
+        "acrobatics": {
+          "ability": "Dex",
+          "modifier": 2,
+          "proficient": false,
+          "expertise": false
+        },
+        "animalHandling": {
+          "ability": "Wis",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "arcana": {
+          "ability": "Int",
+          "modifier": 5,
+          "proficient": true,
+          "expertise": false
+        },
+        "athletics": {
+          "ability": "Str",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "deception": {
+          "ability": "Cha",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "history": {
+          "ability": "Int",
+          "modifier": 3,
+          "proficient": false,
+          "expertise": false
+        },
+        "insight": {
+          "ability": "Wis",
+          "modifier": 3,
+          "proficient": true,
+          "expertise": false
+        },
+        "intimidation": {
+          "ability": "Cha",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "investigation": {
+          "ability": "Int",
+          "modifier": 5,
+          "proficient": true,
+          "expertise": false
+        },
+        "medicine": {
+          "ability": "Wis",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "nature": {
+          "ability": "Int",
+          "modifier": 3,
+          "proficient": false,
+          "expertise": false
+        },
+        "perception": {
+          "ability": "Wis",
+          "modifier": 3,
+          "proficient": true,
+          "expertise": false
+        },
+        "performance": {
+          "ability": "Cha",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "persuasion": {
+          "ability": "Cha",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "religion": {
+          "ability": "Int",
+          "modifier": 5,
+          "proficient": true,
+          "expertise": false
+        },
+        "sleightOfHand": {
+          "ability": "Dex",
+          "modifier": 2,
+          "proficient": false,
+          "expertise": false
+        },
+        "stealth": {
+          "ability": "Dex",
+          "modifier": 2,
+          "proficient": false,
+          "expertise": false
+        },
+        "survival": {
+          "ability": "Wis",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        }
+      },
+      "attacksAndSpellcasting": {
+        "attacks": [
+          {
+            "name": "Shortsword",
+            "attackBonus": 4,
+            "damage": "1d6 + 2",
+            "damageType": "piercing",
+            "properties": [
+              "melee"
+            ]
+          }
+        ],
+        "spellcasting": {
+          "ability": "Intelligence",
+          "spellSaveDC": 13,
+          "spellAttackBonus": 5,
+          "cantripsKnown": [
+            "mage hand",
+            "prestidigitation",
+            "ray of frost",
+            "shocking grasp"
+          ],
+          "cantripsAtWill": true,
+          "spellSlots": {
+            "1st": 2
+          },
+          "preparedSpellCountAtLevel1": 4,
+          "preparedSpellsRule": "Prepare four 1st-level spells from the spellbook.",
+          "spellbook": [
+            "burning hands",
+            "detect magic",
+            "mage armor",
+            "magic missile",
+            "shield",
+            "sleep"
+          ],
+          "arcaneRecovery": "Once per day during a short rest, recover expended spell slots with combined level equal to or less than half wizard level rounded up."
+        }
+      },
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 5,
+        "pp": 0
+      },
+      "personality": {
+        "traits": [
+          "I use polysyllabic words that convey the impression of erudition.",
+          "I have spent so long in the temple that I have little experience dealing with people on a casual basis."
+        ],
+        "ideal": "Knowledge. The path to power and self-improvement is through knowledge.",
+        "bond": "The tome I carry with me is the record of my life's work so far, and no vault is secure enough to keep it safe.",
+        "flaw": "I will do just about anything to uncover historical secrets that would add to my research."
+      },
+      "proficienciesAndLanguages": {
+        "armor": [],
+        "weapons": [
+          "Daggers",
+          "Darts",
+          "Light crossbows",
+          "Longbows",
+          "Longswords",
+          "Quarterstaffs",
+          "Shortbows",
+          "Shortswords",
+          "Slings"
+        ],
+        "tools": [],
+        "gamingSets": [],
+        "vehicles": [],
+        "languages": [
+          "Common",
+          "Elvish",
+          "Draconic",
+          "Dwarvish",
+          "Goblin"
+        ]
+      },
+      "equipment": {
+        "weapons": [
+          "Shortsword"
+        ],
+        "armor": [],
+        "spellcastingFocusOrComponents": [
+          "Component pouch",
+          "Spellbook"
+        ],
+        "adventuringGear": [
+          "Backpack",
+          "Bottle of ink",
+          "Ink pen",
+          "10 sheets of parchment",
+          "Small knife"
+        ],
+        "clothingAndPersonalItems": [
+          "Tome of historical lore",
+          "Holy symbol",
+          "Prayer book",
+          "Set of common clothes",
+          "Pouch"
+        ]
+      },
+      "featuresAndTraits": [
+        {
+          "name": "Spellcasting Ability",
+          "source": "Wizard 1",
+          "description": "Intelligence is the spellcasting ability. Spell save DC is 13. Spell attack bonus is +5."
+        },
+        {
+          "name": "Arcane Recovery",
+          "source": "Wizard 1",
+          "uses": "Once per day during a short rest",
+          "description": "Recover expended spell slots with combined level equal to or less than half wizard level rounded up."
+        },
+        {
+          "name": "Darkvision",
+          "source": "Elf",
+          "range": {
+            "value": 60,
+            "unit": "feet"
+          },
+          "description": "See in dim light as bright light and darkness as dim light within range. Cannot discern color in darkness, only shades of gray."
+        },
+        {
+          "name": "Fey Ancestry",
+          "source": "Elf",
+          "description": "Advantage on saving throws against being charmed, and magic cannot put the character to sleep."
+        },
+        {
+          "name": "Trance",
+          "source": "Elf",
+          "description": "Elves do not need sleep. They meditate deeply for 4 hours and gain the same benefit a human gains from 8 hours of sleep."
+        },
+        {
+          "name": "Shelter of the Faithful",
+          "source": "Acolyte background",
+          "description": "As a servant of Oghma, the character commands respect from those sharing the faith and can perform Oghma's rites. The character and companions can expect free healing and care at temples, shrines, or established presences of Oghma's faith. Followers support the character, and only the character, at a modest lifestyle. The character has ties to the temple of Oghma in Neverwinter, has a residence there, and can call upon priests for help that will not endanger them."
+        }
+      ],
+      "loreAndCampaignHooks": {
+        "raceLore": {
+          "race": "Elf",
+          "subrace": "High elf",
+          "forgottenRealmsIdentity": "Sun elf, also called gold elf or sunrise elf.",
+          "coreTraits": [
+            "Elves are graceful and otherworldly, living in the world but not entirely part of it.",
+            "They favor places of ethereal beauty, ancient forests, silvery spires, music, and gentle fragrance.",
+            "Elves love nature, magic, art, artistry, music, and poetry.",
+            "Elves can live over 700 years.",
+            "They are often amused rather than excited, curious rather than greedy, aloof, and unfazed by petty events.",
+            "They tend to prefer diplomacy and compromise before violence.",
+            "Many elves live in hidden forest villages and rarely contact outsiders, though some trade crafted goods for metals.",
+            "Sun elves can have bronze skin, copper, black, or golden blond hair, and golden, silver, or black eyes.",
+            "Sun elves are more reclusive than moon elves, but this character was called by Oghma to live among other peoples.",
+            "Elves are considered children until declaring adulthood sometime after their hundredth birthday.",
+            "Elves use child names before adulthood, then choose adult names. Each also has a family name, often a combination of Elvish words. Some translate family names into Common."
+          ],
+          "nameExamples": {
+            "child": [
+              "Ara",
+              "Bryn",
+              "Del",
+              "Innil",
+              "Lael",
+              "Mella",
+              "Naeris",
+              "Phann",
+              "Rael",
+              "Rinn",
+              "Syllin",
+              "Vall"
+            ],
+            "maleAdult": [
+              "Adran",
+              "Berrian",
+              "Carric",
+              "Erevan",
+              "Galinndan",
+              "Hadarai",
+              "Immeral",
+              "Paelias",
+              "Quarion",
+              "Riardon",
+              "Soveliss",
+              "Theren",
+              "Varis"
+            ],
+            "femaleAdult": [
+              "Althaea",
+              "Bethrynna",
+              "Caelynn",
+              "Ielenia",
+              "Leshanna",
+              "Meriele",
+              "Naivara",
+              "Quillathe",
+              "Silaqui",
+              "Thia",
+              "Vadania",
+              "Valanthe",
+              "Xanaphia"
+            ],
+            "familyCommonTranslations": {
+              "Amastacia": "Starflower",
+              "Galanodel": "Moonwhisper",
+              "Liadon": "Silverfrond",
+              "Meliamne": "Oakenheel",
+              "Siannodel": "Moonbrook",
+              "Ilphelkiir": "Gemblossom"
+            }
+          }
+        },
+        "classLore": {
+          "class": "Wizard",
+          "classFantasy": [
+            "Wizards are supreme magic-users drawing on the weave of magic.",
+            "They can cast explosive fire, arcing lightning, subtle deception, and brute-force mind control.",
+            "Powerful wizards can conjure elementals, glimpse the future, or turn slain foes into zombies."
+          ]
+        },
+        "backgroundStoryFacts": [
+          "The character has spent life dedicated to Oghma, all-seeing god of knowledge.",
+          "The character spent years learning the lore of the multiverse."
+        ],
+        "personalGoal": {
+          "title": "Reconsecrate the Defiled Altar",
+          "details": [
+            "Through visions delivered in trances, Oghma has called the character to a new mission.",
+            "A goblin tribe lairs in an ancient ruin now called Cragmaw Castle.",
+            "The goblins defiled a shrine once sacred to Oghma.",
+            "The altar is now dedicated to the goblin god Maglubiyet.",
+            "The defiled altar is an offense to Oghma that must not stand.",
+            "The character believes Oghma has greater things in store if the quest is completed.",
+            "The visions suggest Sister Garaele, priest of Tymora goddess of luck, can aid the character in Phandalin."
+          ]
+        },
+        "alignmentExplanation": "Knowledge should benefit all. Kingdoms and laws are useful only as far as they allow knowledge to flourish. Tyrants who suppress and control knowledge are villains. The character shares knowledge freely and uses learning to help where possible."
+      },
+      "levelingPlan": {
+        "hitPointGainPerLevel": "Gain one additional Hit Die and add 1d6 + 2 to hit point maximum.",
+        "spellcastingAdvancement": {
+          "level2": {
+            "preparedSpells": 5,
+            "spellSlots": {
+              "1st": 3,
+              "2nd": 0,
+              "3rd": 0
+            }
+          },
+          "level3": {
+            "preparedSpells": 6,
+            "spellSlots": {
+              "1st": 4,
+              "2nd": 2,
+              "3rd": 0
+            }
+          },
+          "level4": {
+            "preparedSpells": 8,
+            "spellSlots": {
+              "1st": 4,
+              "2nd": 3,
+              "3rd": 0
+            }
+          },
+          "level5": {
+            "preparedSpells": 9,
+            "spellSlots": {
+              "1st": 4,
+              "2nd": 3,
+              "3rd": 2
+            }
+          }
+        },
+        "spellbookGrowth": {
+          "onWizardLevelGain": "Add two wizard spells of choice to the spellbook from the wizard spell list. Each must be of a level for which the character has spell slots.",
+          "adventureCopying": "Can add wizard spells found in scrolls or books if they are of a level for which the character has spell slots and time/cost are available.",
+          "copyingCost": "For each level of the spell, copying takes 2 hours and requires 50 gp for materials and fine inks."
+        },
+        "levels": [
+          {
+            "level": 2,
+            "xpRequired": 300,
+            "subclassOrArcaneTradition": {
+              "name": "School of Evocation",
+              "inferredFromFeatures": [
+                "Evocation Savant",
+                "Sculpt Spells"
+              ]
+            },
+            "gains": [
+              {
+                "name": "Evocation Savant",
+                "description": "Gold and time required to copy an evocation spell into the spellbook are halved."
+              },
+              {
+                "name": "Sculpt Spells",
+                "description": "When casting an evocation spell affecting other visible creatures, choose a number equal to 1 + the spell's level. Chosen creatures automatically succeed on saving throws against the spell and take no damage if they would normally take half damage."
+              }
+            ]
+          },
+          {
+            "level": 3,
+            "xpRequired": 900,
+            "gains": [
+              {
+                "name": "2nd-level Wizard Spells",
+                "description": "Can prepare and cast 2nd-level spells."
+              }
+            ]
+          },
+          {
+            "level": 4,
+            "xpRequired": 2700,
+            "gains": [
+              {
+                "name": "Additional Wizard Cantrip",
+                "description": "Learn one more wizard cantrip of choice."
+              },
+              {
+                "name": "Ability Score Improvement",
+                "description": "Intelligence increases to 18.",
+                "effects": [
+                  "Intelligence modifier becomes +4.",
+                  "Spell save DC increases by 1.",
+                  "Spell attack bonus increases by 1.",
+                  "Intelligence saving throw modifier increases by 1.",
+                  "Intelligence-based skill modifiers increase by 1."
+                ]
+              }
+            ]
+          },
+          {
+            "level": 5,
+            "xpRequired": 6500,
+            "gains": [
+              {
+                "name": "3rd-level Wizard Spells",
+                "description": "Can prepare and cast 3rd-level spells."
+              },
+              {
+                "name": "Proficiency Bonus +3",
+                "effects": [
+                  "Attack bonus increases by 1 for spell attacks and proficient weapons.",
+                  "Spell save DC increases by 1.",
+                  "Proficient saving throw and skill modifiers increase by 1.",
+                  "Passive Wisdom (Perception) increases by 1 because Perception modifier increases."
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "customization": {
+        "requiredBeforePlay": [
+          "characterName",
+          "playerName",
+          "confirmPronounsOrDisplayNameIfUsedByApp",
+          "confirmPreparedSpellsIfCaster",
+          "confirmStartingEquipmentIfDMAllowsChanges"
+        ],
+        "safePlayerEditableFields": [
+          "characterName",
+          "playerName",
+          "portraitToken",
+          "pronouns",
+          "personalityTraits",
+          "ideal",
+          "bond",
+          "flaw",
+          "backstoryDetailsThatDoNotContradictCampaignHooks",
+          "knownLanguagesIfDMAllows",
+          "equipmentIfDMAllows",
+          "spellPreparationIfCaster",
+          "visualTheme",
+          "voiceNotes",
+          "notes"
+        ],
+        "dmReviewRecommendedFor": [
+          "abilityScores",
+          "class",
+          "race",
+          "backgroundFeature",
+          "proficiencies",
+          "startingGold",
+          "magicItems",
+          "spellbookContents",
+          "levelProgression"
+        ]
+      }
+    },
+    {
+      "id": "starter_human_fighter_folk_hero",
+      "templateName": "Human Fighter - Folk Hero",
+      "templateStatus": "starter_pregen_template_needs_player_finalization",
+      "sourcePages": [
+        9,
+        10
+      ],
+      "roleTags": [
+        "ranged",
+        "melee",
+        "heroic",
+        "martial",
+        "commoner_hospitality"
+      ],
+      "playstyleSummary": "Dexterity-forward fighter with strong longbow attacks, greatsword backup, heroic Thundertree goal, and common-folk support.",
+      "identity": {
+        "characterName": null,
+        "playerName": null,
+        "race": "Human",
+        "subrace": null,
+        "class": "Fighter",
+        "classLevelText": "Fighter 1",
+        "level": 1,
+        "background": "Folk hero",
+        "alignment": "Lawful good",
+        "experiencePoints": null
+      },
+      "coreStats": {
+        "proficiencyBonus": 2,
+        "armorClass": 14,
+        "initiative": 3,
+        "speed": {
+          "value": 30,
+          "unit": "feet"
+        },
+        "hitPointMaximum": 12,
+        "currentHitPoints": null,
+        "temporaryHitPoints": null,
+        "hitDice": {
+          "total": "1d10",
+          "die": "d10",
+          "available": null
+        },
+        "deathSaves": {
+          "successes": 0,
+          "failures": 0
+        },
+        "passiveWisdomPerception": 13
+      },
+      "abilityScores": {
+        "strength": {
+          "score": 14,
+          "modifier": 2
+        },
+        "dexterity": {
+          "score": 16,
+          "modifier": 3
+        },
+        "constitution": {
+          "score": 15,
+          "modifier": 2
+        },
+        "intelligence": {
+          "score": 11,
+          "modifier": 0
+        },
+        "wisdom": {
+          "score": 13,
+          "modifier": 1
+        },
+        "charisma": {
+          "score": 9,
+          "modifier": -1
+        }
+      },
+      "savingThrows": {
+        "strength": {
+          "modifier": 4,
+          "proficient": true
+        },
+        "dexterity": {
+          "modifier": 3,
+          "proficient": false
+        },
+        "constitution": {
+          "modifier": 4,
+          "proficient": true
+        },
+        "intelligence": {
+          "modifier": 0,
+          "proficient": false
+        },
+        "wisdom": {
+          "modifier": 1,
+          "proficient": false
+        },
+        "charisma": {
+          "modifier": -1,
+          "proficient": false
+        }
+      },
+      "skills": {
+        "acrobatics": {
+          "ability": "Dex",
+          "modifier": 3,
+          "proficient": false,
+          "expertise": false
+        },
+        "animalHandling": {
+          "ability": "Wis",
+          "modifier": 3,
+          "proficient": true,
+          "expertise": false
+        },
+        "arcana": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "athletics": {
+          "ability": "Str",
+          "modifier": 2,
+          "proficient": false,
+          "expertise": false
+        },
+        "deception": {
+          "ability": "Cha",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "history": {
+          "ability": "Int",
+          "modifier": 2,
+          "proficient": true,
+          "expertise": false
+        },
+        "insight": {
+          "ability": "Wis",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "intimidation": {
+          "ability": "Cha",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "investigation": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "medicine": {
+          "ability": "Wis",
+          "modifier": 1,
+          "proficient": false,
+          "expertise": false
+        },
+        "nature": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "perception": {
+          "ability": "Wis",
+          "modifier": 3,
+          "proficient": true,
+          "expertise": false
+        },
+        "performance": {
+          "ability": "Cha",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "persuasion": {
+          "ability": "Cha",
+          "modifier": -1,
+          "proficient": false,
+          "expertise": false
+        },
+        "religion": {
+          "ability": "Int",
+          "modifier": 0,
+          "proficient": false,
+          "expertise": false
+        },
+        "sleightOfHand": {
+          "ability": "Dex",
+          "modifier": 3,
+          "proficient": false,
+          "expertise": false
+        },
+        "stealth": {
+          "ability": "Dex",
+          "modifier": 3,
+          "proficient": false,
+          "expertise": false
+        },
+        "survival": {
+          "ability": "Wis",
+          "modifier": 3,
+          "proficient": true,
+          "expertise": false
+        }
+      },
+      "attacksAndSpellcasting": {
+        "attacks": [
+          {
+            "name": "Greatsword",
+            "attackBonus": 4,
+            "damage": "2d6 + 2",
+            "damageType": "slashing",
+            "properties": [
+              "melee"
+            ]
+          },
+          {
+            "name": "Longbow",
+            "attackBonus": 7,
+            "damage": "1d8 + 3",
+            "damageType": "piercing",
+            "properties": [
+              "ranged"
+            ],
+            "range": {
+              "normal": 150,
+              "long": 600,
+              "unit": "feet"
+            },
+            "longRangeRule": "Attacks beyond normal range up to long range have disadvantage.",
+            "notes": "Attack bonus includes Fighting Style - Archery."
+          }
+        ],
+        "spellcasting": null
+      },
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 10,
+        "pp": 0
+      },
+      "personality": {
+        "traits": [
+          "When I set my mind to something, I follow through.",
+          "I use long words in an attempt to sound smarter."
+        ],
+        "ideal": "Sincerity. It is no good pretending to be something I am not.",
+        "bond": "One day, Thundertree will be a prosperous town again. A statue of me will stand in the town square.",
+        "flaw": "I am convinced of the significance of my destiny, and blind to my shortcomings and the risk of failure."
+      },
+      "proficienciesAndLanguages": {
+        "armor": [
+          "All armor",
+          "Shields"
+        ],
+        "weapons": [
+          "Simple weapons",
+          "Martial weapons"
+        ],
+        "tools": [
+          "Carpenter's tools"
+        ],
+        "gamingSets": [],
+        "vehicles": [
+          "Vehicles (land)"
+        ],
+        "languages": [
+          "Common",
+          "Elvish"
+        ]
+      },
+      "equipment": {
+        "weapons": [
+          "Longbow",
+          "20 arrows",
+          "Greatsword"
+        ],
+        "armor": [
+          "Leather armor"
+        ],
+        "adventuringGear": [
+          "Backpack",
+          "Bedroll",
+          "Mess kit",
+          "Tinderbox",
+          "10 torches",
+          "10 days of rations",
+          "Waterskin",
+          "50 feet of hempen rope"
+        ],
+        "tools": [
+          "Carpenter's tools"
+        ],
+        "clothingAndPersonalItems": [
+          "Shovel",
+          "Iron pot",
+          "Set of common clothes",
+          "Pouch"
+        ]
+      },
+      "featuresAndTraits": [
+        {
+          "name": "Second Wind",
+          "source": "Fighter 1",
+          "actionType": "Bonus action",
+          "uses": "Once per short or long rest",
+          "description": "Regain hit points equal to 1d10 + fighter level."
+        },
+        {
+          "name": "Fighting Style - Archery",
+          "source": "Fighter 1",
+          "description": "Gain +2 bonus to attack rolls with ranged weapons. Included in the longbow attack."
+        },
+        {
+          "name": "Rustic Hospitality",
+          "source": "Folk hero background",
+          "description": "Fits in among common folk with ease. Can find a place to hide, rest, or recuperate among other commoners unless shown to be a danger. Commoners shield the character from law or others searching, but will not risk their lives."
+        }
+      ],
+      "loreAndCampaignHooks": {
+        "raceLore": {
+          "race": "Human",
+          "coreTraits": [
+            "Humans are described as the youngest of the common races, arriving late compared with dwarves, elves, and dragons.",
+            "They are innovators, achievers, pioneers, adaptable, and ambitious.",
+            "When humans settle somewhere, they build lasting cities and kingdoms.",
+            "Humans live fully in the present, which suits the adventuring life, while also planning for a legacy.",
+            "Human culture varies widely by region in the Forgotten Realms.",
+            "Humans of Neverwinter can have many different colorations and features because of ancient migrations.",
+            "Humans have no single typical name tradition."
+          ],
+          "nameExamples": {
+            "Calishite": [
+              "Haseid"
+            ],
+            "Chondathan": [
+              "Kerri"
+            ],
+            "Damaran": [
+              "Kosef"
+            ],
+            "Illuskan": [
+              "Amafrey"
+            ],
+            "Mulan": [
+              "So-Kehur"
+            ],
+            "Rashemi": [
+              "Madislak"
+            ],
+            "Shou": [
+              "Mei"
+            ],
+            "Turami": [
+              "Salazar"
+            ],
+            "note": "Some human parents choose names from other languages such as Dwarvish or Elvish."
+          }
+        },
+        "classLore": {
+          "class": "Fighter",
+          "classFantasy": [
+            "Fighters are diverse warriors including questing knights, conquering overlords, royal champions, elite soldiers, mercenaries, and bandit kings.",
+            "They share mastery with weapons and armor and strong knowledge of combat.",
+            "They are familiar with death, both dealing it and facing it."
+          ]
+        },
+        "backgroundStoryFacts": [
+          "The character's parents lived in the prosperous village of Thundertree.",
+          "Thundertree was east of Neverwinter and at the edge of Neverwinter Wood.",
+          "Mount Hotenow erupted thirty years ago.",
+          "The character's parents fled Thundertree while carrying the character in infancy.",
+          "The family drifted from village to village, finding work as servants or laborers.",
+          "The character spent the last few years in Neverwinter as a porter and laborer at the docks.",
+          "The character and others believe the character is destined for more.",
+          "The character once stood up to an abusive ship captain.",
+          "Other dockworkers look up to the character.",
+          "The character believes they will become a hero."
+        ],
+        "personalGoal": {
+          "title": "Drive Off the Dragon",
+          "details": [
+            "The ruins of Thundertree call to the character.",
+            "The character's family and their friends once lived prosperously there.",
+            "Those families are now reduced to menial labor.",
+            "The ruins are haunted by ash zombies.",
+            "Rumor says a dragon has made its lair in the Old Tower.",
+            "The character believes those are problems a hero can solve.",
+            "Slaying or driving off the dragon would prove to the character and others that the character is a real hero destined for greatness."
+          ]
+        },
+        "alignmentExplanation": "A hero stands up to evil, never lets bullies have their way, fights for law and order, helps everyone live in prosperity and happiness, slays monsters, clears ruins, and protects the innocent."
+      },
+      "levelingPlan": {
+        "hitPointGainPerLevel": "Gain one additional Hit Die and add 1d10 + 2 to hit point maximum.",
+        "levels": [
+          {
+            "level": 2,
+            "xpRequired": 300,
+            "gains": [
+              {
+                "name": "Action Surge",
+                "description": "On your turn, take one additional action on top of your regular action and possible bonus action. Recharges after short or long rest."
+              }
+            ]
+          },
+          {
+            "level": 3,
+            "xpRequired": 900,
+            "subclassOrArchetype": {
+              "name": "Champion",
+              "inferredFromFeature": "Improved Critical"
+            },
+            "gains": [
+              {
+                "name": "Improved Critical",
+                "description": "Weapon attacks score a critical hit on a roll of 19 or 20."
+              }
+            ]
+          },
+          {
+            "level": 4,
+            "xpRequired": 2700,
+            "gains": [
+              {
+                "name": "Ability Score Improvement",
+                "description": "Dexterity increases to 18.",
+                "effects": [
+                  "Dexterity modifier becomes +4.",
+                  "Attack bonus and damage for Dexterity-based attacks such as longbow increase by 1.",
+                  "Dexterity saving throw modifier increases by 1.",
+                  "Dexterity-based skill modifiers increase by 1.",
+                  "Armor Class increases by 1 while wearing light or no armor.",
+                  "Initiative increases by 1."
+                ]
+              }
+            ]
+          },
+          {
+            "level": 5,
+            "xpRequired": 6500,
+            "gains": [
+              {
+                "name": "Extra Attack",
+                "description": "When taking the Attack action, make two attacks instead of one."
+              },
+              {
+                "name": "Proficiency Bonus +3",
+                "effects": [
+                  "Attack bonus increases by 1 for proficient weapons.",
+                  "Proficient saving throw and skill modifiers increase by 1.",
+                  "Passive Wisdom (Perception) increases by 1 because Perception modifier increases."
+                ]
+              }
+            ]
+          }
+        ],
+        "improvingArmor": "As treasure is acquired, the character can buy better armor to improve Armor Class."
+      },
+      "customization": {
+        "requiredBeforePlay": [
+          "characterName",
+          "playerName",
+          "confirmPronounsOrDisplayNameIfUsedByApp",
+          "confirmPreparedSpellsIfCaster",
+          "confirmStartingEquipmentIfDMAllowsChanges"
+        ],
+        "safePlayerEditableFields": [
+          "characterName",
+          "playerName",
+          "portraitToken",
+          "pronouns",
+          "personalityTraits",
+          "ideal",
+          "bond",
+          "flaw",
+          "backstoryDetailsThatDoNotContradictCampaignHooks",
+          "knownLanguagesIfDMAllows",
+          "equipmentIfDMAllows",
+          "spellPreparationIfCaster",
+          "visualTheme",
+          "voiceNotes",
+          "notes"
+        ],
+        "dmReviewRecommendedFor": [
+          "abilityScores",
+          "class",
+          "race",
+          "backgroundFeature",
+          "proficiencies",
+          "startingGold",
+          "magicItems",
+          "spellbookContents",
+          "levelProgression"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,2221 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronRight,
+  CircleX,
+  Dices,
+  Hand,
+  Hourglass,
+  Mail,
+  Megaphone,
+  MessageCircle,
+  MousePointer2,
+  Package,
+  ScrollText,
+  Search,
+  Send,
+  Sparkles,
+  Swords,
+  Users,
+  WandSparkles,
+  X,
+} from 'lucide-react'
+import { MapCanvas, type RenderArea, type RenderToken } from './MapCanvas'
+import { useTokenRealtime } from '@/lib/hooks/useTokenRealtime'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
+import { movePlayerToken } from '@/lib/actions/maps'
+import { submitActionIntent } from '@/lib/actions/action-intents'
+import { sendDMNudge, sendPartyMessage } from '@/lib/actions/party-messages'
+import {
+  markRollRequestRolling,
+  submitAttackRollResult,
+  submitRollResult,
+} from '@/lib/actions/roll-requests'
+import { getRollOutcomeVariant } from '@/lib/utils/roll-outcome-display'
+import { PlayerRollOutcomePanel, type PlayerRollOutcomeData } from '@/components/actions/RollOutcomeEffects'
+import { PlayerLinkedCodexDocsPanel } from '@/components/codex/CodexLinkedDocsPanel'
+import { createClient } from '@/lib/supabase/client'
+import { actionsForToken, distanceFeet } from '@/lib/utils/actions'
+import {
+  type ActionIntent,
+  type ActionIntentStatus,
+  type ActionRollRequest,
+  type ActionRollResult,
+  type AdvantageState,
+  type CampaignDocLinkPublication,
+  type CampaignDocLiveObjectType,
+  type GameMap,
+  type MapRevealedArea,
+  type MoveTokenResult,
+  type PlayerVisibleCampaignDoc,
+  type Profile,
+  type Token,
+  type TokenType,
+} from '@/lib/types/database'
+
+function mergeTokenList(tokens: Token[], token: Token) {
+  const next = tokens.filter((t) => t.id !== token.id)
+  next.push(token)
+  return next
+}
+
+function removeDuplicateTokens(tokens: Token[]) {
+  const byId = new Map<string, Token>()
+  tokens.forEach((token) => byId.set(token.id, token))
+  return Array.from(byId.values())
+}
+
+function mergeAreaList(areas: MapRevealedArea[], area: MapRevealedArea) {
+  const next = areas.filter((a) => a.id !== area.id)
+  next.push(area)
+  return next
+}
+
+function removeDuplicateAreas(areas: MapRevealedArea[]) {
+  const byId = new Map<string, MapRevealedArea>()
+  areas.forEach((area) => byId.set(area.id, area))
+  return Array.from(byId.values())
+}
+
+interface PlayerMapViewProps {
+  campaignId: string
+  map: GameMap
+  imageUrl: string
+  initialTokens: Token[]
+  initialAreas: MapRevealedArea[]
+  currentUserId: string
+  // speed by character id, for tokens this player controls
+  characterSpeeds: Record<string, number>
+  // this player's own characters, for submitting contextual actions
+  myCharacters: { id: string; name: string }[]
+  partyMembers: { userId: string; role: string; profile: Profile | null }[]
+  playerCodexDocs?: PlayerVisibleCampaignDoc[]
+  playerCodexLinks?: CampaignDocLinkPublication[]
+}
+
+const OBJECT_TOKEN_TYPES = new Set<TokenType>([
+  'object',
+  'trap',
+  'door',
+  'chest',
+  'book',
+  'note',
+  'loot',
+  'lever',
+  'switch',
+  'portal',
+  'key',
+  'container',
+  'custom',
+])
+
+function codexObjectTypeForToken(token: Token): CampaignDocLiveObjectType {
+  return OBJECT_TOKEN_TYPES.has(token.token_type) ? 'object' : 'token'
+}
+
+type InteractionSection = 'root' | 'action' | 'requests' | 'talk' | 'whisper' | 'announcement'
+type ActionSequenceState =
+  | 'idle'
+  | 'token_selected'
+  | 'choosing_action'
+  | 'submitting_request'
+  | 'awaiting_dm'
+  | 'approved'
+  | 'denied'
+  | 'resolving_primary_roll'
+  | 'resolving_secondary_roll'
+  | 'completed'
+  | 'cancelled'
+type GuidedActionType =
+  | 'Attack'
+  | 'Interact'
+  | 'Talk'
+  | 'Investigate'
+  | 'Use Item'
+  | 'Cast Spell'
+  | 'Custom Action'
+type SelectedToolType = 'Weapon' | 'Item' | 'Spell' | 'Object' | 'Creature' | 'Detail' | 'Custom'
+type ActionToolOption = {
+  id: string
+  type: SelectedToolType
+  name: string
+  source: string
+  note?: string | null
+}
+
+const GUIDED_ACTION_TYPES: {
+  type: GuidedActionType
+  label: string
+  description: string
+  icon: React.ReactNode
+  tone: string
+}[] = [
+  {
+    type: 'Attack',
+    label: 'Attack',
+    description: 'Strike, shoot, grapple, or threaten a hostile target.',
+    icon: <Swords className="h-4 w-4" aria-hidden="true" />,
+    tone: 'border-red-500/40 bg-red-500/10 text-red-100',
+  },
+  {
+    type: 'Interact',
+    label: 'Interact',
+    description: 'Manipulate an object, door, lever, device, or scene element.',
+    icon: <MousePointer2 className="h-4 w-4" aria-hidden="true" />,
+    tone: 'border-sky-500/40 bg-sky-500/10 text-sky-100',
+  },
+  {
+    type: 'Talk',
+    label: 'Talk',
+    description: 'Address a creature, negotiate, warn, distract, or ask.',
+    icon: <MessageCircle className="h-4 w-4" aria-hidden="true" />,
+    tone: 'border-violet-500/40 bg-violet-500/10 text-violet-100',
+  },
+  {
+    type: 'Investigate',
+    label: 'Investigate',
+    description: 'Study details, search for clues, inspect, or test a theory.',
+    icon: <Search className="h-4 w-4" aria-hidden="true" />,
+    tone: 'border-amber-500/40 bg-amber-500/10 text-amber-100',
+  },
+  {
+    type: 'Use Item',
+    label: 'Use Item',
+    description: 'Use gear, tools, potions, keys, or a prepared object.',
+    icon: <Package className="h-4 w-4" aria-hidden="true" />,
+    tone: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100',
+  },
+  {
+    type: 'Cast Spell',
+    label: 'Cast Spell',
+    description: 'Cast a spell or magical feature at a target or location.',
+    icon: <WandSparkles className="h-4 w-4" aria-hidden="true" />,
+    tone: 'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-100',
+  },
+  {
+    type: 'Custom Action',
+    label: 'Custom Action',
+    description: 'Describe anything else you want the DM to adjudicate.',
+    icon: <ScrollText className="h-4 w-4" aria-hidden="true" />,
+    tone: 'border-zinc-600 bg-zinc-900 text-zinc-100',
+  },
+]
+
+function toolCopyForAction(actionType: GuidedActionType) {
+  if (actionType === 'Attack') {
+    return {
+      label: 'Choose Weapon',
+      placeholder: 'Select the weapon you want to attack with.',
+      type: 'Weapon' as SelectedToolType,
+    }
+  }
+  if (actionType === 'Use Item') {
+    return {
+      label: 'Choose Item',
+      placeholder: 'Select the item you want to use.',
+      type: 'Item' as SelectedToolType,
+    }
+  }
+  if (actionType === 'Cast Spell') {
+    return {
+      label: 'Choose Spell',
+      placeholder: 'Select the spell you want to cast.',
+      type: 'Spell' as SelectedToolType,
+    }
+  }
+  if (actionType === 'Interact') {
+    return {
+      label: 'Choose Object',
+      placeholder: 'Select what you want to interact with.',
+      type: 'Object' as SelectedToolType,
+    }
+  }
+  if (actionType === 'Talk') {
+    return {
+      label: 'Choose Creature',
+      placeholder: 'Select who you want to talk to.',
+      type: 'Creature' as SelectedToolType,
+    }
+  }
+  if (actionType === 'Investigate') {
+    return {
+      label: 'Choose Detail',
+      placeholder: 'Select what you want to investigate.',
+      type: 'Detail' as SelectedToolType,
+    }
+  }
+  return {
+    label: 'Choose Tool or Object',
+    placeholder: 'Select anything relevant to this action.',
+    type: 'Custom' as SelectedToolType,
+  }
+}
+
+function fallbackToolOptions(actionType: GuidedActionType, target: Token | null): ActionToolOption[] {
+  const targetName = target?.name || target?.token_type || 'Selected target'
+  if (actionType === 'Attack') {
+    return [
+      { id: 'fallback:sword', type: 'Weapon', name: 'Sword', source: 'Fallback' },
+      { id: 'fallback:bow', type: 'Weapon', name: 'Bow', source: 'Fallback' },
+      { id: 'fallback:dagger', type: 'Weapon', name: 'Dagger', source: 'Fallback' },
+      { id: 'fallback:unarmed', type: 'Weapon', name: 'Unarmed Strike', source: 'Fallback' },
+    ]
+  }
+  if (actionType === 'Use Item') {
+    return [
+      { id: 'fallback:potion', type: 'Item', name: 'Healing Potion', source: 'Fallback' },
+      { id: 'fallback:key', type: 'Item', name: 'Key', source: 'Fallback' },
+      { id: 'fallback:rope', type: 'Item', name: 'Rope', source: 'Fallback' },
+      { id: 'fallback:torch', type: 'Item', name: 'Torch', source: 'Fallback' },
+      { id: 'fallback:other-item', type: 'Item', name: 'Other item', source: 'Fallback' },
+    ]
+  }
+  if (actionType === 'Cast Spell') {
+    return [
+      { id: 'fallback:fire-bolt', type: 'Spell', name: 'Fire Bolt', source: 'Fallback' },
+      { id: 'fallback:mage-hand', type: 'Spell', name: 'Mage Hand', source: 'Fallback' },
+      { id: 'fallback:other-spell', type: 'Spell', name: 'Other spell', source: 'Fallback' },
+    ]
+  }
+  if (actionType === 'Talk') {
+    return [{ id: target?.id ?? 'fallback:creature', type: 'Creature', name: targetName, source: 'Map' }]
+  }
+  if (actionType === 'Investigate') {
+    return [{ id: target?.id ?? 'fallback:detail', type: 'Detail', name: targetName, source: 'Map' }]
+  }
+  if (actionType === 'Interact') {
+    return [{ id: target?.id ?? 'fallback:object', type: 'Object', name: targetName, source: 'Map' }]
+  }
+  return [
+    { id: target?.id ?? 'fallback:custom', type: 'Custom', name: targetName, source: 'Map' },
+    { id: 'fallback:other', type: 'Custom', name: 'Other relevant tool/object', source: 'Fallback' },
+  ]
+}
+
+function actionToolPhrase(actionType: string, targetName?: string | null, toolName?: string | null) {
+  const target = targetName || 'target'
+  if (!toolName) return `${actionType} ${target}`
+  if (actionType === 'Attack') return `Attack ${target} with ${toolName}`
+  if (actionType === 'Use Item') return `Use ${toolName}${targetName ? ` on ${targetName}` : ''}`
+  if (actionType === 'Cast Spell') return `Cast ${toolName}${targetName ? ` at ${targetName}` : ''}`
+  if (actionType === 'Talk') return `Talk to ${targetName || toolName}`
+  if (actionType === 'Investigate') return `Investigate ${toolName}`
+  if (actionType === 'Interact') return `Interact with ${toolName}`
+  return `${actionType}${targetName ? ` ${targetName}` : ''} with ${toolName}`
+}
+
+function randomD20() {
+  return Math.floor(Math.random() * 20) + 1
+}
+
+export function PlayerMapView({
+  campaignId,
+  map,
+  imageUrl,
+  initialTokens,
+  initialAreas,
+  currentUserId,
+  characterSpeeds,
+  myCharacters,
+  partyMembers,
+  playerCodexDocs = [],
+  playerCodexLinks = [],
+}: PlayerMapViewProps) {
+  const [tokens, setTokens] = useState<Token[]>(() =>
+    removeDuplicateTokens(initialTokens),
+  )
+  const [areas, setAreas] = useState<MapRevealedArea[]>(() =>
+    removeDuplicateAreas(initialAreas),
+  )
+  const [mapLocked, setMapLocked] = useState(map.player_movement_locked)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
+  const [interactionOpen, setInteractionOpen] = useState(false)
+  const [section, setSection] = useState<InteractionSection>('root')
+  const [actionMessage, setActionMessage] = useState('')
+  const [submitting, setSubmitting] = useState<string | null>(null)
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null)
+  const [myRequests, setMyRequests] = useState<ActionIntent[]>([])
+  const [requestsLoading, setRequestsLoading] = useState(false)
+  const [partyMessage, setPartyMessage] = useState('')
+  const [whisperRecipient, setWhisperRecipient] = useState('')
+  const [talkFeedback, setTalkFeedback] = useState<string | null>(null)
+  const [talkBusy, setTalkBusy] = useState<string | null>(null)
+  const [actionFlow, setActionFlow] = useState<ActionSequenceState>('idle')
+  const [actionTargetId, setActionTargetId] = useState<string | null>(null)
+  const [guidedActionType, setGuidedActionType] = useState<GuidedActionType>('Attack')
+  const [selectedToolId, setSelectedToolId] = useState('')
+  const [toolOptions, setToolOptions] = useState<ActionToolOption[]>([])
+  const [toolsLoading, setToolsLoading] = useState(false)
+  const [guidedActionMessage, setGuidedActionMessage] = useState('')
+  const [guidedIntent, setGuidedIntent] = useState<ActionIntent | null>(null)
+  const [guidedIntentId, setGuidedIntentId] = useState<string | null>(null)
+  const [activeRollRequest, setActiveRollRequest] = useState<ActionRollRequest | null>(null)
+  const [inlineRollResult, setInlineRollResult] = useState<ActionRollResult | null>(null)
+  const [inlineRollBusy, setInlineRollBusy] = useState(false)
+  const [inlineRollAnimating, setInlineRollAnimating] = useState(false)
+  // Inline roll sub-flow (automatic / manual / attack-damage), mirroring the
+  // dedicated roll popup but rendered inside the action request menu.
+  const [inlineRollMode, setInlineRollMode] = useState<'choice' | 'manual' | 'damage'>('choice')
+  const [inlineManualOne, setInlineManualOne] = useState('')
+  const [inlineManualTwo, setInlineManualTwo] = useState('')
+  const [inlineAnimNumber, setInlineAnimNumber] = useState<number | null>(null)
+  const [inlinePendingDamage, setInlinePendingDamage] = useState<{
+    formula: string
+    diceCount: number
+    dieSize: number
+    critical: boolean
+    naturalRoll: number
+    secondNaturalRoll: number | null
+  } | null>(null)
+  const [inlineDamageTotal, setInlineDamageTotal] = useState('')
+  // Shared outcome panel data (reuses PlayerRollOutcomePanel + its effects).
+  const [inlineOutcome, setInlineOutcome] = useState<PlayerRollOutcomeData | null>(null)
+  // Tracks the last fresh roll request we reset the inline UI for, so a new
+  // request (or DM reroll) resets the sub-flow exactly once.
+  const handledRollRequestIdRef = useRef<string | null>(null)
+  const [guidedError, setGuidedError] = useState<string | null>(null)
+  const [nudgeBusy, setNudgeBusy] = useState(false)
+  const [nudgeCooldownUntil, setNudgeCooldownUntil] = useState<number | null>(null)
+
+  // Live sync: if the DM activates a *different* map (or changes this map's
+  // image/grid/name), re-fetch the server-rendered route so the player's view
+  // swaps to the new active map (or picks up the new settings) with no manual
+  // refresh. useTokenRealtime below handles in-place token/area/lock updates
+  // for the currently-active map; this catches "the active map itself changed".
+  useRealtimeRefresh(`maps-watch-${campaignId}`, [
+    { table: 'maps', filter: `campaign_id=eq.${campaignId}` },
+    { table: 'campaign_doc_publications', filter: `campaign_id=eq.${campaignId}` },
+    { table: 'campaign_doc_link_publications', filter: `campaign_id=eq.${campaignId}` },
+  ])
+
+  useTokenRealtime(map.id, campaignId, {
+    onUpsert: (row) => {
+      const token = row as Token
+      setTokens((prev) => mergeTokenList(prev, token))
+    },
+    onDelete: (id) => {
+      setTokens((prev) => prev.filter((t) => t.id !== id))
+      setSelectedId((cur) => (cur === id ? null : cur))
+    },
+    onMapChange: (m) => setMapLocked(m.player_movement_locked),
+    onAreaUpsert: (area) => setAreas((prev) => mergeAreaList(prev, area)),
+    onAreaDelete: (id) => setAreas((prev) => prev.filter((a) => a.id !== id)),
+  })
+
+  const loadMyRequests = useCallback(async () => {
+    setRequestsLoading(true)
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('action_intents')
+      .select('*')
+      .eq('campaign_id', campaignId)
+      .eq('actor_user_id', currentUserId)
+      .order('created_at', { ascending: false })
+      .limit(8)
+    setMyRequests((data ?? []) as ActionIntent[])
+    setRequestsLoading(false)
+  }, [campaignId, currentUserId])
+
+  useEffect(() => {
+    if (!interactionOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setInteractionOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [interactionOpen])
+
+  useEffect(() => {
+    if (!interactionOpen || section !== 'requests') return
+    const timer = window.setTimeout(() => {
+      void loadMyRequests()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [interactionOpen, loadMyRequests, section])
+
+  const renderAreas: RenderArea[] = areas.map((a) => ({
+    id: a.id,
+    shape_type: a.shape_type,
+    x: a.x,
+    y: a.y,
+    width: a.width,
+    height: a.height,
+    radius: a.radius,
+  }))
+
+  const controls = (t: Token) => t.controlled_by_user_id === currentUserId
+
+  function canDrag(id: string) {
+    const t = tokens.find((x) => x.id === id)
+    if (!t) return false
+    return controls(t) && !t.movement_locked && !mapLocked
+  }
+
+  async function handleMove(id: string, x: number, y: number) {
+    const prev = tokens.find((t) => t.id === id)
+    if (!prev) return
+    const prevX = prev.x
+    const prevY = prev.y
+
+    // optimistic
+    setTokens((p) => p.map((t) => (t.id === id ? { ...t, x, y } : t)))
+    setWarning(null)
+
+    const result = (await movePlayerToken(id, x, y)) as MoveTokenResult
+
+    if (result?.error) {
+      // revert
+      setTokens((p) => p.map((t) => (t.id === id ? { ...t, x: prevX, y: prevY } : t)))
+      setWarning(result.error)
+      setTimeout(() => setWarning(null), 4000)
+    } else if (typeof result?.movement_used === 'number') {
+      const used = result.movement_used
+      setTokens((p) => p.map((t) => (t.id === id ? { ...t, movement_used: used } : t)))
+    }
+  }
+
+  const renderTokens: RenderToken[] = tokens.map((t) => ({
+    id: t.id,
+    token_type: t.token_type,
+    name: t.name,
+    x: t.x,
+    y: t.y,
+    size: t.size,
+    color: t.color,
+    visible_to_players: true,
+  }))
+
+  const selected = tokens.find((t) => t.id === selectedId) ?? null
+  const myControlled = tokens.filter(controls)
+  const visibleTargets = tokens.filter((token) => token.visible_to_players !== false)
+  const actionTarget = visibleTargets.find((token) => token.id === actionTargetId) ?? null
+
+  const actorForActionTarget = useMemo(() => {
+    if (!actionTarget) return null
+    let best: { actor: Token; distance: number } | null = null
+    for (const actor of myControlled) {
+      if (!actor.linked_character_id) continue
+      if (!myCharacters.some((c) => c.id === actor.linked_character_id)) continue
+      if (actor.id === actionTarget.id) continue
+      const distance = distanceFeet(actor, actionTarget, map.grid_size, map.grid_scale_feet)
+      if (!best || distance < best.distance) best = { actor, distance }
+    }
+    return best
+  }, [actionTarget, myCharacters, myControlled, map.grid_size, map.grid_scale_feet])
+
+  // Nearest of my characters' tokens to the selected target, for range checks
+  // and as the actor for contextual-action submission.
+  const nearestActor = useMemo(() => {
+    if (!selected) return null
+    let best: { actor: Token; distance: number } | null = null
+    for (const actor of myControlled) {
+      if (!actor.linked_character_id) continue
+      if (!myCharacters.some((c) => c.id === actor.linked_character_id)) continue
+      const distance = distanceFeet(actor, selected, map.grid_size, map.grid_scale_feet)
+      if (!best || distance < best.distance) best = { actor, distance }
+    }
+    return best
+  }, [myCharacters, myControlled, map.grid_size, map.grid_scale_feet, selected])
+
+  const contextualActions = useMemo(() => {
+    if (!selected || selected.controlled_by_user_id === currentUserId) return []
+    if (!selected.visible_to_players || !selected.interactable) return []
+    return actionsForToken(selected)
+  }, [currentUserId, selected])
+
+  const selectedTool = useMemo(
+    () => toolOptions.find((option) => option.id === selectedToolId) ?? toolOptions[0] ?? null,
+    [selectedToolId, toolOptions],
+  )
+
+  useEffect(() => {
+    const actorCharacterId = actorForActionTarget?.actor.linked_character_id
+    const fallback = fallbackToolOptions(guidedActionType, actionTarget)
+    let cancelled = false
+
+    async function loadTools() {
+      setToolsLoading(true)
+      if (!actorCharacterId) {
+        setToolOptions(fallback)
+        setSelectedToolId((current) => current || fallback[0]?.id || '')
+        setToolsLoading(false)
+        return
+      }
+
+      const supabase = createClient()
+      const [{ data: attacks }, { data: inventory }, { data: spells }] = await Promise.all([
+        supabase
+          .from('character_attacks')
+          .select('id,name,attack_type,equipped,damage_dice,damage_type,range_normal')
+          .eq('character_id', actorCharacterId)
+          .order('equipped', { ascending: false }),
+        supabase
+          .from('character_inventory_items')
+          .select('id,name,equipped,quantity,magical,description')
+          .eq('character_id', actorCharacterId)
+          .order('equipped', { ascending: false }),
+        supabase
+          .from('character_spells')
+          .select('id,name,spell_level,prepared,uses')
+          .eq('character_id', actorCharacterId)
+          .order('prepared', { ascending: false }),
+      ])
+
+      if (cancelled) return
+
+      const next: ActionToolOption[] = []
+      if (guidedActionType === 'Attack') {
+        ;(attacks ?? []).forEach((attack) => {
+          next.push({
+            id: `attack:${attack.id}`,
+            type: 'Weapon',
+            name: attack.name,
+            source: attack.equipped ? 'Equipped attack' : 'Character attack',
+            note: attack.damage_dice ? `${attack.damage_dice}${attack.damage_type ? ` ${attack.damage_type}` : ''}` : attack.attack_type,
+          })
+        })
+      } else if (guidedActionType === 'Use Item' || guidedActionType === 'Custom Action') {
+        ;(inventory ?? []).forEach((item) => {
+          next.push({
+            id: `item:${item.id}`,
+            type: 'Item',
+            name: item.name,
+            source: item.equipped ? 'Equipped item' : 'Inventory',
+            note: item.quantity > 1 ? `Qty ${item.quantity}` : item.magical ? 'Magical' : item.description,
+          })
+        })
+      } else if (guidedActionType === 'Cast Spell') {
+        ;(spells ?? []).forEach((spell) => {
+          next.push({
+            id: `spell:${spell.id}`,
+            type: 'Spell',
+            name: spell.name,
+            source: spell.prepared || spell.spell_level === 0 ? 'Prepared spell' : 'Known spell',
+            note: spell.spell_level === 0 ? 'Cantrip' : `Level ${spell.spell_level}`,
+          })
+        })
+      }
+
+      if (guidedActionType === 'Interact' || guidedActionType === 'Talk' || guidedActionType === 'Investigate' || guidedActionType === 'Custom Action') {
+        fallback
+          .filter((option) => !next.some((existing) => existing.id === option.id))
+          .forEach((option) => next.push(option))
+      }
+
+      fallback
+        .filter((option) => !next.some((existing) => existing.name.toLowerCase() === option.name.toLowerCase()))
+        .forEach((option) => next.push(option))
+
+      const options = next.length ? next : fallback
+      setToolOptions(options)
+      setSelectedToolId((current) => options.some((option) => option.id === current) ? current : options[0]?.id || '')
+      setToolsLoading(false)
+    }
+
+    void loadTools()
+    return () => {
+      cancelled = true
+    }
+  }, [actionTarget, actorForActionTarget?.actor.linked_character_id, guidedActionType])
+
+  const openGuidedAction = useCallback((targetId?: string | null) => {
+    const nextTargetId = targetId ?? selectedId ?? visibleTargets.find((token) => token.controlled_by_user_id !== currentUserId)?.id ?? null
+    if (nextTargetId) {
+      setSelectedId(nextTargetId)
+      setActionTargetId(nextTargetId)
+      setActionFlow('token_selected')
+    } else {
+      setActionFlow('choosing_action')
+    }
+    setInteractionOpen(false)
+    setSection('root')
+    setGuidedError(null)
+    setGuidedIntent(null)
+    setGuidedIntentId(null)
+    window.setTimeout(() => setActionFlow('choosing_action'), 120)
+  }, [currentUserId, selectedId, visibleTargets])
+
+  function closeGuidedAction() {
+    setActionFlow('idle')
+    setGuidedError(null)
+    setGuidedIntent(null)
+    setGuidedIntentId(null)
+    setNudgeCooldownUntil(null)
+  }
+
+  async function submitGuidedAction() {
+    if (!actionTarget || !actorForActionTarget?.actor.linked_character_id) {
+      setGuidedError('Choose a target and make sure one of your character tokens can act.')
+      return
+    }
+
+    setActionFlow('submitting_request')
+    setGuidedError(null)
+    const result = await submitActionIntent(
+      campaignId,
+      map.id,
+      actorForActionTarget.actor.linked_character_id,
+      actionTarget.id,
+      guidedActionType,
+      guidedActionMessage,
+      selectedTool ? {
+        type: selectedTool.type,
+        id: selectedTool.id,
+        name: selectedTool.name,
+      } : undefined,
+    )
+
+    if (result?.error) {
+      setActionFlow('choosing_action')
+      setGuidedError(result.error)
+      return
+    }
+
+    setGuidedIntentId(result.intentId ?? null)
+    setGuidedIntent({
+      id: result.intentId ?? 'pending',
+      campaign_id: campaignId,
+      map_id: map.id,
+      encounter_id: null,
+      actor_user_id: currentUserId,
+      actor_character_id: actorForActionTarget.actor.linked_character_id,
+      target_token_id: actionTarget.id,
+      action_type: guidedActionType,
+      message: guidedActionMessage.trim() || null,
+      selected_tool_type: selectedTool?.type ?? null,
+      selected_tool_id: selectedTool?.id ?? null,
+      selected_tool_name: selectedTool?.name ?? null,
+      status: 'pending',
+      distance_feet: actorForActionTarget.distance,
+      range_feet: actionTarget.interaction_range_feet ?? 60,
+      dm_response: null,
+      response_visibility: 'actor',
+      resolver_type: guidedActionType === 'Attack' ? 'attack' : guidedActionType === 'Use Item' || guidedActionType === 'Interact' ? 'object_state' : 'manual',
+      resolver_status: 'idle',
+      created_at: new Date().toISOString(),
+      resolved_at: null,
+      resolved_by: null,
+    })
+    setActionFlow('awaiting_dm')
+    setGuidedActionMessage('')
+    void loadMyRequests()
+  }
+
+  async function nudgeDM() {
+    const now = Date.now()
+    if (nudgeCooldownUntil && nudgeCooldownUntil > now) return
+    setNudgeBusy(true)
+    const result = await sendDMNudge(campaignId, {
+      actionType: guidedActionType,
+      targetName: actionTarget?.name ?? actionTarget?.token_type ?? null,
+      intentId: guidedIntentId,
+      waitingSince: guidedIntent?.created_at ?? null,
+    })
+    setNudgeBusy(false)
+    if (result?.error) {
+      setGuidedError(result.error)
+      return
+    }
+    setNudgeCooldownUntil(Date.now() + 30000)
+  }
+
+  function inlineUsedRoll(advantage: AdvantageState, first: number, second: number | null) {
+    if (advantage === 'advantage') return Math.max(first, second ?? first)
+    if (advantage === 'disadvantage') return Math.min(first, second ?? first)
+    return first
+  }
+
+  function inlineGenericSummary(total: number, targetNumber: number | null, naturalRoll: number) {
+    const variant = getRollOutcomeVariant({ naturalRoll })
+    const targetText = targetNumber !== null ? ` Target number was ${targetNumber}.` : ''
+    if (variant === 'critical_failure') return `Natural 1 — critical failure. Total ${total}.${targetText}`
+    if (variant === 'critical_success') return `Natural 20 — critical success! Total ${total}.${targetText}`
+    return `Your total was ${total}.${targetText}`
+  }
+
+  /** Roll one request, automatic or manual, generic or attack. Sends to the DM. */
+  async function finishInlineRoll(
+    req: ActionRollRequest,
+    rollMode: 'automatic' | 'manual',
+    naturalRoll: number,
+    secondNaturalRoll: number | null,
+    manualDamageDiceTotal?: number | null,
+  ) {
+    const isAttack = req.roll_type === 'weapon_attack' || req.roll_type === 'attack'
+    const used = inlineUsedRoll(req.advantage_state, naturalRoll, secondNaturalRoll)
+    const title = req.label || actionToolPhrase(guidedActionType, actionTarget?.name ?? actionTarget?.token_type ?? null, guidedIntent?.selected_tool_name)
+
+    if (isAttack) {
+      const result = await submitAttackRollResult(campaignId, req.id, {
+        rollMode,
+        naturalRoll,
+        secondNaturalRoll,
+        damageMode: manualDamageDiceTotal === undefined ? undefined : 'manual',
+        manualDamageDiceTotal: manualDamageDiceTotal ?? null,
+      })
+      setInlineRollBusy(false)
+      setInlineRollAnimating(false)
+      setInlineAnimNumber(null)
+      if ('error' in result) {
+        setGuidedError(result.error)
+        setInlineRollMode('choice')
+        return
+      }
+      if ('needsDamage' in result) {
+        setInlinePendingDamage({
+          formula: result.damageFormula,
+          diceCount: result.damageDiceCount,
+          dieSize: result.damageDieSize,
+          critical: result.critical,
+          naturalRoll,
+          secondNaturalRoll,
+        })
+        setInlineRollMode('damage')
+        return
+      }
+      setInlineOutcome({
+        variant: getRollOutcomeVariant({ attackOutcome: result.outcome, naturalRoll }),
+        title,
+        naturalRoll,
+        secondNaturalRoll,
+        usedNaturalRoll: used,
+        modifier: req.modifier,
+        total: result.total,
+        targetNumber: req.target_number,
+        summary: result.summary,
+        damageTotal: result.damageTotal,
+        damageType: null,
+        reviewPending: true,
+        resolved: false,
+      })
+      setInlineRollMode('choice')
+      setActionFlow('resolving_primary_roll')
+      void loadMyRequests()
+      return
+    }
+
+    const result = await submitRollResult(campaignId, req.id, { rollMode, naturalRoll, secondNaturalRoll })
+    setInlineRollBusy(false)
+    setInlineRollAnimating(false)
+    setInlineAnimNumber(null)
+    if (result?.error) {
+      setGuidedError(result.error)
+      setInlineRollMode('choice')
+      return
+    }
+    const total = result.total ?? used + req.modifier
+    setInlineOutcome({
+      variant: getRollOutcomeVariant({ resultValue: result.result ?? null, naturalRoll }),
+      title,
+      naturalRoll,
+      secondNaturalRoll,
+      usedNaturalRoll: used,
+      modifier: req.modifier,
+      total,
+      targetNumber: req.target_number,
+      summary: inlineGenericSummary(total, req.target_number, naturalRoll),
+      reviewPending: true,
+      resolved: false,
+    })
+    setInlineRollMode('choice')
+    setActionFlow('resolving_primary_roll')
+    void loadMyRequests()
+  }
+
+  /** Dice icon: automatic roll with an in-menu animation. */
+  async function rollInlineFromActionPage() {
+    if (!activeRollRequest || activeRollRequest.status !== 'waiting_for_player') {
+      setGuidedError('No roll request is waiting for you yet.')
+      return
+    }
+    const req = activeRollRequest
+    const needsSecond = req.advantage_state !== 'normal'
+    setGuidedError(null)
+    setInlineRollBusy(true)
+    setInlineRollAnimating(true)
+    void markRollRequestRolling(campaignId, req.id)
+    const interval = window.setInterval(() => setInlineAnimNumber(randomD20()), 80)
+    const naturalRoll = randomD20()
+    const secondNaturalRoll = needsSecond ? randomD20() : null
+    window.setTimeout(() => {
+      window.clearInterval(interval)
+      setInlineAnimNumber(naturalRoll)
+      void finishInlineRoll(req, 'automatic', naturalRoll, secondNaturalRoll)
+    }, 1020)
+  }
+
+  /** Manual roll: validate the entered d20 value(s), then submit. */
+  async function submitInlineManualRoll() {
+    if (!activeRollRequest || activeRollRequest.status !== 'waiting_for_player') {
+      setGuidedError('No roll request is waiting for you yet.')
+      return
+    }
+    const req = activeRollRequest
+    const needsSecond = req.advantage_state !== 'normal'
+    const one = Number(inlineManualOne)
+    const two = needsSecond ? Number(inlineManualTwo) : null
+    if (!Number.isInteger(one) || one < 1 || one > 20) {
+      setGuidedError('Enter a natural d20 roll between 1 and 20.')
+      return
+    }
+    if (needsSecond && (!Number.isInteger(two as number) || (two as number) < 1 || (two as number) > 20)) {
+      setGuidedError('Enter the second d20 roll between 1 and 20.')
+      return
+    }
+    setGuidedError(null)
+    setInlineRollBusy(true)
+    void markRollRequestRolling(campaignId, req.id)
+    await finishInlineRoll(req, 'manual', one, two)
+  }
+
+  /** Attack damage step (when the server asks for a manual damage dice total). */
+  async function submitInlineDamage() {
+    if (!activeRollRequest || !inlinePendingDamage) return
+    const total = Number(inlineDamageTotal)
+    if (!Number.isFinite(total) || total < inlinePendingDamage.diceCount) {
+      setGuidedError(`Enter a damage dice total of at least ${inlinePendingDamage.diceCount}.`)
+      return
+    }
+    setGuidedError(null)
+    setInlineRollBusy(true)
+    const pending = inlinePendingDamage
+    setInlinePendingDamage(null)
+    await finishInlineRoll(
+      activeRollRequest,
+      'manual',
+      pending.naturalRoll,
+      pending.secondNaturalRoll,
+      total,
+    )
+  }
+
+  useEffect(() => {
+    if (!guidedIntentId) return
+    const intentId = guidedIntentId
+    const supabase = createClient()
+
+    function updateFlow(status: ActionIntentStatus, resolverStatus?: string | null) {
+      if (status === 'denied') setActionFlow('denied')
+      else if (status === 'cancelled') setActionFlow('cancelled')
+      else if (status === 'resolved') setActionFlow('completed')
+      else if (status === 'approved' && resolverStatus === 'pending_player') setActionFlow('resolving_primary_roll')
+      else if (status === 'approved_waiting_for_roll' || status === 'rolling' || status === 'rolled_waiting_for_dm' || status === 'needs_roll' || status === 'resolving') {
+        setActionFlow('resolving_primary_roll')
+      } else if (status === 'approved') setActionFlow('approved')
+
+      // Keep the shared outcome panel's "waiting for DM review" → "resolved"
+      // state in sync without ever hiding the result the player rolled.
+      const resolved = status === 'resolved' || status === 'denied' || status === 'cancelled'
+      const reviewPending = status === 'rolled_waiting_for_dm' || status === 'resolving'
+      setInlineOutcome((prev) =>
+        prev ? { ...prev, reviewPending: reviewPending && !resolved, resolved } : prev,
+      )
+    }
+
+    async function loadIntent() {
+      const [{ data }, { data: rollRequest }, { data: rollResult }] = await Promise.all([
+        supabase
+        .from('action_intents')
+        .select('*')
+        .eq('id', intentId)
+          .maybeSingle(),
+        supabase
+          .from('action_roll_requests')
+          .select('*')
+          .eq('action_intent_id', intentId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('action_roll_results')
+          .select('*')
+          .eq('action_intent_id', intentId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ])
+      if (!data) return
+      const intent = data as ActionIntent
+      const nextRollRequest = (rollRequest ?? null) as ActionRollRequest | null
+      setGuidedIntent(intent)
+      setActiveRollRequest(nextRollRequest)
+      setInlineRollResult((rollResult ?? null) as ActionRollResult | null)
+
+      // A fresh waiting roll request (first issue or a DM reroll) resets the
+      // inline sub-flow once — never while the player is viewing a locked result.
+      if (
+        nextRollRequest &&
+        nextRollRequest.status === 'waiting_for_player' &&
+        handledRollRequestIdRef.current !== nextRollRequest.id
+      ) {
+        handledRollRequestIdRef.current = nextRollRequest.id
+        setInlineRollMode('choice')
+        setInlineManualOne('')
+        setInlineManualTwo('')
+        setInlinePendingDamage(null)
+        setInlineDamageTotal('')
+        setInlineAnimNumber(null)
+        setInlineOutcome(null)
+      }
+
+      updateFlow(intent.status, intent.resolver_status)
+    }
+
+    const channel = supabase
+      .channel(`guided-action-${intentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'action_intents',
+          filter: `id=eq.${intentId}`,
+        },
+        (payload) => {
+          const intent = payload.new as ActionIntent
+          setGuidedIntent(intent)
+          updateFlow(intent.status, intent.resolver_status)
+          void loadIntent()
+          void loadMyRequests()
+        },
+      )
+      .subscribe()
+
+    void loadIntent()
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [guidedIntentId, loadMyRequests])
+
+  useEffect(() => {
+    if (!nudgeCooldownUntil) return
+    const timer = window.setInterval(() => {
+      if (Date.now() >= nudgeCooldownUntil) setNudgeCooldownUntil(null)
+    }, 500)
+    return () => window.clearInterval(timer)
+  }, [nudgeCooldownUntil])
+
+  async function submitContextualAction(actionType: string) {
+    if (!selected || !nearestActor) return
+    const actorCharacterId = nearestActor.actor.linked_character_id
+    if (!actorCharacterId) return
+
+    const range = selected.interaction_range_feet ?? 5
+    if (nearestActor.distance > range) {
+      setActionFeedback(`Too far away — get within ${range} ft to ${actionType.toLowerCase()}.`)
+      setTimeout(() => setActionFeedback(null), 4000)
+      return
+    }
+
+    const key = `${actorCharacterId}:${selected.id}:${actionType}`
+    setSubmitting(key)
+    setActionFeedback(null)
+    const result = await submitActionIntent(
+      campaignId,
+      map.id,
+      actorCharacterId,
+      selected.id,
+      actionType,
+      actionMessage,
+    )
+    setSubmitting(null)
+    if (result?.error) {
+      setActionFeedback(result.error)
+      return
+    }
+    setActionMessage('')
+    setActionFeedback(`${actionType} request sent to the DM.`)
+    void loadMyRequests()
+    setTimeout(() => setActionFeedback(null), 4000)
+  }
+
+  async function sendMeeting() {
+    setTalkBusy('meeting')
+    setTalkFeedback(null)
+    const result = await sendPartyMessage(campaignId, {
+      messageType: 'meeting',
+      message: 'Everyone should pause and listen.',
+    })
+    setTalkBusy(null)
+    setTalkFeedback(result?.error ?? 'Party meeting called.')
+  }
+
+  async function sendAnnouncement() {
+    setTalkBusy('announcement')
+    setTalkFeedback(null)
+    const result = await sendPartyMessage(campaignId, {
+      messageType: 'announcement',
+      message: partyMessage,
+    })
+    setTalkBusy(null)
+    if (result?.error) {
+      setTalkFeedback(result.error)
+      return
+    }
+    setPartyMessage('')
+    setTalkFeedback('Announcement sent.')
+  }
+
+  async function sendWhisper() {
+    setTalkBusy('whisper')
+    setTalkFeedback(null)
+    const result = await sendPartyMessage(campaignId, {
+      messageType: 'whisper',
+      message: partyMessage,
+      recipientUserId: whisperRecipient,
+    })
+    setTalkBusy(null)
+    if (result?.error) {
+      setTalkFeedback(result.error)
+      return
+    }
+    setPartyMessage('')
+    setTalkFeedback('Whisper sent.')
+  }
+
+  // Remaining movement for a controlled, linked token
+  function remainingFor(t: Token): { used: number; speed: number } | null {
+    if (!t.linked_character_id) return null
+    const speed = characterSpeeds[t.linked_character_id]
+    if (speed === undefined) return null
+    return { used: Math.round(t.movement_used), speed }
+  }
+
+  function handleSelectToken(id: string | null) {
+    setSelectedId(id)
+    if (!id) return
+    // Tapping your own token only selects it (drag moves it); the action
+    // request flow is for targeting other tokens and objects.
+    const token = tokens.find((t) => t.id === id)
+    if (token && controls(token)) return
+    openGuidedAction(id)
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Status bar */}
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        {mapLocked ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-500/15 text-orange-300 border border-orange-500/30 text-xs font-medium">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            Movement locked by DM
+          </span>
+        ) : myControlled.length > 0 ? (
+          <span className="text-xs text-zinc-500">
+            Drag your token to move it.
+          </span>
+        ) : (
+          <span className="text-xs text-zinc-600">
+            You have no token to control on this map yet.
+          </span>
+        )}
+
+        {/* Remaining movement for controlled, linked tokens */}
+        {!mapLocked &&
+          myControlled.map((t) => {
+            const r = remainingFor(t)
+            if (!r) return null
+            const left = Math.max(0, r.speed - r.used)
+            return (
+              <span key={t.id} className="text-xs text-zinc-400">
+                <span className="text-zinc-200 font-medium">{t.name || 'Your token'}</span>
+                : {left} / {r.speed} ft left
+              </span>
+            )
+          })}
+      </div>
+
+      {warning && (
+        <div className="rounded-lg border border-orange-800/60 bg-orange-900/30 text-orange-200 px-4 py-2.5 text-sm">
+          {warning}
+        </div>
+      )}
+
+      <div className="h-[60vh] lg:h-[calc(100vh-220px)] min-h-80 relative">
+        <MapCanvas
+          imageUrl={imageUrl}
+          width={map.width}
+          height={map.height}
+          gridEnabled={map.grid_enabled}
+          gridSize={map.grid_size}
+          gridColor={map.grid_color}
+          gridOpacity={map.grid_opacity}
+          gridLineWidth={map.grid_line_width}
+          gridSubdivisions={map.grid_subdivisions}
+          gridOffsetX={map.grid_offset_x}
+          gridOffsetY={map.grid_offset_y}
+          tokens={renderTokens}
+          mode="player"
+          selectedTokenId={selectedId}
+          onSelectToken={handleSelectToken}
+          onMoveToken={handleMove}
+          canDragToken={canDrag}
+          revealedAreas={renderAreas}
+          fogEnabled
+        />
+
+        {areas.length === 0 && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-zinc-900/95 border border-zinc-700 rounded-lg px-3.5 py-2 text-xs text-zinc-400 shadow-lg">
+            The DM has not revealed this map yet.
+          </div>
+        )}
+
+        {selected && (
+          <div className="absolute bottom-16 left-3 right-3 z-10 max-w-sm bg-zinc-900/95 border border-zinc-700 rounded-lg p-3 shadow-lg sm:right-auto">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="w-4 h-4 rounded-full border border-black/40 shrink-0"
+                  style={{ backgroundColor: selected.color }}
+                />
+                <span className="text-sm font-medium text-zinc-100 truncate">
+                  {selected.name || 'Token'}
+                </span>
+                {controls(selected) && (
+                  <span className="text-xs text-emerald-400 shrink-0">Yours</span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                className="shrink-0 text-zinc-500 hover:text-zinc-300"
+                aria-label="Close token details"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {selected.public_description && (
+              <p className="text-xs text-zinc-300 mt-1.5">{selected.public_description}</p>
+            )}
+            {selected.notes && (
+              <p className="text-xs text-zinc-400 mt-1.5">{selected.notes}</p>
+            )}
+            {selected.object_state && selected.object_state !== 'visible' && (
+              <p className="text-[11px] text-amber-400/80 mt-1 capitalize">
+                State: {selected.object_state}
+              </p>
+            )}
+
+            <PlayerLinkedCodexDocsPanel
+              objectType={codexObjectTypeForToken(selected)}
+              objectId={selected.id}
+              docs={playerCodexDocs}
+              links={playerCodexLinks}
+            />
+
+            {/* Contextual action menu — only the actions the DM allowed */}
+            {contextualActions.length > 0 && (
+              <div className="mt-3 border-t border-zinc-800 pt-3">
+                <p className="text-[11px] uppercase tracking-wide text-zinc-600 mb-2">
+                  {nearestActor
+                    ? `${nearestActor.distance} ft away — choose an action`
+                    : 'Link a character to a token to act'}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {contextualActions.map((action) => {
+                    const key = nearestActor
+                      ? `${nearestActor.actor.linked_character_id}:${selected.id}:${action}`
+                      : action
+                    return (
+                      <button
+                        key={action}
+                        type="button"
+                        disabled={!nearestActor || submitting === key}
+                        onClick={() => submitContextualAction(action)}
+                        className="rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-xs font-medium text-zinc-200 transition hover:border-amber-500/60 hover:text-amber-200 disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-200"
+                      >
+                        {submitting === key ? 'Sending…' : action}
+                      </button>
+                    )
+                  })}
+                </div>
+                <textarea
+                  value={actionMessage}
+                  onChange={(e) => setActionMessage(e.target.value)}
+                  rows={2}
+                  placeholder="Optional: describe what you want to try."
+                  className="mt-2 w-full rounded-md border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-100 outline-none focus:border-amber-500 resize-none"
+                />
+                {actionFeedback && (
+                  <p className="mt-1.5 text-xs text-amber-300">{actionFeedback}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="absolute bottom-3 left-3 z-30">
+          <button
+            type="button"
+            onClick={() => {
+              setInteractionOpen((open) => !open)
+              setSection('root')
+            }}
+            aria-label="Open interaction menu"
+            className={`flex h-12 w-12 items-center justify-center rounded-full border shadow-xl backdrop-blur transition active:scale-95 ${
+              interactionOpen
+                ? 'border-amber-400 bg-amber-500 text-zinc-950'
+                : 'border-zinc-700 bg-zinc-950/90 text-amber-200 hover:border-amber-500/70 hover:bg-zinc-900'
+            }`}
+          >
+            <Hand className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        {interactionOpen && (
+          <InteractionMenu
+            section={section}
+            setSection={setSection}
+            onClose={() => setInteractionOpen(false)}
+            selected={selected}
+            contextualActions={contextualActions}
+            nearestActor={nearestActor}
+            actionMessage={actionMessage}
+            setActionMessage={setActionMessage}
+            actionFeedback={actionFeedback}
+            submitting={submitting}
+            submitContextualAction={submitContextualAction}
+            myRequests={myRequests}
+            requestsLoading={requestsLoading}
+            partyMembers={partyMembers.filter((member) => member.userId !== currentUserId)}
+            partyMessage={partyMessage}
+            setPartyMessage={setPartyMessage}
+            whisperRecipient={whisperRecipient}
+            setWhisperRecipient={setWhisperRecipient}
+            talkFeedback={talkFeedback}
+            talkBusy={talkBusy}
+            sendMeeting={sendMeeting}
+            sendAnnouncement={sendAnnouncement}
+            sendWhisper={sendWhisper}
+            onTakeAction={() => openGuidedAction(selected?.id ?? null)}
+          />
+        )}
+
+        {actionFlow !== 'idle' && (
+          <ActionSequenceOverlay
+            state={actionFlow}
+            target={actionTarget}
+            targets={visibleTargets}
+            actor={actorForActionTarget}
+            actionType={guidedActionType}
+            setActionType={(value) => {
+              setGuidedActionType(value)
+              setSelectedToolId('')
+            }}
+            selectedTool={selectedTool}
+            selectedToolId={selectedToolId}
+            toolOptions={toolOptions}
+            toolsLoading={toolsLoading}
+            setSelectedToolId={setSelectedToolId}
+            message={guidedActionMessage}
+            setMessage={setGuidedActionMessage}
+            intent={guidedIntent}
+            rollRequest={activeRollRequest}
+            rollResult={inlineRollResult}
+            inlineRollBusy={inlineRollBusy}
+            inlineRollAnimating={inlineRollAnimating}
+            inlineRollMode={inlineRollMode}
+            inlineManualOne={inlineManualOne}
+            inlineManualTwo={inlineManualTwo}
+            setInlineManualOne={setInlineManualOne}
+            setInlineManualTwo={setInlineManualTwo}
+            inlineAnimNumber={inlineAnimNumber}
+            inlinePendingDamage={inlinePendingDamage}
+            inlineDamageTotal={inlineDamageTotal}
+            setInlineDamageTotal={setInlineDamageTotal}
+            inlineOutcome={inlineOutcome}
+            onInlineManualToggle={() => {
+              setGuidedError(null)
+              setInlineRollMode((mode) => (mode === 'manual' ? 'choice' : 'manual'))
+            }}
+            onInlineManualSubmit={submitInlineManualRoll}
+            onInlineDamageSubmit={submitInlineDamage}
+            error={guidedError}
+            nudgeBusy={nudgeBusy}
+            nudgeCooldownUntil={nudgeCooldownUntil}
+            setTargetId={(id) => {
+              setActionTargetId(id)
+              setSelectedId(id)
+              setSelectedToolId('')
+            }}
+            onSubmit={submitGuidedAction}
+            onNudge={nudgeDM}
+            onInlineRoll={rollInlineFromActionPage}
+            onBack={() => setActionFlow('choosing_action')}
+            onClose={closeGuidedAction}
+          />
+        )}
+      </div>
+
+      <p className="text-xs text-zinc-600 text-center">
+        Drag to pan · scroll or use the buttons to zoom · 1 square = {map.grid_scale_feet} ft
+      </p>
+
+    </div>
+  )
+}
+
+function requestStatusLabel(status: string) {
+  return status.replace(/_/g, ' ')
+}
+
+function MenuItem({
+  title,
+  description,
+  icon,
+  onClick,
+  onMouseEnter,
+  active,
+  disabled,
+  trailing = true,
+}: {
+  title: string
+  description: string
+  icon: React.ReactNode
+  onClick?: () => void
+  onMouseEnter?: () => void
+  active?: boolean
+  disabled?: boolean
+  trailing?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-45 ${
+        active
+          ? 'border-amber-500/60 bg-amber-500/10'
+          : 'border-zinc-800 bg-zinc-900 hover:border-zinc-600 hover:bg-zinc-800/70'
+      }`}
+    >
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-zinc-950 text-amber-200">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-zinc-100">{title}</span>
+        <span className="mt-0.5 block text-xs leading-relaxed text-zinc-500">{description}</span>
+      </span>
+      {trailing && <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-zinc-500" aria-hidden="true" />}
+    </button>
+  )
+}
+
+function InteractionMenu({
+  section,
+  setSection,
+  onClose,
+  selected,
+  contextualActions,
+  nearestActor,
+  actionMessage,
+  setActionMessage,
+  actionFeedback,
+  submitting,
+  submitContextualAction,
+  myRequests,
+  requestsLoading,
+  partyMembers,
+  partyMessage,
+  setPartyMessage,
+  whisperRecipient,
+  setWhisperRecipient,
+  talkFeedback,
+  talkBusy,
+  sendMeeting,
+  sendAnnouncement,
+  sendWhisper,
+  onTakeAction,
+}: {
+  section: InteractionSection
+  setSection: (section: InteractionSection) => void
+  onClose: () => void
+  selected: Token | null
+  contextualActions: string[]
+  nearestActor: { actor: Token; distance: number } | null
+  actionMessage: string
+  setActionMessage: (value: string) => void
+  actionFeedback: string | null
+  submitting: string | null
+  submitContextualAction: (actionType: string) => void
+  myRequests: ActionIntent[]
+  requestsLoading: boolean
+  partyMembers: { userId: string; role: string; profile: Profile | null }[]
+  partyMessage: string
+  setPartyMessage: (value: string) => void
+  whisperRecipient: string
+  setWhisperRecipient: (value: string) => void
+  talkFeedback: string | null
+  talkBusy: string | null
+  sendMeeting: () => void
+  sendAnnouncement: () => void
+  sendWhisper: () => void
+  onTakeAction: () => void
+}) {
+  const actionPanel = (
+    <div className="grid gap-2">
+      <MenuItem
+        title="Take an Action"
+        description="Open the guided action request flow for DM review."
+        icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}
+        onClick={onTakeAction}
+        trailing={false}
+      />
+      <MenuItem
+        title="Requests"
+        description="Open your action requests and submit quick requests to the DM."
+        icon={<Hand className="h-4 w-4" aria-hidden="true" />}
+        onClick={() => setSection('requests')}
+        trailing={false}
+      />
+    </div>
+  )
+
+  const talkPanel = (
+    <div className="grid gap-2">
+      <MenuItem
+        title="Call Party Meeting"
+        description="Send a loud meeting alert to every player."
+        icon={<Users className="h-4 w-4" aria-hidden="true" />}
+        onClick={sendMeeting}
+        disabled={talkBusy === 'meeting'}
+        trailing={false}
+      />
+      <MenuItem
+        title="Whisper to Party Member"
+        description="Send a private message to one party member."
+        icon={<MessageCircle className="h-4 w-4" aria-hidden="true" />}
+        onClick={() => setSection('whisper')}
+        trailing={false}
+      />
+      <MenuItem
+        title="Make Party Announcement"
+        description="Send a visible message to the whole party."
+        icon={<Megaphone className="h-4 w-4" aria-hidden="true" />}
+        onClick={() => setSection('announcement')}
+        trailing={false}
+      />
+      {talkFeedback && <p className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-amber-200">{talkFeedback}</p>}
+    </div>
+  )
+
+  const requestsPanel = (
+    <div className="grid gap-3">
+      <div>
+        <p className="text-sm font-semibold text-zinc-100">Requests</p>
+        <p className="mt-0.5 text-xs text-zinc-500">View your current requests and submit quick actions to the DM.</p>
+      </div>
+      {selected && contextualActions.length > 0 ? (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+          <p className="text-xs font-medium text-zinc-300">Selected: {selected.name || selected.token_type}</p>
+          <p className="mt-1 text-[11px] text-zinc-500">
+            {nearestActor ? `${nearestActor.distance} ft away` : 'Link a character to a token to act.'}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {contextualActions.map((action) => {
+              const key = nearestActor ? `${nearestActor.actor.linked_character_id}:${selected.id}:${action}` : action
+              return (
+                <button
+                  key={action}
+                  type="button"
+                  disabled={!nearestActor || submitting === key}
+                  onClick={() => submitContextualAction(action)}
+                  className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs font-semibold text-zinc-100 transition hover:border-amber-500/60 hover:text-amber-200 disabled:opacity-45"
+                >
+                  {submitting === key ? 'Sending...' : action}
+                </button>
+              )
+            })}
+          </div>
+          <textarea
+            value={actionMessage}
+            onChange={(event) => setActionMessage(event.target.value)}
+            rows={2}
+            placeholder="Optional: describe what you want to try."
+            className="mt-3 w-full resize-none rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+          />
+          {actionFeedback && <p className="mt-2 text-xs text-amber-200">{actionFeedback}</p>}
+        </div>
+      ) : (
+        <p className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-500">
+          Select an interactable token on the map to submit a quick action request.
+        </p>
+      )}
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">My Requests</p>
+        <div className="mt-2 grid gap-2">
+          {requestsLoading ? (
+            <p className="text-xs text-zinc-500">Loading requests...</p>
+          ) : myRequests.length === 0 ? (
+            <p className="text-xs text-zinc-500">No action requests yet.</p>
+          ) : (
+            myRequests.map((request) => (
+              <div key={request.id} className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-zinc-100">{request.action_type}</p>
+                  <span className="rounded-md border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 text-[10px] capitalize text-zinc-400">
+                    {requestStatusLabel(request.status)}
+                  </span>
+                </div>
+                {request.dm_response && <p className="mt-1 text-xs text-amber-200">DM: {request.dm_response}</p>}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  const announcementPanel = (
+    <MessageForm
+      title="Make Party Announcement"
+      description="Send a visible message to the whole party."
+      value={partyMessage}
+      setValue={setPartyMessage}
+      busy={talkBusy === 'announcement'}
+      buttonLabel="Send Announcement"
+      onSubmit={sendAnnouncement}
+      feedback={talkFeedback}
+    />
+  )
+
+  const whisperPanel = (
+    <div className="grid gap-3">
+      <div>
+        <p className="text-sm font-semibold text-zinc-100">Whisper to Party Member</p>
+        <p className="mt-0.5 text-xs text-zinc-500">Send a private message to one party member.</p>
+      </div>
+      {partyMembers.length === 0 ? (
+        <p className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-500">
+          No other party members are available right now.
+        </p>
+      ) : (
+        <>
+          <select
+            value={whisperRecipient}
+            onChange={(event) => setWhisperRecipient(event.target.value)}
+            className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+          >
+            <option value="">Choose a party member</option>
+            {partyMembers.map((member) => (
+              <option key={member.userId} value={member.userId}>
+                {member.profile?.display_name ?? 'Party member'}{member.role === 'dm' ? ' (DM)' : ''}
+              </option>
+            ))}
+          </select>
+          <MessageForm
+            title=""
+            description=""
+            value={partyMessage}
+            setValue={setPartyMessage}
+            busy={talkBusy === 'whisper'}
+            buttonLabel="Send Whisper"
+            onSubmit={sendWhisper}
+            feedback={talkFeedback}
+          />
+        </>
+      )}
+    </div>
+  )
+
+  const detailPanel =
+    section === 'action' ? actionPanel :
+    section === 'requests' ? requestsPanel :
+    section === 'talk' ? talkPanel :
+    section === 'whisper' ? whisperPanel :
+    section === 'announcement' ? announcementPanel :
+    null
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Close interaction menu"
+        onClick={onClose}
+        className="absolute inset-0 z-20 bg-black/10"
+      />
+
+      <div className="fixed inset-0 z-50 flex items-end bg-black/45 p-3 backdrop-blur-sm md:hidden">
+        <div className="max-h-[82vh] w-full overflow-y-auto rounded-2xl border border-zinc-700 bg-zinc-950 p-4 shadow-2xl">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => section === 'root' ? onClose() : setSection('root')}
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
+            >
+              {section === 'root' ? <X className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
+              {section === 'root' ? 'Close' : 'Back'}
+            </button>
+            <p className="text-sm font-semibold text-zinc-100">Interaction Menu</p>
+          </div>
+          {section === 'root' ? (
+            <div className="grid gap-2">
+              <MenuItem title="Action" description="Request actions, rolls, and DM review." icon={<Hand className="h-4 w-4" />} onClick={() => setSection('action')} />
+              <MenuItem title="Talk" description="Communicate with the party." icon={<MessageCircle className="h-4 w-4" />} onClick={() => setSection('talk')} />
+            </div>
+          ) : detailPanel}
+        </div>
+      </div>
+
+      <div className="absolute bottom-16 left-3 z-40 hidden md:flex items-start gap-2">
+        <div className="w-80 rounded-xl border border-zinc-700 bg-zinc-950 p-3 shadow-2xl shadow-black/50">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-zinc-100">Interaction Menu</p>
+            <button type="button" onClick={onClose} className="rounded-md p-1 text-zinc-500 hover:bg-zinc-900 hover:text-zinc-100" aria-label="Close interaction menu">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="grid gap-2">
+            <MenuItem title="Action" description="Request actions, rolls, and DM review." icon={<Hand className="h-4 w-4" />} active={section === 'action' || section === 'requests'} onMouseEnter={() => setSection('action')} onClick={() => setSection('action')} />
+            <MenuItem title="Talk" description="Communicate with the party." icon={<MessageCircle className="h-4 w-4" />} active={section === 'talk' || section === 'whisper' || section === 'announcement'} onMouseEnter={() => setSection('talk')} onClick={() => setSection('talk')} />
+          </div>
+        </div>
+        {detailPanel && (
+          <div className="max-h-[70vh] w-96 overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-3 shadow-2xl shadow-black/50">
+            {detailPanel}
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
+
+function ActionSequenceOverlay({
+  state,
+  target,
+  targets,
+  actor,
+  actionType,
+  setActionType,
+  selectedTool,
+  selectedToolId,
+  toolOptions,
+  toolsLoading,
+  setSelectedToolId,
+  message,
+  setMessage,
+  intent,
+  rollRequest,
+  rollResult,
+  inlineRollBusy,
+  inlineRollAnimating,
+  inlineRollMode,
+  inlineManualOne,
+  inlineManualTwo,
+  setInlineManualOne,
+  setInlineManualTwo,
+  inlineAnimNumber,
+  inlinePendingDamage,
+  inlineDamageTotal,
+  setInlineDamageTotal,
+  inlineOutcome,
+  onInlineManualToggle,
+  onInlineManualSubmit,
+  onInlineDamageSubmit,
+  error,
+  nudgeBusy,
+  nudgeCooldownUntil,
+  setTargetId,
+  onSubmit,
+  onNudge,
+  onInlineRoll,
+  onBack,
+  onClose,
+}: {
+  state: ActionSequenceState
+  target: Token | null
+  targets: Token[]
+  actor: { actor: Token; distance: number } | null
+  actionType: GuidedActionType
+  setActionType: (value: GuidedActionType) => void
+  selectedTool: ActionToolOption | null
+  selectedToolId: string
+  toolOptions: ActionToolOption[]
+  toolsLoading: boolean
+  setSelectedToolId: (value: string) => void
+  message: string
+  setMessage: (value: string) => void
+  intent: ActionIntent | null
+  rollRequest: ActionRollRequest | null
+  rollResult: ActionRollResult | null
+  inlineRollBusy: boolean
+  inlineRollAnimating: boolean
+  inlineRollMode: 'choice' | 'manual' | 'damage'
+  inlineManualOne: string
+  inlineManualTwo: string
+  setInlineManualOne: (value: string) => void
+  setInlineManualTwo: (value: string) => void
+  inlineAnimNumber: number | null
+  inlinePendingDamage: {
+    formula: string
+    diceCount: number
+    dieSize: number
+    critical: boolean
+    naturalRoll: number
+    secondNaturalRoll: number | null
+  } | null
+  inlineDamageTotal: string
+  setInlineDamageTotal: (value: string) => void
+  inlineOutcome: PlayerRollOutcomeData | null
+  onInlineManualToggle: () => void
+  onInlineManualSubmit: () => void
+  onInlineDamageSubmit: () => void
+  error: string | null
+  nudgeBusy: boolean
+  nudgeCooldownUntil: number | null
+  setTargetId: (id: string) => void
+  onSubmit: () => void
+  onNudge: () => void
+  onInlineRoll: () => void
+  onBack: () => void
+  onClose: () => void
+}) {
+  const isChoosing = state === 'token_selected' || state === 'choosing_action' || state === 'submitting_request'
+  const isAwaiting = state === 'awaiting_dm'
+  const isApproved = state === 'approved'
+  const isDenied = state === 'denied'
+  const isRollState = state === 'resolving_primary_roll' || state === 'resolving_secondary_roll'
+  const isCompleted = state === 'completed'
+  const isCancelled = state === 'cancelled'
+  const showRollStep = isRollState || (isApproved && intent?.resolver_status === 'pending_player')
+  const isNudgeCoolingDown = Boolean(nudgeCooldownUntil)
+  const selectedAction = GUIDED_ACTION_TYPES.find((item) => item.type === actionType) ?? GUIDED_ACTION_TYPES[0]
+  const toolCopy = toolCopyForAction(actionType)
+  const targetName = target?.name || target?.token_type || null
+  const actionSummary = actionToolPhrase(actionType, targetName, selectedTool?.name ?? intent?.selected_tool_name)
+
+  const steps = [
+    { key: 'choose', label: 'Choose Action', icon: <MousePointer2 className="h-4 w-4" />, active: isChoosing, done: !isChoosing },
+    { key: 'await', label: 'Await DM', icon: <Mail className="h-4 w-4" />, active: isAwaiting, done: isApproved || isDenied || isRollState || isCompleted || isCancelled },
+    { key: 'response', label: 'DM Response', icon: isDenied ? <CircleX className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />, active: isApproved || isDenied || isCompleted || isCancelled, done: isRollState || isCompleted },
+    ...(showRollStep || isRollState || isCompleted
+      ? [{ key: 'roll', label: 'Resolve Action', icon: <Dices className="h-4 w-4" />, active: isRollState, done: isCompleted }]
+      : []),
+  ]
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-stretch justify-center bg-black/65 p-2 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-950 shadow-2xl shadow-black/60 transition-all duration-200 motion-reduce:transition-none sm:max-h-[calc(100vh-2rem)]">
+        <div className="shrink-0 flex items-start justify-between gap-3 border-b border-zinc-800 bg-zinc-900/80 px-4 py-3 sm:px-5 sm:py-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300 sm:text-xs sm:tracking-[0.22em]">Player Action Request</p>
+            <h2 className="mt-1 text-xl font-bold text-zinc-50 sm:text-2xl">Resolve it at the table</h2>
+            <p className="mt-1 text-xs text-zinc-400 sm:text-sm">
+              {target ? `${target.name || target.token_type} is selected.` : 'Choose a visible map target.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-md p-3 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-100"
+            aria-label="Close action request"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="grid min-h-0 gap-4 overflow-y-auto p-4 sm:p-5">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {steps.map((step) => (
+              <div
+                key={step.key}
+                className={`rounded-lg border px-2.5 py-2 transition sm:px-3 ${
+                  step.active
+                    ? 'border-amber-400 bg-amber-500/10 text-amber-100'
+                    : step.done
+                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+                      : 'border-zinc-800 bg-zinc-900 text-zinc-500'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-md border ${
+                    step.active ? 'border-amber-400/60 bg-amber-400/10' : 'border-zinc-700 bg-zinc-950'
+                  }`}>
+                    {step.icon}
+                  </span>
+                  <span className="text-[11px] font-semibold sm:text-xs">{step.label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {isChoosing && (
+            <div className="grid gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+                <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500" htmlFor="guided-target">
+                  Target
+                </label>
+                <select
+                  id="guided-target"
+                  value={target?.id ?? ''}
+                  onChange={(event) => setTargetId(event.target.value)}
+                className="mt-2 min-h-11 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none focus:border-amber-500 sm:text-sm"
+                >
+                  <option value="" disabled>Choose target</option>
+                  {targets.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name || item.token_type}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                  <p className="text-xs font-medium text-zinc-300">{actor?.actor.name ?? 'No actor in range'}</p>
+                  <p className="mt-1 text-[11px] text-zinc-500">
+                    {actor ? `${actor.distance} ft from target` : 'Link one of your character tokens to act.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {GUIDED_ACTION_TYPES.map((item) => (
+                    <button
+                      key={item.type}
+                      type="button"
+                      onClick={() => setActionType(item.type)}
+                      className={`min-h-24 rounded-lg border p-3 text-left transition hover:border-amber-400/60 ${
+                        actionType === item.type ? item.tone : 'border-zinc-800 bg-zinc-900 text-zinc-300'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-md border border-current/25 bg-black/20">
+                          {item.icon}
+                        </span>
+                        <span className="text-sm font-semibold">{item.label}</span>
+                      </span>
+                      <span className="mt-2 block text-xs leading-relaxed opacity-75">{item.description}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+                  <div className="flex items-center gap-2">
+                    <span className={`flex h-9 w-9 items-center justify-center rounded-md border ${selectedAction.tone}`}>
+                      {selectedAction.icon}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedAction.label}</p>
+                      <p className="text-xs text-zinc-500">{selectedAction.description}</p>
+                    </div>
+                  </div>
+                  <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-zinc-500" htmlFor="guided-tool">
+                    {toolCopy.label}
+                  </label>
+                  <select
+                    id="guided-tool"
+                    value={selectedToolId}
+                    onChange={(event) => setSelectedToolId(event.target.value)}
+                    className="mt-2 min-h-11 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none focus:border-amber-500 sm:text-sm"
+                  >
+                    {toolsLoading && <option value="">Loading choices...</option>}
+                    {!toolsLoading && toolOptions.length === 0 && <option value="">No choices available</option>}
+                    {!toolsLoading && toolOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name} ({option.source})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-zinc-500">{toolCopy.placeholder}</p>
+                  {selectedTool?.note && <p className="mt-1 text-[11px] text-amber-200">{selectedTool.note}</p>}
+                  <textarea
+                    value={message}
+                    onChange={(event) => setMessage(event.target.value)}
+                    rows={3}
+                    maxLength={500}
+                    placeholder="Describe what you are trying to do."
+                    className="mt-3 w-full resize-none rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none focus:border-amber-500 sm:text-sm"
+                  />
+                  {error && <p className="mt-2 rounded-md border border-red-800 bg-red-950/50 px-3 py-2 text-xs text-red-200">{error}</p>}
+                  <button
+                    type="button"
+                    disabled={!target || !actor || state === 'submitting_request'}
+                    onClick={onSubmit}
+                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-45 sm:w-auto"
+                  >
+                    <Send className="h-4 w-4" aria-hidden="true" />
+                    {state === 'submitting_request' ? 'Sending...' : 'Send to DM'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isAwaiting && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6 text-center">
+              <Mail className="mx-auto h-12 w-12 animate-pulse text-amber-300" aria-hidden="true" />
+              <h3 className="mt-3 text-xl font-bold text-amber-50">Waiting for the DM</h3>
+              <p className="mx-auto mt-2 max-w-xl text-sm text-amber-100/80">
+                {actionSummary} request sent. Keep the outcome visible here while the DM reviews it.
+              </p>
+              <button
+                type="button"
+                disabled={nudgeBusy || isNudgeCoolingDown}
+                onClick={onNudge}
+                className="mt-5 inline-flex items-center justify-center gap-2 rounded-md border border-amber-400/50 bg-zinc-950 px-4 py-2 text-sm font-semibold text-amber-100 transition hover:border-amber-300 disabled:opacity-45"
+              >
+                <Hourglass className="h-4 w-4" aria-hidden="true" />
+                {nudgeBusy ? 'Nudging...' : isNudgeCoolingDown ? 'Nudge sent' : 'Nudge DM'}
+              </button>
+              {error && <p className="mt-3 text-xs text-red-200">{error}</p>}
+            </div>
+          )}
+
+          {(isApproved || isDenied || isCompleted || isCancelled) && (
+            <div className={`rounded-xl border p-6 text-center ${
+              isDenied || isCancelled
+                ? 'border-red-500/40 bg-red-950/40'
+                : 'border-emerald-500/40 bg-emerald-950/30'
+            }`}>
+              {isDenied || isCancelled ? (
+                <CircleX className="mx-auto h-14 w-14 text-red-300" aria-hidden="true" />
+              ) : (
+                <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-300" aria-hidden="true" />
+              )}
+              <h3 className={`mt-3 text-xl font-bold ${isDenied || isCancelled ? 'text-red-50' : 'text-emerald-50'}`}>
+                {isCompleted ? 'Action Completed' : isDenied ? 'Action Denied' : isCancelled ? 'Action Cancelled' : 'Action Approved'}
+              </h3>
+              <p className="mx-auto mt-2 max-w-2xl text-sm text-zinc-300">
+                {intent?.dm_response || (isDenied ? 'The DM denied this request.' : 'The DM approved this request.')}
+              </p>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                {isDenied && (
+                  <button
+                    type="button"
+                    onClick={onBack}
+                    className="rounded-md border border-zinc-700 bg-zinc-950 px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:border-amber-500/60"
+                  >
+                    Edit Request
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-white"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isRollState && (() => {
+            const needsSecond = rollRequest ? rollRequest.advantage_state !== 'normal' : false
+            const canRoll = Boolean(rollRequest && rollRequest.status === 'waiting_for_player') && !inlineOutcome
+            const showChoice = canRoll && inlineRollMode === 'choice'
+            const showManual = canRoll && inlineRollMode === 'manual'
+            const showDamage = inlineRollMode === 'damage' && Boolean(inlinePendingDamage)
+            return (
+              <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-6 text-center">
+                <button
+                  type="button"
+                  onClick={onInlineRoll}
+                  disabled={!showChoice || inlineRollBusy}
+                  className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl border border-emerald-400/50 bg-zinc-950 text-2xl font-bold text-emerald-300 shadow-lg shadow-emerald-950/40 transition hover:border-emerald-300 disabled:opacity-60"
+                  aria-label="Roll now"
+                >
+                  {inlineRollAnimating && inlineAnimNumber !== null ? (
+                    <span className="text-3xl text-amber-300">{inlineAnimNumber}</span>
+                  ) : (
+                    <Dices className={`h-14 w-14 ${inlineRollAnimating ? 'animate-spin' : ''}`} aria-hidden="true" />
+                  )}
+                </button>
+                <h3 className="mt-3 text-xl font-bold text-emerald-50">Resolve the Roll</h3>
+                <p className="mt-1 text-sm font-semibold text-emerald-100">{actionSummary}</p>
+
+                {rollRequest && (
+                  <p className="mt-2 text-xs text-zinc-400">
+                    {rollRequest.label}: d20 {rollRequest.modifier >= 0 ? `+${rollRequest.modifier}` : rollRequest.modifier}
+                    {rollRequest.target_number !== null ? ` / target ${rollRequest.target_number}` : ''}
+                    {rollRequest.advantage_state !== 'normal' ? ` · ${rollRequest.advantage_state}` : ''}
+                  </p>
+                )}
+
+                {showChoice && (
+                  <>
+                    <p className="mx-auto mt-2 max-w-2xl text-sm text-zinc-300">
+                      Tap the dice to roll automatically, or enter a roll you made yourself. Your
+                      result stays visible here while the DM reviews it.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={onInlineManualToggle}
+                      disabled={inlineRollBusy}
+                      className="mt-3 text-xs font-semibold text-emerald-300 underline-offset-2 hover:underline disabled:opacity-50"
+                    >
+                      I rolled manually instead
+                    </button>
+                  </>
+                )}
+
+                {showManual && (
+                  <div className="mx-auto mt-4 flex max-w-xs flex-col gap-3 text-left">
+                    <label className="flex flex-col gap-1 text-xs text-zinc-400">
+                      Natural d20 roll
+                      <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        inputMode="numeric"
+                        value={inlineManualOne}
+                        onChange={(event) => setInlineManualOne(event.target.value)}
+                        className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                      />
+                    </label>
+                    {needsSecond && (
+                      <label className="flex flex-col gap-1 text-xs text-zinc-400">
+                        Second d20 roll ({rollRequest?.advantage_state})
+                        <input
+                          type="number"
+                          min={1}
+                          max={20}
+                          inputMode="numeric"
+                          value={inlineManualTwo}
+                          onChange={(event) => setInlineManualTwo(event.target.value)}
+                          className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                        />
+                      </label>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={onInlineManualToggle}
+                        disabled={inlineRollBusy}
+                        className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 disabled:opacity-50"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onInlineManualSubmit}
+                        disabled={inlineRollBusy}
+                        className="rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-50"
+                      >
+                        Submit manual roll
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {showDamage && inlinePendingDamage && (
+                  <div className="mx-auto mt-4 flex max-w-xs flex-col gap-3 text-left">
+                    <div className="rounded-md border border-emerald-800/60 bg-emerald-950/30 p-3">
+                      <p className="text-xs font-medium text-emerald-100">Attack hits — enter damage.</p>
+                      <p className="mt-1 text-xs text-zinc-400">Damage formula: {inlinePendingDamage.formula}</p>
+                      {inlinePendingDamage.critical && (
+                        <p className="mt-1 text-[11px] text-amber-200">Critical hit: dice are doubled; modifier added once.</p>
+                      )}
+                    </div>
+                    <label className="flex flex-col gap-1 text-xs text-zinc-400">
+                      Damage dice total
+                      <input
+                        type="number"
+                        min={inlinePendingDamage.diceCount}
+                        max={inlinePendingDamage.diceCount * inlinePendingDamage.dieSize}
+                        inputMode="numeric"
+                        value={inlineDamageTotal}
+                        onChange={(event) => setInlineDamageTotal(event.target.value)}
+                        className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={onInlineDamageSubmit}
+                      disabled={inlineRollBusy}
+                      className="rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-50"
+                    >
+                      Submit damage
+                    </button>
+                  </div>
+                )}
+
+                {!canRoll && !inlineOutcome && !rollResult && !showDamage && (
+                  <p className="mx-auto mt-2 max-w-2xl text-sm text-zinc-300">
+                    Approved — waiting for the DM to request your roll.
+                  </p>
+                )}
+
+                {/* Shared outcome panel (same effects/styling as the roll popup). */}
+                {inlineOutcome ? (
+                  <div className="mx-auto mt-2 max-w-md text-left">
+                    <PlayerRollOutcomePanel data={inlineOutcome} onContinue={onClose} />
+                  </div>
+                ) : (
+                  rollResult && (
+                    <div className="mx-auto mt-4 max-w-sm rounded-xl border border-emerald-500/40 bg-zinc-950 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Locked roll result</p>
+                      <p className="mt-2 text-3xl font-bold text-emerald-100">{rollResult.total}</p>
+                      <p className="mt-1 text-sm text-zinc-300">
+                        d20 {rollResult.used_natural_roll} {rollResult.modifier >= 0 ? `+ ${rollResult.modifier}` : `- ${Math.abs(rollResult.modifier)}`}
+                      </p>
+                      <p className="mt-1 text-xs capitalize text-zinc-500">{rollResult.result.replace(/_/g, ' ')}</p>
+                    </div>
+                  )
+                )}
+
+                {intent?.dm_response && <p className="mt-3 text-sm text-emerald-100">DM: {intent.dm_response}</p>}
+              </div>
+            )
+          })()}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MessageForm({
+  title,
+  description,
+  value,
+  setValue,
+  busy,
+  buttonLabel,
+  onSubmit,
+  feedback,
+}: {
+  title: string
+  description: string
+  value: string
+  setValue: (value: string) => void
+  busy: boolean
+  buttonLabel: string
+  onSubmit: () => void
+  feedback: string | null
+}) {
+  return (
+    <div className="grid gap-3">
+      {title && (
+        <div>
+          <p className="text-sm font-semibold text-zinc-100">{title}</p>
+          <p className="mt-0.5 text-xs text-zinc-500">{description}</p>
+        </div>
+      )}
+      <textarea
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        rows={3}
+        maxLength={280}
+        placeholder="Type a short message."
+        className="resize-none rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+      />
+      <button
+        type="button"
+        disabled={busy || !value.trim()}
+        onClick={onSubmit}
+        className="inline-flex items-center justify-center gap-2 rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-45"
+      >
+        <Send className="h-4 w-4" aria-hidden="true" />
+        {busy ? 'Sending...' : buttonLabel}
+      </button>
+      {feedback && <p className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-amber-200">{feedback}</p>}
+    </div>
+  )
+}

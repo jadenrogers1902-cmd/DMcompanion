@@ -24,6 +24,18 @@ import { TokenResourceLookup } from './TokenResourceLookup'
 import { normalizePrepLinks, tagsFromInput } from './prep-metadata'
 import { defaultCategoryForTokenType } from '@/lib/srd/open5e'
 
+// Group token types so the panel can show only the fields that make sense:
+// creatures get combat/movement + a stat-block lookup; locations get
+// world/room fields and never combat; objects get interaction + object state.
+type TokenKind = 'creature' | 'location' | 'object'
+function tokenKind(type: string): TokenKind {
+  if (type === 'location' || type === 'sub_location') return 'location'
+  if (type === 'enemy' || type === 'boss' || type === 'hostile_enemy' || type === 'npc' || type === 'character') {
+    return 'creature'
+  }
+  return 'object'
+}
+
 interface TokenDetailPanelProps {
   token: PreparedMapToken
   campaignId: string
@@ -83,52 +95,79 @@ export function TokenDetailPanel({
     onChange({ reveal_state: state, visible_to_players: revealStateIsPlayerVisible(state) })
   }
 
+  // Per-type field visibility.
+  const kind = tokenKind(token.token_type)
+  const showCombatBlock = kind === 'creature'
+  const showObjectState = kind === 'object'
+  const showResource = kind === 'creature' || token.token_type === 'item' || token.token_type === 'loot'
+  const dmNotesLabel =
+    kind === 'location'
+      ? 'What Happens Here? / Room Secret (DM-only)'
+      : kind === 'creature'
+        ? 'DM Tactics & Secrets (private)'
+        : 'DM Notes (private)'
+  const dmNotesPlaceholder =
+    kind === 'location'
+      ? 'What players find here, room secrets, triggers. Never shown to players.'
+      : kind === 'creature'
+        ? 'Tactics, weaknesses, secret motives. Never shown to players.'
+        : 'Trigger conditions, contents, secrets. Never shown to players.'
+
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-40 max-h-[75dvh] overflow-y-auto rounded-t-2xl border border-zinc-800 bg-zinc-950 shadow-2xl lg:inset-x-auto lg:inset-y-0 lg:right-0 lg:bottom-auto lg:max-h-none lg:w-[26rem] lg:rounded-none lg:border-y-0 lg:border-r-0 lg:border-l"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4"
       role="dialog"
+      aria-modal="true"
       aria-label={`Token: ${token.name || meta.label}`}
+      onClick={onClose}
     >
-      <div className="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-950/95 p-4 backdrop-blur">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-black/40 text-lg"
-              style={{ backgroundColor: token.color }}
+      <div
+        className="flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {/* Header (fixed) */}
+        <div className="shrink-0 border-b border-zinc-800 bg-zinc-950 p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-black/40 text-lg"
+                style={{ backgroundColor: token.color }}
+              >
+                {token.icon || meta.icon}
+              </span>
+              <input
+                value={token.name}
+                onChange={(event) => onChange({ name: event.target.value })}
+                placeholder={meta.label}
+                maxLength={80}
+                className="min-w-0 flex-1 border-none bg-transparent text-lg font-semibold text-zinc-100 outline-none placeholder:text-zinc-600"
+                aria-label="Token name"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+              aria-label="Close token panel"
             >
-              {token.icon || meta.icon}
-            </span>
-            <input
-              value={token.name}
-              onChange={(event) => onChange({ name: event.target.value })}
-              placeholder={meta.label}
-              maxLength={80}
-              className="min-w-0 flex-1 border-none bg-transparent text-lg font-semibold text-zinc-100 outline-none placeholder:text-zinc-600"
-              aria-label="Token name"
-            />
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
-            aria-label="Close token panel"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <Badge variant="dm">{meta.label}</Badge>
+            <Badge variant={token.reveal_state === 'visible' ? 'success' : 'default'}>
+              {revealOption?.label ?? token.reveal_state}
+            </Badge>
+            <span className="text-xs text-zinc-600">
+              at {Math.round(token.x)}, {Math.round(token.y)}
+            </span>
+          </div>
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <Badge variant={token.reveal_state === 'visible' ? 'success' : 'default'}>
-            {revealOption?.label ?? token.reveal_state}
-          </Badge>
-          <span className="text-xs text-zinc-600">
-            at {Math.round(token.x)}, {Math.round(token.y)}
-          </span>
-        </div>
-      </div>
 
-      <div className="flex flex-col gap-5 p-4">
+        {/* Body (scrollable) */}
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
         <section className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <Select
@@ -191,46 +230,51 @@ export function TokenDetailPanel({
             hint="Comma-separated prep tags."
           />
 
+          {/* Behavior — only the controls relevant to this token kind. */}
           <div className="grid gap-2 rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-300">
+            {showCombatBlock && (
+              <>
+                <label className="flex items-center justify-between gap-3">
+                  <span>Dynamic entity token</span>
+                  <input
+                    type="checkbox"
+                    checked={token.is_dynamic !== false}
+                    onChange={(event) =>
+                      onChange({
+                        is_dynamic: event.target.checked,
+                        can_move: event.target.checked ? token.can_move !== false : false,
+                        can_participate_in_combat: event.target.checked
+                          ? Boolean(token.can_participate_in_combat)
+                          : false,
+                      })
+                    }
+                    className="h-4 w-4 accent-amber-500"
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <span>Can move after deployment</span>
+                  <input
+                    type="checkbox"
+                    checked={token.can_move !== false}
+                    disabled={token.is_dynamic === false}
+                    onChange={(event) => onChange({ can_move: event.target.checked })}
+                    className="h-4 w-4 accent-amber-500 disabled:opacity-50"
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <span>Can participate in combat</span>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(token.can_participate_in_combat)}
+                    disabled={token.is_dynamic === false}
+                    onChange={(event) => onChange({ can_participate_in_combat: event.target.checked })}
+                    className="h-4 w-4 accent-amber-500 disabled:opacity-50"
+                  />
+                </label>
+              </>
+            )}
             <label className="flex items-center justify-between gap-3">
-              <span>Dynamic entity token</span>
-              <input
-                type="checkbox"
-                checked={token.is_dynamic !== false}
-                onChange={(event) =>
-                  onChange({
-                    is_dynamic: event.target.checked,
-                    can_move: event.target.checked ? token.can_move !== false : false,
-                    can_participate_in_combat: event.target.checked
-                      ? Boolean(token.can_participate_in_combat)
-                      : false,
-                  })
-                }
-                className="h-4 w-4 accent-amber-500"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-3">
-              <span>Can move after deployment</span>
-              <input
-                type="checkbox"
-                checked={token.can_move !== false}
-                disabled={token.is_dynamic === false}
-                onChange={(event) => onChange({ can_move: event.target.checked })}
-                className="h-4 w-4 accent-amber-500 disabled:opacity-50"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-3">
-              <span>Can participate in combat</span>
-              <input
-                type="checkbox"
-                checked={Boolean(token.can_participate_in_combat)}
-                disabled={token.is_dynamic === false}
-                onChange={(event) => onChange({ can_participate_in_combat: event.target.checked })}
-                className="h-4 w-4 accent-amber-500 disabled:opacity-50"
-              />
-            </label>
-            <label className="flex items-center justify-between gap-3">
-              <span>Interactable object</span>
+              <span>Interactable</span>
               <input
                 type="checkbox"
                 checked={Boolean(token.interactable)}
@@ -238,10 +282,25 @@ export function TokenDetailPanel({
                 className="h-4 w-4 accent-amber-500"
               />
             </label>
-            {token.is_dynamic === false && (
-              <p className="text-xs text-zinc-500">Players cannot move static objects.</p>
+            {kind !== 'creature' && (
+              <p className="text-xs text-zinc-500">
+                {kind === 'location'
+                  ? 'Locations are fixed reference points — players cannot move them.'
+                  : 'Static objects stay put; players cannot move them.'}
+              </p>
             )}
           </div>
+
+          {showObjectState && (
+            <Input
+              label="Object state"
+              value={token.object_state ?? ''}
+              placeholder="closed, locked, hidden, disabled…"
+              maxLength={40}
+              onChange={(event) => onChange({ object_state: event.target.value || null })}
+              hint="Starting state for this object when deployed."
+            />
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Input
@@ -272,7 +331,7 @@ export function TokenDetailPanel({
 
         <section>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Codex Entry Link
+            {kind === 'location' ? 'Linked Location Entry' : 'Codex Entry Link'}
           </h3>
           {linkedDoc ? (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
@@ -409,24 +468,26 @@ export function TokenDetailPanel({
 
         <section>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-500/80">
-            Quick DM Note (private)
+            {dmNotesLabel}
           </h3>
           <Textarea
             aria-label="DM notes"
             rows={3}
             maxLength={4000}
-            placeholder="Tactics, secrets, trigger conditions. Never shown to players."
+            placeholder={dmNotesPlaceholder}
             value={token.dm_notes}
             onChange={(event) => onChange({ dm_notes: event.target.value })}
           />
         </section>
 
-        <TokenResourceLookup
-          resource={token.resource}
-          defaultCategory={defaultCategoryForTokenType(token.token_type)}
-          onAttach={(resource) => onChange({ resource })}
-          onDetach={() => onChange({ resource: null })}
-        />
+        {showResource && (
+          <TokenResourceLookup
+            resource={token.resource}
+            defaultCategory={defaultCategoryForTokenType(token.token_type)}
+            onAttach={(resource) => onChange({ resource })}
+            onDetach={() => onChange({ resource: null })}
+          />
+        )}
 
         <PrepDatabasePanel
           title="Token Prep Database"
@@ -439,10 +500,15 @@ export function TokenDetailPanel({
           onNotesChange={(prep_notes) => onChange({ prep_notes })}
           onLinksChange={(links) => onChange({ links })}
         />
+        </div>
 
-        <div className="border-t border-zinc-800 pt-4">
+        {/* Footer (fixed) — Remove + Close always reachable */}
+        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-zinc-800 bg-zinc-950 p-3">
           <Button variant="danger" size="sm" onClick={onRemove}>
             Remove Token
+          </Button>
+          <Button variant="secondary" size="sm" onClick={onClose}>
+            Close
           </Button>
         </div>
       </div>

@@ -79,6 +79,7 @@ export function TokenBuilderPanel({
   onAddLinkedDoc,
   onAddStaticToken,
   onSelectToken,
+  onRemoveToken,
 }: {
   campaignId: string
   hasImage: boolean
@@ -88,6 +89,7 @@ export function TokenBuilderPanel({
   onAddLinkedDoc: (doc: CampaignDoc) => void
   onAddStaticToken: (template: StaticTokenTemplate) => void
   onSelectToken: (id: string) => void
+  onRemoveToken: (id: string) => void
 }) {
   const [query, setQuery] = useState('')
   const [source, setSource] = useState<'all' | CampaignDocSource>('all')
@@ -120,7 +122,7 @@ export function TokenBuilderPanel({
     })
   }, [activeType, dynamicDocs, linked, linkedDocIds, query, source])
 
-  const recentTokens = tokens.slice(-5).reverse()
+  const placedTokens = tokens.slice().reverse()
 
   return (
     <aside className="flex min-h-0 flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
@@ -314,32 +316,50 @@ export function TokenBuilderPanel({
         </div>
       </section>
 
-      {recentTokens.length > 0 && (
+      {placedTokens.length > 0 && (
         <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-          <h3 className="text-sm font-semibold text-zinc-100">Recently Used</h3>
+          <h3 className="text-sm font-semibold text-zinc-100">
+            Placed Tokens <span className="text-zinc-600">({placedTokens.length})</span>
+          </h3>
           <div className="mt-3 flex flex-col gap-1.5">
-            {recentTokens.map((token) => {
+            {placedTokens.map((token) => {
               const meta = preparedTokenTypeMeta(token.token_type)
+              const isSelected = selectedTokenId === token.id
               return (
-                <button
+                <div
                   key={token.id}
-                  type="button"
-                  onClick={() => onSelectToken(token.id)}
-                  className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-sm ${
-                    selectedTokenId === token.id
+                  className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm ${
+                    isSelected
                       ? 'border-amber-500/60 bg-amber-500/10 text-zinc-100'
                       : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-600'
                   }`}
                 >
-                  <span
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-black/40 text-[11px]"
-                    style={{ backgroundColor: token.color }}
+                  <button
+                    type="button"
+                    onClick={() => onSelectToken(token.id)}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
                   >
-                    {token.icon || meta.icon}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">{token.name || meta.label}</span>
-                  <span className="text-[10px] uppercase text-zinc-600">{token.is_dynamic ? 'Dynamic' : 'Static'}</span>
-                </button>
+                    <span
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-black/40 text-[11px]"
+                      style={{ backgroundColor: token.color }}
+                    >
+                      {token.icon || meta.icon}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{token.name || meta.label}</span>
+                    <span className="text-[10px] uppercase text-zinc-600">{token.is_dynamic ? 'Dynamic' : 'Static'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveToken(token.id)}
+                    className="shrink-0 rounded-md p-1 text-zinc-600 hover:bg-zinc-800 hover:text-red-400"
+                    aria-label={`Remove ${token.name || meta.label}`}
+                    title="Remove token"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               )
             })}
           </div>

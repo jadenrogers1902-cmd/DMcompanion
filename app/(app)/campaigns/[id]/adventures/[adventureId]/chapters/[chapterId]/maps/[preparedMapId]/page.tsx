@@ -119,7 +119,7 @@ export default async function PreparedMapEditorPage({ params, searchParams }: Pa
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8">
+    <div className="w-full px-3 py-4 sm:px-4 lg:px-5">
       {breadcrumbs}
       <Link
         href={`/campaigns/${id}/adventures/${adventureId}/chapters/${chapterId}/maps/${preparedMapId}`}

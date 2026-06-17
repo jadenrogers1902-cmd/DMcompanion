@@ -391,8 +391,8 @@ export function PreparedMapEditor({
             hasImage={hasImage}
             dirty={dirty}
           />
-          <Button size="sm" onClick={handleSave} loading={saving} disabled={!dirty && !savedFlash}>
-            {savedFlash && !dirty ? 'Saved' : 'Save'}
+          <Button size="sm" onClick={handleSave} loading={saving}>
+            {savedFlash && !dirty ? 'Saved ✓' : dirty ? 'Save changes' : 'Save'}
           </Button>
         </div>
       </div>
@@ -406,7 +406,7 @@ export function PreparedMapEditor({
         <p className="text-xs text-amber-400/90">Unsaved changes — remember to save.</p>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)_21rem]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(17rem,21rem)_minmax(0,1fr)_minmax(18rem,20rem)]">
         <TokenBuilderPanel
           campaignId={map.campaign_id}
           hasImage={hasImage}
@@ -416,6 +416,7 @@ export function PreparedMapEditor({
           onAddLinkedDoc={addLinkedToken}
           onAddStaticToken={addStaticToken}
           onSelectToken={setSelectedTokenId}
+          onRemoveToken={removeToken}
         />
 
         {/* Canvas / image area */}

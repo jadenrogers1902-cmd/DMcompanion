@@ -132,6 +132,7 @@ export type PreparedTokenType =
   | 'location'
   | 'clue'
   | 'loot'
+  | 'transport'
   | 'custom'
 
 /** Visibility rule applied when the scene is deployed (and shown in prep). */
@@ -186,6 +187,11 @@ export type PreparedMapToken = {
   name: string
   /** Optional Adventure Codex record this prep token was created from. */
   linked_campaign_doc_id?: string | null
+  /**
+   * For transport tokens: the prepared map this token travels to. Players tap
+   * the deployed token to move the party to that scene. Ignored for other types.
+   */
+  linked_prepared_map_id?: string | null
   /** App-side origin label for the linked record; never a raw provider id. */
   source?: 'manual' | 'notion' | 'import' | 'open5e' | 'codex' | string | null
   /** Dynamic entity tokens can move/participate in live systems; static objects are fixed for players. */

@@ -49,6 +49,7 @@ import {
   upsertTokenDmNote,
   reviewTravelParty,
 } from '@/lib/actions/maps'
+import { travelThroughTransport } from '@/lib/actions/transport'
 import { useTokenRealtime } from '@/lib/hooks/useTokenRealtime'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import { actionsForToken } from '@/lib/utils/actions'
@@ -762,6 +763,7 @@ export function MapEditor({
           )}
           {selected && editorOpen && draftToken && (
             <TokenEditPanel
+              campaignId={campaignId}
               token={selected}
               draft={draftToken}
               dmNote={draftDmNote}
@@ -1471,6 +1473,7 @@ function SliderSetting({
 }
 
 function TokenEditPanel({
+  campaignId,
   token,
   draft,
   dmNote,
@@ -1484,6 +1487,7 @@ function TokenEditPanel({
   onCancel,
   onSave,
 }: {
+  campaignId: string
   token: Token
   draft: Partial<Token>
   dmNote: string
@@ -1498,6 +1502,17 @@ function TokenEditPanel({
   onSave: () => void
 }) {
   const edited = { ...token, ...draft }
+  const [travelBusy, setTravelBusy] = useState(false)
+  const [travelMsg, setTravelMsg] = useState<string | null>(null)
+
+  async function handleTravelHere() {
+    setTravelBusy(true)
+    setTravelMsg(null)
+    const result = await travelThroughTransport(campaignId, token.id)
+    setTravelBusy(false)
+    if ('error' in result) setTravelMsg(result.error)
+    else if (result.traveled) setTravelMsg('Party traveled to the linked map.')
+  }
   const visibleActions = (edited.available_actions ?? actionsForToken({ ...edited, interactable: true })).join(', ')
   const hiddenActions = (edited.hidden_dm_actions ?? []).join(', ')
 
@@ -1600,6 +1615,30 @@ function TokenEditPanel({
                 <option key={state.value} value={state.value}>{state.label}</option>
               ))}
             </Select>
+
+            {edited.token_type === 'portal' && (
+              <div className="rounded-lg border border-violet-500/40 bg-violet-500/10 p-3">
+                <p className="text-xs font-semibold text-violet-200">🌀 Transport token</p>
+                <p className="mt-1 text-xs text-zinc-400">
+                  {edited.destination_prepared_map_id
+                    ? 'Players tap this to travel to the linked map — automatically in freeroam, or by unanimous party vote in group mode.'
+                    : 'No destination linked. Set one on the prepared map in Adventure Maker, then redeploy.'}
+                </p>
+                {edited.destination_prepared_map_id && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={travelBusy}
+                      onClick={handleTravelHere}
+                      className="mt-2 inline-flex items-center gap-2 rounded-md border border-violet-500/60 bg-violet-500/20 px-3 py-1.5 text-xs font-semibold text-violet-100 transition hover:border-violet-400 hover:bg-violet-500/30 disabled:opacity-50"
+                    >
+                      {travelBusy ? 'Working…' : 'Travel party here now'}
+                    </button>
+                    {travelMsg && <p className="mt-1.5 text-xs text-violet-300">{travelMsg}</p>}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
 

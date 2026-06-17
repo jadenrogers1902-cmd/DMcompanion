@@ -34,6 +34,7 @@ import {
   setMapTravelOptions,
 } from '@/lib/actions/maps'
 import { submitActionIntent } from '@/lib/actions/action-intents'
+import { travelThroughTransport } from '@/lib/actions/transport'
 import { sendDMNudge, sendPartyMessage } from '@/lib/actions/party-messages'
 import {
   markRollRequestRolling,
@@ -55,6 +56,7 @@ import {
   type CampaignDocLiveObjectType,
   type GameMap,
   type MapRevealedArea,
+  type MapTransportConfirmation,
   type MapTravelParty,
   type MapTravelPartyMember,
   type MoveTokenResult,
@@ -105,6 +107,7 @@ interface PlayerMapViewProps {
   playerCodexLinks?: CampaignDocLinkPublication[]
   initialTravelParties?: MapTravelParty[]
   initialTravelPartyMembers?: MapTravelPartyMember[]
+  initialTransportConfirmations?: MapTransportConfirmation[]
 }
 
 const OBJECT_TOKEN_TYPES = new Set<TokenType>([
@@ -336,6 +339,7 @@ export function PlayerMapView({
   playerCodexLinks = [],
   initialTravelParties = [],
   initialTravelPartyMembers = [],
+  initialTransportConfirmations = [],
 }: PlayerMapViewProps) {
   const router = useRouter()
   const [tokens, setTokens] = useState<Token[]>(() =>
@@ -348,6 +352,9 @@ export function PlayerMapView({
   const [mapLocked, setMapLocked] = useState(map.player_movement_locked)
   const travelParties = initialTravelParties
   const travelPartyMembers = initialTravelPartyMembers
+  const transportConfirmations = initialTransportConfirmations
+  const [transportBusy, setTransportBusy] = useState(false)
+  const [transportFeedback, setTransportFeedback] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
   const [interactionOpen, setInteractionOpen] = useState(false)
@@ -414,6 +421,7 @@ export function PlayerMapView({
     { table: 'campaign_doc_link_publications', filter: `campaign_id=eq.${campaignId}` },
     { table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
     { table: 'map_travel_party_members', filter: `map_id=eq.${map.id}` },
+    { table: 'map_transport_confirmations', filter: `map_id=eq.${map.id}` },
   ])
 
   useTokenRealtime(map.id, campaignId, {
@@ -548,11 +556,58 @@ export function PlayerMapView({
     return best
   }, [myCharacters, myControlled, map.grid_size, map.grid_scale_feet, selected])
 
+  const isTransport = selected?.token_type === 'portal'
+
   const contextualActions = useMemo(() => {
     if (!selected || selected.controlled_by_user_id === currentUserId) return []
     if (!selected.visible_to_players || !selected.interactable) return []
+    if (selected.token_type === 'portal') return []
     return actionsForToken(selected)
   }, [currentUserId, selected])
+
+  // Players who control a character on this map — the voter set for party-mode
+  // transport travel.
+  const transportVoters = useMemo(() => {
+    const set = new Set<string>()
+    tokens.forEach((token) => {
+      if (token.token_type === 'player' && token.controlled_by_user_id) {
+        set.add(token.controlled_by_user_id)
+      }
+    })
+    return set
+  }, [tokens])
+
+  const transportNeedsVote =
+    isTransport && mapState.travel_mode === 'group_party' && transportVoters.size > 1
+
+  const transportTally = useMemo(() => {
+    if (!selected) return { confirmed: 0, mine: false }
+    const confirmedUsers = new Set(
+      transportConfirmations
+        .filter((c) => c.token_id === selected.id && transportVoters.has(c.user_id))
+        .map((c) => c.user_id),
+    )
+    return { confirmed: confirmedUsers.size, mine: confirmedUsers.has(currentUserId) }
+  }, [selected, transportConfirmations, transportVoters, currentUserId])
+
+  async function handleTransportTravel() {
+    if (!selected) return
+    setTransportBusy(true)
+    setTransportFeedback(null)
+    const result = await travelThroughTransport(campaignId, selected.id)
+    setTransportBusy(false)
+    if ('error' in result) {
+      setTransportFeedback(result.error)
+      return
+    }
+    if (result.traveled) {
+      setTransportFeedback('Traveling…')
+      setSelectedId(null)
+      router.refresh()
+    } else {
+      setTransportFeedback(`Vote placed — ${result.confirmed}/${result.needed} confirmed.`)
+    }
+  }
 
   const selectedTool = useMemo(
     () => toolOptions.find((option) => option.id === selectedToolId) ?? toolOptions[0] ?? null,
@@ -1295,8 +1350,37 @@ export function PlayerMapView({
               links={playerCodexLinks}
             />
 
+            {/* Transport — travel to another map (vote in party mode) */}
+            {isTransport && (
+              <div className="mt-3 border-t border-zinc-800 pt-3">
+                {mapState.travel_mode === 'combat' ? (
+                  <p className="text-xs text-orange-300">Travel is locked during combat.</p>
+                ) : (
+                  <>
+                    {transportNeedsVote && (
+                      <p className="mb-2 text-[11px] uppercase tracking-wide text-zinc-600">
+                        Party travel — {transportTally.confirmed}/{transportVoters.size} confirmed
+                        {transportTally.mine ? ' (you voted)' : ''}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={transportBusy}
+                      onClick={handleTransportTravel}
+                      className="inline-flex items-center gap-2 rounded-md border border-violet-500/60 bg-violet-500/15 px-3 py-1.5 text-sm font-semibold text-violet-100 transition hover:border-violet-400 hover:bg-violet-500/25 disabled:opacity-50"
+                    >
+                      🌀 {transportBusy ? 'Working…' : transportNeedsVote ? (transportTally.mine ? 'Change vote to here' : 'Place vote') : 'Enter'}
+                    </button>
+                    {transportFeedback && (
+                      <p className="mt-1.5 text-xs text-violet-300">{transportFeedback}</p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Contextual action menu — only the actions the DM allowed */}
-            {contextualActions.length > 0 && (
+            {!isTransport && contextualActions.length > 0 && (
               <div className="mt-3 border-t border-zinc-800 pt-3">
                 <p className="text-[11px] uppercase tracking-wide text-zinc-600 mb-2">
                   {nearestActor

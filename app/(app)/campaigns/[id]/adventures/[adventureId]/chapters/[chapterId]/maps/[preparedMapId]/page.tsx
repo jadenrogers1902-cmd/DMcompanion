@@ -118,6 +118,28 @@ export default async function PreparedMapEditorPage({ params, searchParams }: Pa
     imageUrl = signed?.signedUrl ?? null
   }
 
+  // All prepared maps in the campaign — transport tokens link to these. Resolve
+  // adventure/chapter titles so the destination picker can group them.
+  const [{ data: destMapRows }, { data: adventureRows }, { data: chapterRows }] = await Promise.all([
+    supabase
+      .from('prepared_maps')
+      .select('id, title, adventure_id, chapter_id')
+      .eq('campaign_id', id)
+      .order('title', { ascending: true }),
+    supabase.from('adventures').select('id, title').eq('campaign_id', id),
+    supabase.from('adventure_chapters').select('id, title').eq('campaign_id', id),
+  ])
+  const adventureTitleById = new Map((adventureRows ?? []).map((row) => [row.id, row.title]))
+  const chapterTitleById = new Map((chapterRows ?? []).map((row) => [row.id, row.title]))
+  const destinationMaps = (destMapRows ?? []).map((row) => ({
+    id: row.id as string,
+    title: row.title as string,
+    adventure_id: row.adventure_id as string,
+    chapter_id: row.chapter_id as string,
+    adventure_title: adventureTitleById.get(row.adventure_id) ?? null,
+    chapter_title: chapterTitleById.get(row.chapter_id) ?? null,
+  }))
+
   return (
     <div className="w-full px-3 py-4 sm:px-4 lg:px-5">
       {breadcrumbs}
@@ -138,6 +160,7 @@ export default async function PreparedMapEditorPage({ params, searchParams }: Pa
         codexDocs={(codexDocs ?? []) as CampaignDoc[]}
         codexLinks={(codexLinks ?? []) as CampaignDocLink[]}
         players={players}
+        destinationMaps={destinationMaps}
       />
     </div>
   )

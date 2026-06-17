@@ -206,6 +206,8 @@ export interface Token {
   interactable: boolean
   // DM-controlled state label (locked / open / trapped / looted / ...).
   object_state: string | null
+  // For transport ('portal') tokens: the prepared map this token travels to.
+  destination_prepared_map_id: string | null
   // Player-visible flavor text (separate from the DM-only token_dm_notes).
   public_description: string | null
   visible_on_cast: boolean
@@ -263,6 +265,20 @@ export interface MapTravelPartyMember {
   map_id: string
   user_id: string
   status: TravelPartyMemberStatus
+  created_at: string
+  updated_at: string
+}
+
+// A player's current travel confirmation on a map: which transport token they
+// want to go through. In group-party mode, unanimous accepted-member agreement
+// on one token fires the travel.
+export interface MapTransportConfirmation {
+  id: string
+  campaign_id: string
+  map_id: string
+  token_id: string
+  destination_prepared_map_id: string | null
+  user_id: string
   created_at: string
   updated_at: string
 }
@@ -1834,6 +1850,7 @@ export type Database = {
           hidden_dm_actions: string[] | null
           interactable: boolean
           object_state: string | null
+          destination_prepared_map_id: string | null
           public_description: string | null
           visible_on_cast: boolean
           requires_approval: boolean
@@ -1872,6 +1889,7 @@ export type Database = {
           hidden_dm_actions?: string[] | null
           interactable?: boolean
           object_state?: string | null
+          destination_prepared_map_id?: string | null
           public_description?: string | null
           visible_on_cast?: boolean
           requires_approval?: boolean
@@ -1907,6 +1925,7 @@ export type Database = {
           hidden_dm_actions?: string[] | null
           interactable?: boolean
           object_state?: string | null
+          destination_prepared_map_id?: string | null
           public_description?: string | null
           visible_on_cast?: boolean
           requires_approval?: boolean
@@ -1917,6 +1936,34 @@ export type Database = {
           temp_hp?: number
           armor_class?: number
           is_defeated?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      map_transport_confirmations: {
+        Row: {
+          id: string
+          campaign_id: string
+          map_id: string
+          token_id: string
+          destination_prepared_map_id: string | null
+          user_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_id: string
+          map_id: string
+          token_id: string
+          destination_prepared_map_id?: string | null
+          user_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          token_id?: string
+          destination_prepared_map_id?: string | null
           updated_at?: string
         }
         Relationships: []

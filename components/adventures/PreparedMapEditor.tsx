@@ -63,6 +63,15 @@ function loadImageSize(file: File): Promise<{ width: number; height: number }> {
   })
 }
 
+export type DestinationMapOption = {
+  id: string
+  title: string
+  adventure_id: string
+  chapter_id: string
+  adventure_title?: string | null
+  chapter_title?: string | null
+}
+
 interface PreparedMapEditorProps {
   map: PreparedMap
   imageUrl: string | null
@@ -71,6 +80,8 @@ interface PreparedMapEditorProps {
   codexDocs?: CampaignDoc[]
   codexLinks?: CampaignDocLink[]
   players?: CodexPlayer[]
+  /** Other prepared maps in the campaign — transport tokens link to these. */
+  destinationMaps?: DestinationMapOption[]
 }
 
 export function PreparedMapEditor({
@@ -81,6 +92,7 @@ export function PreparedMapEditor({
   codexDocs = [],
   codexLinks = [],
   players = [],
+  destinationMaps = [],
 }: PreparedMapEditorProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -232,6 +244,44 @@ export function PreparedMapEditor({
         status: 'draft',
         tags: [template.key],
         description: template.description,
+        dm_notes: '',
+        prep_notes: [],
+        player_notes: '',
+        links: [],
+        resource: null,
+      },
+    ])
+    setSelectedTokenId(id)
+    touch()
+  }
+
+  function addTransportToken() {
+    const meta = preparedTokenTypeMeta('transport')
+    const id = crypto.randomUUID()
+    setTokens((prev) => [
+      ...prev,
+      {
+        id,
+        token_type: 'transport',
+        linked_campaign_doc_id: null,
+        linked_prepared_map_id: null,
+        source: 'manual',
+        is_dynamic: false,
+        can_move: false,
+        can_participate_in_combat: false,
+        interactable: true,
+        object_state: null,
+        name: 'Transport',
+        icon: meta.icon,
+        x: Math.round(map.width / 2) || 200,
+        y: Math.round(map.height / 2) || 200,
+        size: 1,
+        color: meta.color,
+        reveal_state: 'visible',
+        visible_to_players: true,
+        status: 'draft',
+        tags: ['transport'],
+        description: 'A travel point to another area.',
         dm_notes: '',
         prep_notes: [],
         player_notes: '',
@@ -415,6 +465,7 @@ export function PreparedMapEditor({
           selectedTokenId={selectedTokenId}
           onAddLinkedDoc={addLinkedToken}
           onAddStaticToken={addStaticToken}
+          onAddTransportToken={addTransportToken}
           onSelectToken={setSelectedTokenId}
           onRemoveToken={removeToken}
         />
@@ -675,6 +726,7 @@ export function PreparedMapEditor({
           codexDocs={codexDocs}
           codexLinks={codexLinks}
           players={players}
+          destinationMaps={destinationMaps.filter((option) => option.id !== map.id)}
           onChange={(patch) => updateToken(selectedToken.id, patch)}
           onRemove={() => removeToken(selectedToken.id)}
           onClose={() => setSelectedTokenId(null)}

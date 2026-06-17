@@ -27,6 +27,7 @@ export const PREPARED_TOKEN_TYPES: {
   { value: 'location', label: 'Location', icon: '📍', color: '#0d9488', defaultReveal: 'visible' },
   { value: 'clue', label: 'Clue', icon: '🔍', color: '#7c3aed', defaultReveal: 'hidden' },
   { value: 'loot', label: 'Loot', icon: '💰', color: '#ca8a04', defaultReveal: 'hidden' },
+  { value: 'transport', label: 'Transport', icon: '🌀', color: '#7c3aed', defaultReveal: 'visible' },
   { value: 'custom', label: 'Custom', icon: '✨', color: '#52525b', defaultReveal: 'visible' },
 ]
 
@@ -68,6 +69,7 @@ export function toLiveTokenType(prepType: string): TokenType {
     case 'loot': return 'loot'
     case 'clue': return 'note'
     case 'location': return 'custom'
+    case 'transport': return 'portal'
     default: return 'custom'
   }
 }
@@ -149,11 +151,12 @@ export function normalizePreparedToken(raw: Partial<PreparedMapToken>): Prepared
     token_type: type,
     name: String(raw.name ?? ''),
     linked_campaign_doc_id: raw.linked_campaign_doc_id ? String(raw.linked_campaign_doc_id) : null,
+    linked_prepared_map_id: raw.linked_prepared_map_id ? String(raw.linked_prepared_map_id) : null,
     source: raw.source ? String(raw.source).slice(0, 40) : null,
-    is_dynamic: raw.is_dynamic ?? !['trap', 'door', 'item', 'loot', 'clue'].includes(type),
-    can_move: raw.can_move ?? !['trap', 'door', 'item', 'loot', 'clue'].includes(type),
+    is_dynamic: raw.is_dynamic ?? !['trap', 'door', 'item', 'loot', 'clue', 'transport'].includes(type),
+    can_move: raw.can_move ?? !['trap', 'door', 'item', 'loot', 'clue', 'transport'].includes(type),
     can_participate_in_combat: raw.can_participate_in_combat ?? ['enemy', 'npc'].includes(type),
-    interactable: raw.interactable ?? ['trap', 'door', 'item', 'loot', 'clue'].includes(type),
+    interactable: raw.interactable ?? ['trap', 'door', 'item', 'loot', 'clue', 'transport'].includes(type),
     object_state: raw.object_state ? String(raw.object_state).slice(0, 40) : null,
     icon: String(raw.icon ?? '') || meta.icon,
     x: Number(raw.x) || 0,

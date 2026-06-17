@@ -117,6 +117,7 @@ export function TokenBuilderPanel({
   selectedTokenId,
   onAddLinkedDoc,
   onAddStaticToken,
+  onAddTransportToken,
   onSelectToken,
   onRemoveToken,
 }: {
@@ -127,6 +128,7 @@ export function TokenBuilderPanel({
   selectedTokenId: string | null
   onAddLinkedDoc: (doc: CampaignDoc) => void
   onAddStaticToken: (template: StaticTokenTemplate) => void
+  onAddTransportToken: () => void
   onSelectToken: (id: string) => void
   onRemoveToken: (id: string) => void
 }) {
@@ -308,6 +310,24 @@ export function TokenBuilderPanel({
             </>
           )}
         </div>
+      </Collapsible>
+
+      <Collapsible title="Transport Tokens">
+        <p className="text-xs text-zinc-500">
+          Travel points. Players tap a transport token to move the party to the map you link it to —
+          they vote in party mode, or enter directly when alone.
+        </p>
+        <button
+          type="button"
+          disabled={!hasImage}
+          onClick={onAddTransportToken}
+          className="mt-3 inline-flex items-center gap-2 rounded-full border border-violet-500/60 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-200 transition-colors hover:border-violet-400 hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          🌀 Add Transport
+        </button>
+        <p className="mt-2 text-xs text-zinc-600">
+          After placing it, open the token to pick its destination map.
+        </p>
       </Collapsible>
 
       <Collapsible title="Static Tokens">

@@ -27,8 +27,9 @@ import { defaultCategoryForTokenType } from '@/lib/srd/open5e'
 // Group token types so the panel can show only the fields that make sense:
 // creatures get combat/movement + a stat-block lookup; locations get
 // world/room fields and never combat; objects get interaction + object state.
-type TokenKind = 'creature' | 'location' | 'object'
+type TokenKind = 'creature' | 'location' | 'object' | 'transport'
 function tokenKind(type: string): TokenKind {
+  if (type === 'transport') return 'transport'
   if (type === 'location' || type === 'sub_location') return 'location'
   if (type === 'enemy' || type === 'boss' || type === 'hostile_enemy' || type === 'npc' || type === 'character') {
     return 'creature'
@@ -75,12 +76,22 @@ function Collapsible({
   )
 }
 
+export type DestinationMapOption = {
+  id: string
+  title: string
+  adventure_id: string
+  chapter_id: string
+  adventure_title?: string | null
+  chapter_title?: string | null
+}
+
 interface TokenDetailPanelProps {
   token: PreparedMapToken
   campaignId: string
   codexDocs?: CampaignDoc[]
   codexLinks?: CampaignDocLink[]
   players?: CodexPlayer[]
+  destinationMaps?: DestinationMapOption[]
   related?: {
     adventureId: string
     adventureTitle?: string
@@ -100,6 +111,7 @@ export function TokenDetailPanel({
   codexDocs = [],
   codexLinks = [],
   players = [],
+  destinationMaps = [],
   related,
   onChange,
   onRemove,
@@ -139,6 +151,10 @@ export function TokenDetailPanel({
   const showCombatBlock = kind === 'creature'
   const showObjectState = kind === 'object'
   const showResource = kind === 'creature' || token.token_type === 'item' || token.token_type === 'loot'
+  const isTransport = kind === 'transport'
+  const destinationMap = token.linked_prepared_map_id
+    ? destinationMaps.find((option) => option.id === token.linked_prepared_map_id) ?? null
+    : null
   const dmNotesLabel =
     kind === 'location'
       ? 'What Happens Here? / Room Secret (DM-only)'
@@ -244,6 +260,47 @@ export function TokenDetailPanel({
           />
         </Collapsible>
 
+        {isTransport && (
+          <Collapsible title="Destination Map" defaultOpen accent>
+            <p className="text-xs text-zinc-500">
+              When players tap this transport, the party travels to this map (vote in party mode, or
+              enter directly when alone). Revisiting a map keeps its revealed fog and token positions.
+            </p>
+            {destinationMaps.length === 0 ? (
+              <p className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-500">
+                No other prepared maps exist yet. Create another map in this campaign to link it here.
+              </p>
+            ) : (
+              <Select
+                label="Travels to"
+                value={token.linked_prepared_map_id ?? ''}
+                onChange={(event) =>
+                  onChange({ linked_prepared_map_id: event.target.value || null })
+                }
+              >
+                <option value="">— No destination set —</option>
+                {destinationMaps.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.adventure_title ? `${option.adventure_title} › ` : ''}
+                    {option.chapter_title ? `${option.chapter_title} › ` : ''}
+                    {option.title}
+                  </option>
+                ))}
+              </Select>
+            )}
+            {!token.linked_prepared_map_id && destinationMaps.length > 0 && (
+              <p className="text-xs text-amber-400/80">
+                No destination set — players won&apos;t be able to travel through this token until you pick one.
+              </p>
+            )}
+            {destinationMap && (
+              <p className="text-xs text-zinc-400">
+                Destination: <span className="text-zinc-200">{destinationMap.title}</span>
+              </p>
+            )}
+          </Collapsible>
+        )}
+
         <Collapsible title="Visibility & Behavior">
           <Select
             label="Visibility"
@@ -343,6 +400,7 @@ export function TokenDetailPanel({
           )}
         </Collapsible>
 
+        {!isTransport && (
         <Collapsible title={kind === 'location' ? 'Linked Location Entry' : 'Codex Entry Link'}>
           {linkedDoc ? (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
@@ -433,6 +491,7 @@ export function TokenDetailPanel({
             </div>
           )}
         </Collapsible>
+        )}
 
         <Collapsible title="Description & Notes">
           <div className="flex flex-col gap-1.5">

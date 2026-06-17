@@ -327,7 +327,7 @@ BEGIN
 
   gsize := GREATEST(m.grid_size, 1);
   scale := GREATEST(m.grid_scale_feet, 1);
-  reveal_radius := (30.0 / scale) * gsize;
+  reveal_radius := (15.0 / scale) * gsize;
 
   IF m.travel_mode = 'group_party' THEN
     SELECT p.* INTO party

@@ -1509,44 +1509,6 @@ function MenuItem({
   )
 }
 
-function NestedMenuItem({
-  title,
-  description,
-  icon,
-  onClick,
-  onMouseEnter,
-  active,
-}: {
-  title: string
-  description: string
-  icon: React.ReactNode
-  onClick: () => void
-  onMouseEnter?: () => void
-  active?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      className={`ml-10 flex w-[calc(100%-2.5rem)] items-start gap-3 rounded-lg border p-2.5 text-left transition ${
-        active
-          ? 'border-amber-500/60 bg-amber-500/10'
-          : 'border-zinc-800 bg-zinc-950 hover:border-zinc-600 hover:bg-zinc-900'
-      }`}
-    >
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 text-amber-200">
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-xs font-semibold text-zinc-100">{title}</span>
-        <span className="mt-0.5 block text-[11px] leading-relaxed text-zinc-500">{description}</span>
-      </span>
-      <ChevronRight className="mt-1.5 h-4 w-4 shrink-0 text-zinc-500" aria-hidden="true" />
-    </button>
-  )
-}
-
 function InteractionMenu({
   section,
   setSection,
@@ -2002,17 +1964,6 @@ function InteractionMenu({
     section === 'announcement' ? announcementPanel :
     null
 
-  const desktopPrimaryPanel =
-    section === 'travel' || section === 'whisper' || section === 'announcement'
-      ? talkPanel
-      : detailPanel
-
-  const desktopSecondaryPanel =
-    section === 'travel' ? travelPanel :
-    section === 'whisper' ? whisperPanel :
-    section === 'announcement' ? announcementPanel :
-    null
-
   return (
     <>
       <button
@@ -2039,7 +1990,7 @@ function InteractionMenu({
             <div className="grid gap-2">
               <MenuItem title="Action" description="Request actions, rolls, and DM review." icon={<Hand className="h-4 w-4" />} onClick={() => setSection('action')} />
               <MenuItem title="Talk" description="Communicate with the party." icon={<MessageCircle className="h-4 w-4" />} onClick={() => setSection('talk')} />
-              <NestedMenuItem title="Travel Options" description="Create a party and choose travel mode." icon={<Users className="h-4 w-4" />} onClick={() => setSection('travel')} />
+              <MenuItem title="Travel Options" description="Create a party and choose travel mode." icon={<Users className="h-4 w-4" />} onClick={() => setSection('travel')} />
             </div>
           ) : detailPanel}
         </div>
@@ -2055,18 +2006,13 @@ function InteractionMenu({
           </div>
           <div className="grid gap-2">
             <MenuItem title="Action" description="Request actions, rolls, and DM review." icon={<Hand className="h-4 w-4" />} active={section === 'action' || section === 'requests'} onMouseEnter={() => setSection('action')} onClick={() => setSection('action')} />
-            <MenuItem title="Talk" description="Communicate with the party." icon={<MessageCircle className="h-4 w-4" />} active={section === 'talk' || section === 'travel' || section === 'whisper' || section === 'announcement'} onMouseEnter={() => setSection('talk')} onClick={() => setSection('talk')} />
-            <NestedMenuItem title="Travel Options" description="Create a party and choose travel mode." icon={<Users className="h-4 w-4" />} active={section === 'travel'} onMouseEnter={() => setSection('travel')} onClick={() => setSection('travel')} />
+            <MenuItem title="Talk" description="Communicate with the party." icon={<MessageCircle className="h-4 w-4" />} active={section === 'talk' || section === 'whisper' || section === 'announcement'} onMouseEnter={() => setSection('talk')} onClick={() => setSection('talk')} />
+            <MenuItem title="Travel Options" description="Create a party and choose travel mode." icon={<Users className="h-4 w-4" />} active={section === 'travel'} onMouseEnter={() => setSection('travel')} onClick={() => setSection('travel')} />
           </div>
         </div>
-        {desktopPrimaryPanel && (
-          <div className="max-h-[70vh] w-96 overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-3 shadow-2xl shadow-black/50">
-            {desktopPrimaryPanel}
-          </div>
-        )}
-        {desktopSecondaryPanel && (
+        {detailPanel && (
           <div className="max-h-[70vh] w-[28rem] overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-3 shadow-2xl shadow-black/50">
-            {desktopSecondaryPanel}
+            {detailPanel}
           </div>
         )}
       </div>

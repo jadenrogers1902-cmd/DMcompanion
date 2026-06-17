@@ -278,7 +278,7 @@ export async function updateTokenPosition(
         ]
         const gridSize = Math.max(1, map.grid_size)
         const scale = Math.max(1, map.grid_scale_feet)
-        const revealRadius = (30 / scale) * gridSize
+        const revealRadius = (15 / scale) * gridSize
 
         for (let index = 0; index < (partyTokens ?? []).length && index < offsets.length; index += 1) {
           const [ox, oy] = offsets[index]

@@ -10,6 +10,8 @@ import type {
   CampaignDocLinkPublication,
   GameMap,
   MapRevealedArea,
+  MapTravelParty,
+  MapTravelPartyMember,
   PlayerToken,
   PlayerVisibleCampaignDoc,
   Profile,
@@ -94,6 +96,8 @@ export default async function MapsPage({ params }: PageProps) {
       { data: members },
       { data: playerCodexDocs },
       { data: playerCodexLinks },
+      { data: travelParties },
+      { data: travelPartyMembers },
     ] = await Promise.all([
       supabase.storage.from('maps').createSignedUrl(activeMap.storage_path, 3600),
       // tokens holds no DM-only columns now; RLS returns only visible rows.
@@ -110,6 +114,16 @@ export default async function MapsPage({ params }: PageProps) {
         .from('campaign_doc_link_publications')
         .select('*')
         .eq('campaign_id', id),
+      supabase
+        .from('map_travel_parties')
+        .select('*')
+        .eq('map_id', activeMap.id)
+        .order('updated_at', { ascending: false }),
+      supabase
+        .from('map_travel_party_members')
+        .select('*')
+        .eq('map_id', activeMap.id)
+        .order('created_at', { ascending: true }),
     ])
 
     const characterSpeeds: Record<string, number> = {}
@@ -139,6 +153,8 @@ export default async function MapsPage({ params }: PageProps) {
             }))}
             playerCodexDocs={(playerCodexDocs ?? []) as PlayerVisibleCampaignDoc[]}
             playerCodexLinks={(playerCodexLinks ?? []) as CampaignDocLinkPublication[]}
+            initialTravelParties={(travelParties ?? []) as MapTravelParty[]}
+            initialTravelPartyMembers={(travelPartyMembers ?? []) as MapTravelPartyMember[]}
           />
         ) : (
           <EmptyState title="Map image unavailable" description="The map file could not be loaded." />

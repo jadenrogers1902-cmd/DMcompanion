@@ -10,6 +10,8 @@ import type {
   Character,
   GameMap,
   MapRevealedArea,
+  MapTravelParty,
+  MapTravelPartyMember,
   Token,
 } from '@/lib/types/database'
 
@@ -52,6 +54,8 @@ export default async function MapEditorPage({ params }: PageProps) {
     { data: areas },
     { data: codexDocs },
     { data: codexLinks },
+    { data: travelParties },
+    { data: travelPartyMembers },
   ] =
     await Promise.all([
       supabase.storage.from('maps').createSignedUrl(map.storage_path, 3600),
@@ -84,6 +88,16 @@ export default async function MapEditorPage({ params }: PageProps) {
         .select('*')
         .eq('campaign_id', id)
         .order('updated_at', { ascending: false }),
+      supabase
+        .from('map_travel_parties')
+        .select('*')
+        .eq('map_id', mapId)
+        .order('updated_at', { ascending: false }),
+      supabase
+        .from('map_travel_party_members')
+        .select('*')
+        .eq('map_id', mapId)
+        .order('created_at', { ascending: true }),
     ])
 
   // Seed the token "!" alert badges: target tokens with an active action request.
@@ -166,6 +180,8 @@ export default async function MapEditorPage({ params }: PageProps) {
           codexDocs={(codexDocs ?? []) as CampaignDoc[]}
           codexLinks={(codexLinks ?? []) as CampaignDocLink[]}
           players={players}
+          initialTravelParties={(travelParties ?? []) as MapTravelParty[]}
+          initialTravelPartyMembers={(travelPartyMembers ?? []) as MapTravelPartyMember[]}
         />
       ) : (
         <EmptyState

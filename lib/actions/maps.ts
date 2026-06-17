@@ -3,10 +3,17 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { tokenTypeColor, type Database, type TokenType } from '@/lib/types/database'
+import { tokenTypeColor, type Database, type TokenType, type TravelMode } from '@/lib/types/database'
 
 type MapUpdate = Database['public']['Tables']['maps']['Update']
 type TokenUpdate = Database['public']['Tables']['tokens']['Update']
+
+type TravelOptionsInput = {
+  travelMode?: TravelMode
+  partyOptionsLocked?: boolean
+  groupMovementUnlimited?: boolean
+  freeroamMovementUnlimited?: boolean
+}
 
 // ────────────────────────────────────────────────────────────
 // Maps
@@ -190,6 +197,97 @@ export async function updateTokenPosition(
   y: number,
 ) {
   const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: token } = await supabase
+    .from('tokens')
+    .select('id, map_id, controlled_by_user_id')
+    .eq('id', tokenId)
+    .single()
+  if (!token) return { error: 'Token not found' }
+
+  const { data: map } = await supabase
+    .from('maps')
+    .select('id, grid_size, grid_scale_feet, travel_mode')
+    .eq('id', token.map_id)
+    .single()
+  if (!map) return { error: 'Map not found' }
+
+  if (map.travel_mode === 'group_party' && token.controlled_by_user_id) {
+    const { data: member } = await supabase
+      .from('map_travel_party_members')
+      .select('party_id')
+      .eq('map_id', token.map_id)
+      .eq('user_id', token.controlled_by_user_id)
+      .eq('status', 'accepted')
+      .limit(1)
+      .maybeSingle()
+
+    if (member?.party_id) {
+      const { data: party } = await supabase
+        .from('map_travel_parties')
+        .select('id, status')
+        .eq('id', member.party_id)
+        .eq('status', 'approved')
+        .maybeSingle()
+
+      if (party) {
+        const { data: members } = await supabase
+          .from('map_travel_party_members')
+          .select('user_id')
+          .eq('party_id', party.id)
+          .eq('status', 'accepted')
+
+        const memberUserIds = (members ?? []).map((row) => row.user_id)
+        if (memberUserIds.length === 0) return { error: 'No accepted party members found.' }
+        const { data: partyTokens } = await supabase
+          .from('tokens')
+          .select('id')
+          .eq('map_id', token.map_id)
+          .eq('visible_to_players', true)
+          .eq('token_type', 'player')
+          .eq('movement_locked', false)
+          .in('controlled_by_user_id', memberUserIds)
+          .order('created_at', { ascending: true })
+
+        const offsets = [
+          [0, 0], [0, -1], [1, 0], [0, 1], [-1, 0],
+          [1, -1], [1, 1], [-1, 1], [-1, -1],
+          [0, -2], [2, 0], [0, 2], [-2, 0],
+          [2, -1], [2, 1], [-2, 1], [-2, -1],
+        ]
+        const gridSize = Math.max(1, map.grid_size)
+        const scale = Math.max(1, map.grid_scale_feet)
+        const revealRadius = (30 / scale) * gridSize
+
+        for (let index = 0; index < (partyTokens ?? []).length && index < offsets.length; index += 1) {
+          const [ox, oy] = offsets[index]
+          const nextX = x + ox * gridSize
+          const nextY = y + oy * gridSize
+          await supabase
+            .from('tokens')
+            .update({ x: nextX, y: nextY, last_x: nextX, last_y: nextY, movement_used: 0 })
+            .eq('id', partyTokens![index].id)
+          await supabase.from('map_revealed_areas').insert({
+            campaign_id: campaignId,
+            map_id: token.map_id,
+            shape_type: 'circle',
+            x: nextX,
+            y: nextY,
+            radius: revealRadius,
+            visible_to_players: true,
+            created_by: user.id,
+          })
+        }
+
+        return { success: true }
+      }
+    }
+  }
+
   const { error } = await supabase
     .from('tokens')
     .update({ x, y, last_x: x, last_y: y, movement_used: 0 })
@@ -319,6 +417,84 @@ export async function setMapMovementLock(
     .eq('id', mapId)
   if (error) return { error: error.message }
   revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  return { success: true }
+}
+
+export async function setMapTravelOptions(
+  campaignId: string,
+  mapId: string,
+  input: TravelOptionsInput,
+) {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('set_map_travel_options', {
+    p_map_id: mapId,
+    p_travel_mode: input.travelMode ?? null,
+    p_party_options_locked: input.partyOptionsLocked ?? null,
+    p_group_movement_unlimited: input.groupMovementUnlimited ?? null,
+    p_freeroam_movement_unlimited: input.freeroamMovementUnlimited ?? null,
+  })
+  if (error) return { error: error.message }
+  if (data?.error) return { error: data.error }
+  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidatePath(`/campaigns/${campaignId}/live-map`)
+  return { success: true }
+}
+
+export async function createTravelParty(
+  campaignId: string,
+  mapId: string,
+  input: { name: string; leaderUserId: string; memberUserIds: string[] },
+) {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('create_travel_party', {
+    p_campaign_id: campaignId,
+    p_map_id: mapId,
+    p_name: input.name,
+    p_leader_user_id: input.leaderUserId,
+    p_member_user_ids: input.memberUserIds,
+  })
+  if (error) return { error: error.message }
+  if (data?.error) return { error: data.error }
+  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidatePath(`/campaigns/${campaignId}/live-map`)
+  return { success: true, partyId: data?.party_id as string | undefined }
+}
+
+export async function respondTravelPartyInvite(
+  campaignId: string,
+  mapId: string,
+  partyId: string,
+  accepted: boolean,
+) {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('respond_travel_party_invite', {
+    p_party_id: partyId,
+    p_accepted: accepted,
+  })
+  if (error) return { error: error.message }
+  if (data?.error) return { error: data.error }
+  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidatePath(`/campaigns/${campaignId}/live-map`)
+  return { success: true }
+}
+
+export async function reviewTravelParty(
+  campaignId: string,
+  mapId: string,
+  partyId: string,
+  approved: boolean,
+  dmResponse = '',
+) {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('review_travel_party', {
+    p_party_id: partyId,
+    p_approved: approved,
+    p_dm_response: dmResponse,
+  })
+  if (error) return { error: error.message }
+  if (data?.error) return { error: data.error }
+  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidatePath(`/campaigns/${campaignId}/live-map`)
   return { success: true }
 }
 

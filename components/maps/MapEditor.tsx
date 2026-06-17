@@ -2,6 +2,7 @@
 
 import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Swords, Unlock, Users } from 'lucide-react'
 import { MapCanvas, type AreaDrawTool, type RenderArea, type RenderToken } from './MapCanvas'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -20,8 +21,11 @@ import {
   type ActionIntentStatus,
   type GameMap,
   type MapRevealedArea,
+  type MapTravelParty,
+  type MapTravelPartyMember,
   type Token,
   type TokenType,
+  type TravelMode,
 } from '@/lib/types/database'
 import {
   addRevealedArea,
@@ -35,6 +39,7 @@ import {
   revealEntireMap,
   setActiveMap,
   setMapMovementLock,
+  setMapTravelOptions,
   setRevealedAreaVisibility,
   setTokenMovementLock,
   setTokenOverride,
@@ -42,6 +47,7 @@ import {
   updateToken,
   updateTokenPosition,
   upsertTokenDmNote,
+  reviewTravelParty,
 } from '@/lib/actions/maps'
 import { useTokenRealtime } from '@/lib/hooks/useTokenRealtime'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
@@ -123,6 +129,8 @@ interface MapEditorProps {
   codexDocs?: CampaignDoc[]
   codexLinks?: CampaignDocLink[]
   players?: CodexPlayer[]
+  initialTravelParties?: MapTravelParty[]
+  initialTravelPartyMembers?: MapTravelPartyMember[]
 }
 
 export function MapEditor({
@@ -137,6 +145,8 @@ export function MapEditor({
   codexDocs = [],
   codexLinks = [],
   players = [],
+  initialTravelParties = [],
+  initialTravelPartyMembers = [],
 }: MapEditorProps) {
   const router = useRouter()
   const [tokens, setTokens] = useState<Token[]>(() =>
@@ -164,6 +174,13 @@ export function MapEditor({
 
   const [isActive, setIsActive] = useState(map.is_active)
   const [mapLocked, setMapLocked] = useState(map.player_movement_locked)
+  const [travelMode, setTravelMode] = useState<TravelMode>(map.travel_mode ?? 'freeroam')
+  const [partyOptionsLocked, setPartyOptionsLocked] = useState(map.party_options_locked ?? false)
+  const [groupMovementUnlimited, setGroupMovementUnlimited] = useState(map.group_movement_unlimited ?? false)
+  const [freeroamMovementUnlimited, setFreeroamMovementUnlimited] = useState(map.freeroam_movement_unlimited ?? false)
+  const [partyMenuOpen, setPartyMenuOpen] = useState(false)
+  const [partyBusy, setPartyBusy] = useState<string | null>(null)
+  const [partyFeedback, setPartyFeedback] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const [contextMenuOpen, setContextMenuOpen] = useState(false)
@@ -258,6 +275,10 @@ export function MapEditor({
       setGridOffsetX(m.grid_offset_x ?? 0)
       setGridOffsetY(m.grid_offset_y ?? 0)
       setDmLightBrightness(m.dm_light_brightness ?? 0.18)
+      setTravelMode(m.travel_mode ?? 'freeroam')
+      setPartyOptionsLocked(m.party_options_locked ?? false)
+      setGroupMovementUnlimited(m.group_movement_unlimited ?? false)
+      setFreeroamMovementUnlimited(m.freeroam_movement_unlimited ?? false)
     },
     onAreaUpsert: (area) => setAreas((prev) => mergeAreaList(prev, area)),
     onAreaDelete: (id) => setAreas((prev) => prev.filter((a) => a.id !== id)),
@@ -270,6 +291,11 @@ export function MapEditor({
   useRealtimeRefresh(`codex-map-${map.id}`, [
     { table: 'campaign_docs', filter: `campaign_id=eq.${campaignId}` },
     { table: 'campaign_doc_links', filter: `campaign_id=eq.${campaignId}` },
+  ])
+
+  useRealtimeRefresh(`travel-map-${map.id}`, [
+    { table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
+    { table: 'map_travel_party_members', filter: `map_id=eq.${map.id}` },
   ])
 
   const renderAreas: RenderArea[] = useMemo(
@@ -494,6 +520,41 @@ export function MapEditor({
     await setMapMovementLock(campaignId, map.id, next)
   }
 
+  async function handleTravelOptionUpdate(input: {
+    travelMode?: TravelMode
+    partyOptionsLocked?: boolean
+    groupMovementUnlimited?: boolean
+    freeroamMovementUnlimited?: boolean
+  }) {
+    setPartyBusy('travel')
+    setPartyFeedback(null)
+    if (input.travelMode) setTravelMode(input.travelMode)
+    if (input.partyOptionsLocked !== undefined) setPartyOptionsLocked(input.partyOptionsLocked)
+    if (input.groupMovementUnlimited !== undefined) setGroupMovementUnlimited(input.groupMovementUnlimited)
+    if (input.freeroamMovementUnlimited !== undefined) setFreeroamMovementUnlimited(input.freeroamMovementUnlimited)
+    if (input.travelMode === 'combat') {
+      setMapLocked(true)
+      setPartyOptionsLocked(true)
+    }
+    const result = await setMapTravelOptions(campaignId, map.id, input)
+    if (result?.error) setPartyFeedback(result.error)
+    else setPartyFeedback('Travel options updated.')
+    setPartyBusy(null)
+    router.refresh()
+  }
+
+  async function handleReviewParty(partyId: string, approved: boolean) {
+    setPartyBusy(partyId)
+    setPartyFeedback(null)
+    const result = await reviewTravelParty(campaignId, map.id, partyId, approved)
+    if (result?.error) setPartyFeedback(result.error)
+    else {
+      setPartyFeedback(approved ? 'Party approved.' : 'Party denied.')
+    }
+    setPartyBusy(null)
+    router.refresh()
+  }
+
   function patchToken(id: string, patch: Partial<Token>) {
     setTokens((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
   }
@@ -587,8 +648,19 @@ export function MapEditor({
             <Badge variant="default">Inactive</Badge>
           )}
           {mapLocked && <Badge variant="warning">Movement locked</Badge>}
+          <Badge variant={travelMode === 'combat' ? 'warning' : 'default'}>
+            {travelMode === 'group_party' ? 'Group Party' : travelMode === 'combat' ? 'Combat Mode' : 'Freeroam'}
+          </Badge>
+          {partyOptionsLocked && <Badge variant="warning">Party options locked</Badge>}
         </div>
         <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant={partyOptionsLocked ? 'primary' : 'secondary'}
+            onClick={() => handleTravelOptionUpdate({ partyOptionsLocked: !partyOptionsLocked })}
+          >
+            {partyOptionsLocked ? 'Unlock Party Options' : 'Lock Party Options'}
+          </Button>
           <Button
             size="sm"
             variant={toolsOpen ? 'secondary' : 'primary'}
@@ -655,6 +727,25 @@ export function MapEditor({
               setContextMenuOpen(false)
             }}
             onAdd={handleAddToken}
+          />
+          <PartyTravelBubble
+            open={partyMenuOpen}
+            busy={partyBusy !== null}
+            feedback={partyFeedback}
+            travelMode={travelMode}
+            partyOptionsLocked={partyOptionsLocked}
+            groupMovementUnlimited={groupMovementUnlimited}
+            freeroamMovementUnlimited={freeroamMovementUnlimited}
+            parties={initialTravelParties}
+            members={initialTravelPartyMembers}
+            players={players}
+            onToggle={() => {
+              setPartyMenuOpen((open) => !open)
+              setAddMenuOpen(false)
+              setContextMenuOpen(false)
+            }}
+            onUpdate={handleTravelOptionUpdate}
+            onReviewParty={handleReviewParty}
           />
           {selected && contextMenuOpen && tokenMenuPosition && (
             <TokenContextMenu
@@ -1020,6 +1111,208 @@ function TokenAddBubble({
         +
       </button>
     </div>
+  )
+}
+
+function PartyTravelBubble({
+  open,
+  busy,
+  feedback,
+  travelMode,
+  partyOptionsLocked,
+  groupMovementUnlimited,
+  freeroamMovementUnlimited,
+  parties,
+  members,
+  players,
+  onToggle,
+  onUpdate,
+  onReviewParty,
+}: {
+  open: boolean
+  busy: boolean
+  feedback: string | null
+  travelMode: TravelMode
+  partyOptionsLocked: boolean
+  groupMovementUnlimited: boolean
+  freeroamMovementUnlimited: boolean
+  parties: MapTravelParty[]
+  members: MapTravelPartyMember[]
+  players: CodexPlayer[]
+  onToggle: () => void
+  onUpdate: (input: {
+    travelMode?: TravelMode
+    partyOptionsLocked?: boolean
+    groupMovementUnlimited?: boolean
+    freeroamMovementUnlimited?: boolean
+  }) => void
+  onReviewParty: (partyId: string, approved: boolean) => void
+}) {
+  const pendingParties = parties.filter((party) => party.status === 'pending_dm')
+  const activeParty = parties.find((party) => party.status === 'approved')
+  const playerName = (userId: string) =>
+    players.find((player) => player.id === userId)?.name ?? 'Player'
+
+  function partyMemberSummary(partyId: string) {
+    const rows = members.filter((member) => member.party_id === partyId)
+    if (rows.length === 0) return 'No accepted members yet'
+    return rows
+      .map((member) => `${playerName(member.user_id)} (${member.status})`)
+      .join(', ')
+  }
+
+  return (
+    <div className="absolute bottom-4 left-24 z-20">
+      {open && (
+        <div className="mb-3 w-[min(24rem,calc(100vw-2rem))] rounded-lg border border-zinc-700 bg-zinc-950 p-3 shadow-2xl">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-zinc-100">Party Travel</p>
+              <p className="mt-0.5 text-[11px] text-zinc-500">
+                1 square = 5 ft baseline. Default travel movement is 30 ft.
+              </p>
+            </div>
+            <button type="button" onClick={onToggle} className="text-xs text-zinc-500 hover:text-zinc-200">
+              Close
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <TravelModeButton
+              active={travelMode === 'group_party'}
+              label="Group Party"
+              icon={<Users className="h-4 w-4" aria-hidden="true" />}
+              disabled={busy}
+              onClick={() => onUpdate({ travelMode: 'group_party' })}
+            />
+            <TravelModeButton
+              active={travelMode === 'freeroam'}
+              label="Freeroam"
+              icon={<Unlock className="h-4 w-4" aria-hidden="true" />}
+              disabled={busy}
+              onClick={() => onUpdate({ travelMode: 'freeroam' })}
+            />
+            <TravelModeButton
+              active={travelMode === 'combat'}
+              label="Combat Mode"
+              icon={<Swords className="h-4 w-4" aria-hidden="true" />}
+              disabled={busy}
+              onClick={() => onUpdate({ travelMode: 'combat' })}
+            />
+          </div>
+
+          <div className="mt-3 grid gap-2">
+            <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-300">
+              <span>Group Party infinite movement</span>
+              <input
+                type="checkbox"
+                checked={groupMovementUnlimited}
+                disabled={busy}
+                onChange={(event) => onUpdate({ groupMovementUnlimited: event.target.checked })}
+              />
+            </label>
+            <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-300">
+              <span>Freeroam infinite movement</span>
+              <input
+                type="checkbox"
+                checked={freeroamMovementUnlimited}
+                disabled={busy}
+                onChange={(event) => onUpdate({ freeroamMovementUnlimited: event.target.checked })}
+              />
+            </label>
+            <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-300">
+              <span>Lock Party Options</span>
+              <input
+                type="checkbox"
+                checked={partyOptionsLocked}
+                disabled={busy || travelMode === 'combat'}
+                onChange={(event) => onUpdate({ partyOptionsLocked: event.target.checked })}
+              />
+            </label>
+          </div>
+
+          <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Party approvals</p>
+            {activeParty && (
+              <p className="mt-2 text-xs text-emerald-300">
+                Active: {activeParty.name} led by {playerName(activeParty.leader_user_id)}
+              </p>
+            )}
+            {pendingParties.length === 0 ? (
+              <p className="mt-2 text-xs text-zinc-500">No parties waiting for DM approval.</p>
+            ) : (
+              <div className="mt-2 grid gap-2">
+                {pendingParties.map((party) => (
+                  <div key={party.id} className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
+                    <p className="text-xs font-medium text-zinc-100">{party.name}</p>
+                    <p className="mt-1 text-[11px] text-zinc-500">
+                      Leader: {playerName(party.leader_user_id)}
+                    </p>
+                    <p className="mt-1 text-[11px] text-zinc-500">{partyMemberSummary(party.id)}</p>
+                    <div className="mt-2 flex gap-2">
+                      <Button size="sm" variant="secondary" onClick={() => onReviewParty(party.id, false)} loading={busy}>
+                        Deny
+                      </Button>
+                      <Button size="sm" onClick={() => onReviewParty(party.id, true)} loading={busy}>
+                        Approve
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {feedback && (
+            <p className="mt-3 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-amber-200">
+              {feedback}
+            </p>
+          )}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label="Open party travel controls"
+        className={`flex h-14 w-14 items-center justify-center rounded-full border shadow-2xl transition focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:ring-offset-2 focus:ring-offset-zinc-950 ${
+          open
+            ? 'border-zinc-300 bg-zinc-300 text-zinc-950'
+            : 'border-zinc-600 bg-zinc-700 text-zinc-100 hover:bg-zinc-600'
+        }`}
+      >
+        <Users className="h-6 w-6" aria-hidden="true" />
+      </button>
+    </div>
+  )
+}
+
+function TravelModeButton({
+  active,
+  label,
+  icon,
+  disabled,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  icon: ReactNode
+  disabled: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-2 text-center text-xs font-semibold transition disabled:opacity-50 ${
+        active
+          ? 'border-amber-400/60 bg-amber-500/15 text-amber-100'
+          : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-600'
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   )
 }
 

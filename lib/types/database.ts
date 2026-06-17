@@ -120,11 +120,20 @@ export interface GameMap {
   height: number
   is_active: boolean
   player_movement_locked: boolean
+  travel_mode: TravelMode
+  party_options_locked: boolean
+  group_movement_unlimited: boolean
+  freeroam_movement_unlimited: boolean
+  combat_round: number
   source_prepared_map_id: string | null
   created_by: string
   created_at: string
   updated_at: string
 }
+
+export type TravelMode = 'group_party' | 'freeroam' | 'combat'
+export type TravelPartyStatus = 'pending_dm' | 'approved' | 'denied' | 'disbanded'
+export type TravelPartyMemberStatus = 'pending' | 'accepted' | 'denied'
 
 export type TokenType =
   | 'player'
@@ -229,6 +238,31 @@ export interface MapRevealedArea {
   radius: number | null
   visible_to_players: boolean
   created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface MapTravelParty {
+  id: string
+  campaign_id: string
+  map_id: string
+  name: string
+  created_by: string
+  leader_user_id: string
+  status: TravelPartyStatus
+  dm_response: string | null
+  approved_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MapTravelPartyMember {
+  id: string
+  party_id: string
+  campaign_id: string
+  map_id: string
+  user_id: string
+  status: TravelPartyMemberStatus
   created_at: string
   updated_at: string
 }
@@ -923,6 +957,7 @@ export interface MoveTokenResult {
   x?: number
   y?: number
   movement_used?: number
+  moved_tokens?: number
   max_feet?: number
   attempted_feet?: number
 }
@@ -1707,6 +1742,11 @@ export type Database = {
           height: number
           is_active: boolean
           player_movement_locked: boolean
+          travel_mode: TravelMode
+          party_options_locked: boolean
+          group_movement_unlimited: boolean
+          freeroam_movement_unlimited: boolean
+          combat_round: number
           source_prepared_map_id: string | null
           created_by: string
           created_at: string
@@ -1731,6 +1771,11 @@ export type Database = {
           height?: number
           is_active?: boolean
           player_movement_locked?: boolean
+          travel_mode?: TravelMode
+          party_options_locked?: boolean
+          group_movement_unlimited?: boolean
+          freeroam_movement_unlimited?: boolean
+          combat_round?: number
           source_prepared_map_id?: string | null
           created_by: string
           created_at?: string
@@ -1753,6 +1798,11 @@ export type Database = {
           height?: number
           is_active?: boolean
           player_movement_locked?: boolean
+          travel_mode?: TravelMode
+          party_options_locked?: boolean
+          group_movement_unlimited?: boolean
+          freeroam_movement_unlimited?: boolean
+          combat_round?: number
           source_prepared_map_id?: string | null
           updated_at?: string
         }
@@ -1896,6 +1946,49 @@ export type Database = {
           height?: number | null
           radius?: number | null
           visible_to_players?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      map_travel_parties: {
+        Row: MapTravelParty & Record<string, unknown>
+        Insert: {
+          id?: string
+          campaign_id: string
+          map_id: string
+          name?: string
+          created_by: string
+          leader_user_id: string
+          status?: TravelPartyStatus
+          dm_response?: string | null
+          approved_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          name?: string
+          leader_user_id?: string
+          status?: TravelPartyStatus
+          dm_response?: string | null
+          approved_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      map_travel_party_members: {
+        Row: MapTravelPartyMember & Record<string, unknown>
+        Insert: {
+          id?: string
+          party_id: string
+          campaign_id: string
+          map_id: string
+          user_id: string
+          status?: TravelPartyMemberStatus
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: TravelPartyMemberStatus
           updated_at?: string
         }
         Relationships: []
@@ -2561,6 +2654,34 @@ export type Database = {
       move_token: {
         Args: { p_token_id: string; p_x: number; p_y: number }
         Returns: MoveTokenResult
+      }
+      set_map_travel_options: {
+        Args: {
+          p_map_id: string
+          p_travel_mode?: TravelMode | null
+          p_party_options_locked?: boolean | null
+          p_group_movement_unlimited?: boolean | null
+          p_freeroam_movement_unlimited?: boolean | null
+        }
+        Returns: MoveTokenResult
+      }
+      create_travel_party: {
+        Args: {
+          p_campaign_id: string
+          p_map_id: string
+          p_name: string
+          p_leader_user_id: string
+          p_member_user_ids: string[]
+        }
+        Returns: { ok?: boolean; error?: string; party_id?: string }
+      }
+      respond_travel_party_invite: {
+        Args: { p_party_id: string; p_accepted: boolean }
+        Returns: { ok?: boolean; error?: string }
+      }
+      review_travel_party: {
+        Args: { p_party_id: string; p_approved: boolean; p_dm_response?: string | null }
+        Returns: { ok?: boolean; error?: string }
       }
       encounter_campaign_id: {
         Args: { enc_id: string }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -26,7 +27,12 @@ import {
 import { MapCanvas, type RenderArea, type RenderToken } from './MapCanvas'
 import { useTokenRealtime } from '@/lib/hooks/useTokenRealtime'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
-import { movePlayerToken } from '@/lib/actions/maps'
+import {
+  createTravelParty,
+  movePlayerToken,
+  respondTravelPartyInvite,
+  setMapTravelOptions,
+} from '@/lib/actions/maps'
 import { submitActionIntent } from '@/lib/actions/action-intents'
 import { sendDMNudge, sendPartyMessage } from '@/lib/actions/party-messages'
 import {
@@ -49,11 +55,14 @@ import {
   type CampaignDocLiveObjectType,
   type GameMap,
   type MapRevealedArea,
+  type MapTravelParty,
+  type MapTravelPartyMember,
   type MoveTokenResult,
   type PlayerVisibleCampaignDoc,
   type Profile,
   type Token,
   type TokenType,
+  type TravelMode,
 } from '@/lib/types/database'
 
 function mergeTokenList(tokens: Token[], token: Token) {
@@ -94,6 +103,8 @@ interface PlayerMapViewProps {
   partyMembers: { userId: string; role: string; profile: Profile | null }[]
   playerCodexDocs?: PlayerVisibleCampaignDoc[]
   playerCodexLinks?: CampaignDocLinkPublication[]
+  initialTravelParties?: MapTravelParty[]
+  initialTravelPartyMembers?: MapTravelPartyMember[]
 }
 
 const OBJECT_TOKEN_TYPES = new Set<TokenType>([
@@ -116,7 +127,7 @@ function codexObjectTypeForToken(token: Token): CampaignDocLiveObjectType {
   return OBJECT_TOKEN_TYPES.has(token.token_type) ? 'object' : 'token'
 }
 
-type InteractionSection = 'root' | 'action' | 'requests' | 'talk' | 'whisper' | 'announcement'
+type InteractionSection = 'root' | 'action' | 'requests' | 'talk' | 'travel' | 'whisper' | 'announcement'
 type ActionSequenceState =
   | 'idle'
   | 'token_selected'
@@ -323,14 +334,20 @@ export function PlayerMapView({
   partyMembers,
   playerCodexDocs = [],
   playerCodexLinks = [],
+  initialTravelParties = [],
+  initialTravelPartyMembers = [],
 }: PlayerMapViewProps) {
+  const router = useRouter()
   const [tokens, setTokens] = useState<Token[]>(() =>
     removeDuplicateTokens(initialTokens),
   )
   const [areas, setAreas] = useState<MapRevealedArea[]>(() =>
     removeDuplicateAreas(initialAreas),
   )
+  const [mapState, setMapState] = useState(map)
   const [mapLocked, setMapLocked] = useState(map.player_movement_locked)
+  const travelParties = initialTravelParties
+  const travelPartyMembers = initialTravelPartyMembers
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
   const [interactionOpen, setInteractionOpen] = useState(false)
@@ -344,6 +361,11 @@ export function PlayerMapView({
   const [whisperRecipient, setWhisperRecipient] = useState('')
   const [talkFeedback, setTalkFeedback] = useState<string | null>(null)
   const [talkBusy, setTalkBusy] = useState<string | null>(null)
+  const [partyName, setPartyName] = useState('Travel Party')
+  const [nominatedLeaderId, setNominatedLeaderId] = useState(currentUserId)
+  const [selectedPartyMemberIds, setSelectedPartyMemberIds] = useState<string[]>([currentUserId])
+  const [travelFeedback, setTravelFeedback] = useState<string | null>(null)
+  const [travelBusy, setTravelBusy] = useState<string | null>(null)
   const [actionFlow, setActionFlow] = useState<ActionSequenceState>('idle')
   const [actionTargetId, setActionTargetId] = useState<string | null>(null)
   const [guidedActionType, setGuidedActionType] = useState<GuidedActionType>('Attack')
@@ -390,6 +412,8 @@ export function PlayerMapView({
     { table: 'maps', filter: `campaign_id=eq.${campaignId}` },
     { table: 'campaign_doc_publications', filter: `campaign_id=eq.${campaignId}` },
     { table: 'campaign_doc_link_publications', filter: `campaign_id=eq.${campaignId}` },
+    { table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
+    { table: 'map_travel_party_members', filter: `map_id=eq.${map.id}` },
   ])
 
   useTokenRealtime(map.id, campaignId, {
@@ -401,7 +425,10 @@ export function PlayerMapView({
       setTokens((prev) => prev.filter((t) => t.id !== id))
       setSelectedId((cur) => (cur === id ? null : cur))
     },
-    onMapChange: (m) => setMapLocked(m.player_movement_locked),
+    onMapChange: (m) => {
+      setMapState(m)
+      setMapLocked(m.player_movement_locked)
+    },
     onAreaUpsert: (area) => setAreas((prev) => mergeAreaList(prev, area)),
     onAreaDelete: (id) => setAreas((prev) => prev.filter((a) => a.id !== id)),
   })
@@ -1077,6 +1104,50 @@ export function PlayerMapView({
     setTalkFeedback('Whisper sent.')
   }
 
+  async function updateTravelMode(travelMode: TravelMode) {
+    setTravelBusy('mode')
+    setTravelFeedback(null)
+    const result = await setMapTravelOptions(campaignId, map.id, { travelMode })
+    setTravelBusy(null)
+    if (result?.error) {
+      setTravelFeedback(result.error)
+      return
+    }
+    setMapState((prev) => ({ ...prev, travel_mode: travelMode }))
+    setTravelFeedback('Travel mode updated.')
+    router.refresh()
+  }
+
+  async function submitCreateParty() {
+    setTravelBusy('create')
+    setTravelFeedback(null)
+    const result = await createTravelParty(campaignId, map.id, {
+      name: partyName,
+      leaderUserId: nominatedLeaderId,
+      memberUserIds: selectedPartyMemberIds,
+    })
+    setTravelBusy(null)
+    if (result?.error) {
+      setTravelFeedback(result.error)
+      return
+    }
+    setTravelFeedback('Party created. Invited players can respond, then the DM can approve it.')
+    router.refresh()
+  }
+
+  async function respondToPartyInvite(partyId: string, accepted: boolean) {
+    setTravelBusy(partyId)
+    setTravelFeedback(null)
+    const result = await respondTravelPartyInvite(campaignId, map.id, partyId, accepted)
+    setTravelBusy(null)
+    if (result?.error) {
+      setTravelFeedback(result.error)
+      return
+    }
+    setTravelFeedback(accepted ? 'Party invite accepted.' : 'Party invite denied.')
+    router.refresh()
+  }
+
   // Remaining movement for a controlled, linked token
   function remainingFor(t: Token): { used: number; speed: number } | null {
     if (!t.linked_character_id) return null
@@ -1099,6 +1170,19 @@ export function PlayerMapView({
     <div className="flex flex-col gap-3">
       {/* Status bar */}
       <div className="flex flex-wrap items-center gap-3 text-sm">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-xs font-medium text-zinc-300">
+          <Users className="h-3.5 w-3.5" aria-hidden="true" />
+          {mapState.travel_mode === 'group_party'
+            ? `Group Party${mapState.group_movement_unlimited ? ' - infinite' : ' - 30 ft'}`
+            : mapState.travel_mode === 'combat'
+              ? 'Combat Mode'
+              : `Freeroam${mapState.freeroam_movement_unlimited ? ' - infinite' : ' - 30 ft'}`}
+        </span>
+        {mapState.party_options_locked && (
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-orange-500/30 bg-orange-500/15 px-2.5 py-1 text-xs font-medium text-orange-300">
+            Party options locked
+          </span>
+        )}
         {mapLocked ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-500/15 text-orange-300 border border-orange-500/30 text-xs font-medium">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1292,6 +1376,21 @@ export function PlayerMapView({
             setWhisperRecipient={setWhisperRecipient}
             talkFeedback={talkFeedback}
             talkBusy={talkBusy}
+            map={mapState}
+            currentUserId={currentUserId}
+            travelParties={travelParties}
+            travelPartyMembers={travelPartyMembers}
+            partyName={partyName}
+            setPartyName={setPartyName}
+            nominatedLeaderId={nominatedLeaderId}
+            setNominatedLeaderId={setNominatedLeaderId}
+            selectedPartyMemberIds={selectedPartyMemberIds}
+            setSelectedPartyMemberIds={setSelectedPartyMemberIds}
+            travelFeedback={travelFeedback}
+            travelBusy={travelBusy}
+            updateTravelMode={updateTravelMode}
+            submitCreateParty={submitCreateParty}
+            respondToPartyInvite={respondToPartyInvite}
             sendMeeting={sendMeeting}
             sendAnnouncement={sendAnnouncement}
             sendWhisper={sendWhisper}
@@ -1431,6 +1530,21 @@ function InteractionMenu({
   setWhisperRecipient,
   talkFeedback,
   talkBusy,
+  map,
+  currentUserId,
+  travelParties,
+  travelPartyMembers,
+  partyName,
+  setPartyName,
+  nominatedLeaderId,
+  setNominatedLeaderId,
+  selectedPartyMemberIds,
+  setSelectedPartyMemberIds,
+  travelFeedback,
+  travelBusy,
+  updateTravelMode,
+  submitCreateParty,
+  respondToPartyInvite,
   sendMeeting,
   sendAnnouncement,
   sendWhisper,
@@ -1456,6 +1570,21 @@ function InteractionMenu({
   setWhisperRecipient: (value: string) => void
   talkFeedback: string | null
   talkBusy: string | null
+  map: GameMap
+  currentUserId: string
+  travelParties: MapTravelParty[]
+  travelPartyMembers: MapTravelPartyMember[]
+  partyName: string
+  setPartyName: (value: string) => void
+  nominatedLeaderId: string
+  setNominatedLeaderId: (value: string) => void
+  selectedPartyMemberIds: string[]
+  setSelectedPartyMemberIds: (value: string[]) => void
+  travelFeedback: string | null
+  travelBusy: string | null
+  updateTravelMode: (travelMode: TravelMode) => void
+  submitCreateParty: () => void
+  respondToPartyInvite: (partyId: string, accepted: boolean) => void
   sendMeeting: () => void
   sendAnnouncement: () => void
   sendWhisper: () => void
@@ -1483,6 +1612,12 @@ function InteractionMenu({
   const talkPanel = (
     <div className="grid gap-2">
       <MenuItem
+        title="Travel Options"
+        description="Create a party, choose travel mode, and view movement rules."
+        icon={<Users className="h-4 w-4" aria-hidden="true" />}
+        onClick={() => setSection('travel')}
+      />
+      <MenuItem
         title="Call Party Meeting"
         description="Send a loud meeting alert to every player."
         icon={<Users className="h-4 w-4" aria-hidden="true" />}
@@ -1505,6 +1640,205 @@ function InteractionMenu({
         trailing={false}
       />
       {talkFeedback && <p className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-amber-200">{talkFeedback}</p>}
+    </div>
+  )
+
+  const allPlayerOptions = [
+    { userId: currentUserId, name: 'You' },
+    ...partyMembers
+      .filter((member) => member.role !== 'dm')
+      .map((member) => ({
+        userId: member.userId,
+        name: member.profile?.display_name ?? 'Party member',
+      })),
+  ]
+  const playerName = (userId: string) =>
+    allPlayerOptions.find((player) => player.userId === userId)?.name ?? 'Player'
+  const myInviteRows = travelPartyMembers.filter(
+    (member) => member.user_id === currentUserId && member.status === 'pending',
+  )
+  const activeParty = travelParties.find((party) => party.status === 'approved')
+  const myParties = travelParties.filter((party) =>
+    travelPartyMembers.some((member) => member.party_id === party.id && member.user_id === currentUserId),
+  )
+
+  function togglePartyMember(userId: string) {
+    if (userId === currentUserId) return
+    const next = selectedPartyMemberIds.includes(userId)
+      ? selectedPartyMemberIds.filter((id) => id !== userId)
+      : [...selectedPartyMemberIds, userId]
+    setSelectedPartyMemberIds(Array.from(new Set([currentUserId, ...next])))
+  }
+
+  const travelPanel = (
+    <div className="grid gap-3">
+      <div>
+        <p className="text-sm font-semibold text-zinc-100">Travel Options</p>
+        <p className="mt-0.5 text-xs text-zinc-500">
+          1 square is 5 ft. Standard travel movement is 30 ft unless the DM allows infinite movement.
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Current mode</p>
+            <p className="mt-1 text-sm font-medium text-zinc-100">
+              {map.travel_mode === 'group_party'
+                ? 'Group Party'
+                : map.travel_mode === 'combat'
+                  ? 'Combat Mode'
+                  : 'Freeroam'}
+            </p>
+          </div>
+          <span className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-[11px] text-zinc-400">
+            {map.travel_mode === 'group_party'
+              ? map.group_movement_unlimited ? 'Infinite' : '30 ft'
+              : map.travel_mode === 'freeroam'
+                ? map.freeroam_movement_unlimited ? 'Infinite' : '30 ft'
+                : 'Locked'}
+          </span>
+        </div>
+
+        {map.party_options_locked ? (
+          <p className="mt-3 rounded-md border border-orange-800/60 bg-orange-950/30 px-3 py-2 text-xs text-orange-200">
+            The DM has locked party options.
+          </p>
+        ) : (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={travelBusy === 'mode'}
+              onClick={() => updateTravelMode('group_party')}
+              className={`rounded-md border px-3 py-2 text-xs font-semibold transition disabled:opacity-45 ${
+                map.travel_mode === 'group_party'
+                  ? 'border-amber-400/60 bg-amber-500/15 text-amber-100'
+                  : 'border-zinc-700 bg-zinc-950 text-zinc-200 hover:border-zinc-500'
+              }`}
+            >
+              Group Party
+            </button>
+            <button
+              type="button"
+              disabled={travelBusy === 'mode'}
+              onClick={() => updateTravelMode('freeroam')}
+              className={`rounded-md border px-3 py-2 text-xs font-semibold transition disabled:opacity-45 ${
+                map.travel_mode === 'freeroam'
+                  ? 'border-amber-400/60 bg-amber-500/15 text-amber-100'
+                  : 'border-zinc-700 bg-zinc-950 text-zinc-200 hover:border-zinc-500'
+              }`}
+            >
+              Freeroam
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Create Party</p>
+        <label className="mt-3 block text-xs text-zinc-400">
+          Party name
+          <input
+            value={partyName}
+            onChange={(event) => setPartyName(event.target.value)}
+            className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+          />
+        </label>
+        <label className="mt-3 block text-xs text-zinc-400">
+          Nominated leader
+          <select
+            value={nominatedLeaderId}
+            onChange={(event) => setNominatedLeaderId(event.target.value)}
+            className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+          >
+            {allPlayerOptions.map((player) => (
+              <option key={player.userId} value={player.userId}>{player.name}</option>
+            ))}
+          </select>
+        </label>
+        <div className="mt-3 grid gap-1.5">
+          {allPlayerOptions.map((player) => (
+            <label key={player.userId} className="flex items-center justify-between gap-3 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300">
+              <span>{player.name}</span>
+              <input
+                type="checkbox"
+                checked={selectedPartyMemberIds.includes(player.userId)}
+                disabled={player.userId === currentUserId}
+                onChange={() => togglePartyMember(player.userId)}
+              />
+            </label>
+          ))}
+        </div>
+        <button
+          type="button"
+          disabled={travelBusy === 'create' || selectedPartyMemberIds.length === 0}
+          onClick={submitCreateParty}
+          className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-45"
+        >
+          <Users className="h-4 w-4" aria-hidden="true" />
+          {travelBusy === 'create' ? 'Creating...' : 'Create Party'}
+        </button>
+      </div>
+
+      {(myInviteRows.length > 0 || myParties.length > 0) && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Party status</p>
+          {activeParty && (
+            <p className="mt-2 text-xs text-emerald-300">
+              Active party: {activeParty.name}, led by {playerName(activeParty.leader_user_id)}
+            </p>
+          )}
+          <div className="mt-2 grid gap-2">
+            {myInviteRows.map((invite) => {
+              const party = travelParties.find((item) => item.id === invite.party_id)
+              if (!party) return null
+              return (
+                <div key={invite.id} className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
+                  <p className="text-xs font-medium text-zinc-100">{party.name}</p>
+                  <p className="mt-1 text-[11px] text-zinc-500">
+                    Leader: {playerName(party.leader_user_id)}
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      disabled={travelBusy === party.id}
+                      onClick={() => respondToPartyInvite(party.id, false)}
+                      className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 disabled:opacity-45"
+                    >
+                      Deny
+                    </button>
+                    <button
+                      type="button"
+                      disabled={travelBusy === party.id}
+                      onClick={() => respondToPartyInvite(party.id, true)}
+                      className="flex-1 rounded-md bg-amber-500 px-3 py-2 text-xs font-semibold text-zinc-950 disabled:opacity-45"
+                    >
+                      Accept
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+            {myParties.map((party) => (
+              <div key={party.id} className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-zinc-100">{party.name}</p>
+                  <span className="rounded-md border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 text-[10px] capitalize text-zinc-400">
+                    {party.status.replace(/_/g, ' ')}
+                  </span>
+                </div>
+                {party.dm_response && <p className="mt-1 text-xs text-amber-200">DM: {party.dm_response}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {travelFeedback && (
+        <p className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-amber-200">
+          {travelFeedback}
+        </p>
+      )}
     </div>
   )
 
@@ -1631,6 +1965,7 @@ function InteractionMenu({
     section === 'action' ? actionPanel :
     section === 'requests' ? requestsPanel :
     section === 'talk' ? talkPanel :
+    section === 'travel' ? travelPanel :
     section === 'whisper' ? whisperPanel :
     section === 'announcement' ? announcementPanel :
     null
@@ -1676,7 +2011,7 @@ function InteractionMenu({
           </div>
           <div className="grid gap-2">
             <MenuItem title="Action" description="Request actions, rolls, and DM review." icon={<Hand className="h-4 w-4" />} active={section === 'action' || section === 'requests'} onMouseEnter={() => setSection('action')} onClick={() => setSection('action')} />
-            <MenuItem title="Talk" description="Communicate with the party." icon={<MessageCircle className="h-4 w-4" />} active={section === 'talk' || section === 'whisper' || section === 'announcement'} onMouseEnter={() => setSection('talk')} onClick={() => setSection('talk')} />
+            <MenuItem title="Talk" description="Communicate with the party." icon={<MessageCircle className="h-4 w-4" />} active={section === 'talk' || section === 'travel' || section === 'whisper' || section === 'announcement'} onMouseEnter={() => setSection('talk')} onClick={() => setSection('talk')} />
           </div>
         </div>
         {detailPanel && (

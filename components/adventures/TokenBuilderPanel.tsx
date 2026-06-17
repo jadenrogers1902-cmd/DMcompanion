@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -70,6 +70,45 @@ function docMatches(doc: CampaignDoc, query: string) {
     .some((value) => String(value).toLowerCase().includes(q))
 }
 
+function Collapsible({
+  title,
+  badge,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  badge?: ReactNode
+  defaultOpen?: boolean
+  children: ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <section className="rounded-lg border border-zinc-800 bg-zinc-950">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-zinc-900"
+        aria-expanded={open}
+      >
+        <span className="flex items-center gap-2">
+          <svg
+            className={`h-3.5 w-3.5 text-zinc-500 transition-transform ${open ? 'rotate-90' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-sm font-semibold text-zinc-100">{title}</span>
+        </span>
+        {badge}
+      </button>
+      {open && <div className="border-t border-zinc-800 p-3">{children}</div>}
+    </section>
+  )
+}
+
 export function TokenBuilderPanel({
   campaignId,
   hasImage,
@@ -133,40 +172,37 @@ export function TokenBuilderPanel({
         </p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-        <Input
-          label="Search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Name, tags, type"
-          className="sm:col-span-3 lg:col-span-1 xl:col-span-3"
-        />
-        <Select label="Source" value={source} onChange={(event) => setSource(event.target.value as 'all' | CampaignDocSource)}>
-          <option value="all">All sources</option>
-          <option value="notion">Notion</option>
-          <option value="manual">Manual</option>
-          <option value="import">Import</option>
-        </Select>
-        <Select label="Linked" value={linked} onChange={(event) => setLinked(event.target.value as 'all' | 'linked' | 'unlinked')}>
-          <option value="all">All entries</option>
-          <option value="unlinked">Unlinked</option>
-          <option value="linked">Already linked</option>
-        </Select>
-        <Select label="Type" value={activeType} onChange={(event) => setActiveType(event.target.value as '' | CampaignDocType)}>
-          <option value="">All types</option>
-          {availableTypes.map((type) => (
-            <option key={type} value={type}>{campaignDocTypeLabel(type)}</option>
-          ))}
-        </Select>
-      </div>
+      <Collapsible
+        title="Dynamic Tokens"
+        badge={<Badge variant="player">{dynamicDocs.length}</Badge>}
+      >
+        <p className="text-xs text-zinc-500">Live-aware entity tokens linked to Codex records.</p>
 
-      <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-zinc-100">Dynamic Tokens</h3>
-            <p className="mt-1 text-xs text-zinc-500">Live-aware entity tokens linked to Codex records.</p>
-          </div>
-          <Badge variant="player">{dynamicDocs.length}</Badge>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+          <Input
+            label="Search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Name, tags, type"
+            className="sm:col-span-3 lg:col-span-1 xl:col-span-3"
+          />
+          <Select label="Source" value={source} onChange={(event) => setSource(event.target.value as 'all' | CampaignDocSource)}>
+            <option value="all">All sources</option>
+            <option value="notion">Notion</option>
+            <option value="manual">Manual</option>
+            <option value="import">Import</option>
+          </Select>
+          <Select label="Linked" value={linked} onChange={(event) => setLinked(event.target.value as 'all' | 'linked' | 'unlinked')}>
+            <option value="all">All entries</option>
+            <option value="unlinked">Unlinked</option>
+            <option value="linked">Already linked</option>
+          </Select>
+          <Select label="Type" value={activeType} onChange={(event) => setActiveType(event.target.value as '' | CampaignDocType)}>
+            <option value="">All types</option>
+            {availableTypes.map((type) => (
+              <option key={type} value={type}>{campaignDocTypeLabel(type)}</option>
+            ))}
+          </Select>
         </div>
 
         <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
@@ -272,11 +308,10 @@ export function TokenBuilderPanel({
             </>
           )}
         </div>
-      </section>
+      </Collapsible>
 
-      <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-        <h3 className="text-sm font-semibold text-zinc-100">Static Tokens</h3>
-        <p className="mt-1 text-xs text-zinc-500">Fixed objects the DM can place and players cannot move.</p>
+      <Collapsible title="Static Tokens">
+        <p className="text-xs text-zinc-500">Fixed objects the DM can place and players cannot move.</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {STATIC_TEMPLATES.map((template) => (
             <button
@@ -290,18 +325,16 @@ export function TokenBuilderPanel({
             </button>
           ))}
         </div>
-      </section>
+      </Collapsible>
 
-      <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-        <h3 className="text-sm font-semibold text-zinc-100">World Objects</h3>
-        <p className="mt-1 text-xs text-zinc-500">
+      <Collapsible title="World Objects">
+        <p className="text-xs text-zinc-500">
           Static objects default to DM-only or hidden states. Visible objects can still be inspected or routed through DM approval after deployment.
         </p>
-      </section>
+      </Collapsible>
 
-      <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-        <h3 className="text-sm font-semibold text-zinc-100">Encounter Aids</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
+      <Collapsible title="Encounter Aids">
+        <div className="flex flex-wrap gap-2">
           {STATIC_TEMPLATES.filter((item) => ['trap', 'hazard', 'light', 'loot', 'puzzle'].includes(item.key)).map((template) => (
             <button
               key={`aid-${template.key}`}
@@ -314,14 +347,14 @@ export function TokenBuilderPanel({
             </button>
           ))}
         </div>
-      </section>
+      </Collapsible>
 
       {placedTokens.length > 0 && (
-        <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-          <h3 className="text-sm font-semibold text-zinc-100">
-            Placed Tokens <span className="text-zinc-600">({placedTokens.length})</span>
-          </h3>
-          <div className="mt-3 flex flex-col gap-1.5">
+        <Collapsible
+          title="Placed Tokens"
+          badge={<span className="text-xs text-zinc-500">{placedTokens.length}</span>}
+        >
+          <div className="flex flex-col gap-1.5">
             {placedTokens.map((token) => {
               const meta = preparedTokenTypeMeta(token.token_type)
               const isSelected = selectedTokenId === token.id
@@ -363,7 +396,7 @@ export function TokenBuilderPanel({
               )
             })}
           </div>
-        </section>
+        </Collapsible>
       )}
     </aside>
   )

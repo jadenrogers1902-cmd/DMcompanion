@@ -207,7 +207,7 @@ export function TokenDetailPanel({
 
         {/* Body (scrollable) — grouped into collapsible pill sections */}
         <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-4">
-        <Collapsible title="Identity" defaultOpen>
+        <Collapsible title="Identity">
           <div className="grid grid-cols-2 gap-3">
             <Select
               label="Type"
@@ -244,7 +244,7 @@ export function TokenDetailPanel({
           />
         </Collapsible>
 
-        <Collapsible title="Visibility & Behavior" defaultOpen>
+        <Collapsible title="Visibility & Behavior">
           <Select
             label="Visibility"
             value={token.reveal_state}
@@ -343,7 +343,7 @@ export function TokenDetailPanel({
           )}
         </Collapsible>
 
-        <Collapsible title={kind === 'location' ? 'Linked Location Entry' : 'Codex Entry Link'} defaultOpen>
+        <Collapsible title={kind === 'location' ? 'Linked Location Entry' : 'Codex Entry Link'}>
           {linkedDoc ? (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
               <div className="flex items-start justify-between gap-2">
@@ -434,7 +434,7 @@ export function TokenDetailPanel({
           )}
         </Collapsible>
 
-        <Collapsible title="Description & Notes" defaultOpen>
+        <Collapsible title="Description & Notes">
           <div className="flex flex-col gap-1.5">
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Description</p>
             <Textarea

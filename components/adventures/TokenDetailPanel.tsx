@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -34,6 +34,45 @@ function tokenKind(type: string): TokenKind {
     return 'creature'
   }
   return 'object'
+}
+
+/** A collapsible pill section inside the token modal. Manages its own open state. */
+function Collapsible({
+  title,
+  defaultOpen = false,
+  accent = false,
+  children,
+}: {
+  title: string
+  defaultOpen?: boolean
+  accent?: boolean
+  children: ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <section className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className={`flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-semibold transition-colors hover:bg-zinc-800/50 ${
+          accent ? 'text-amber-300' : 'text-zinc-200'
+        }`}
+      >
+        <span>{title}</span>
+        <svg
+          className={`h-4 w-4 shrink-0 text-zinc-500 transition-transform ${open ? 'rotate-90' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+        </svg>
+      </button>
+      {open && <div className="flex flex-col gap-3 border-t border-zinc-800 p-3">{children}</div>}
+    </section>
+  )
 }
 
 interface TokenDetailPanelProps {
@@ -166,9 +205,9 @@ export function TokenDetailPanel({
           </div>
         </div>
 
-        {/* Body (scrollable) */}
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
-        <section className="flex flex-col gap-3">
+        {/* Body (scrollable) — grouped into collapsible pill sections */}
+        <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-4">
+        <Collapsible title="Identity" defaultOpen>
           <div className="grid grid-cols-2 gap-3">
             <Select
               label="Type"
@@ -196,7 +235,16 @@ export function TokenDetailPanel({
               hint="Emoji shown on the map"
             />
           </div>
+          <Input
+            label="Tags"
+            value={token.tags.join(', ')}
+            placeholder="boss, clue, session-3"
+            onChange={(event) => onChange({ tags: tagsFromInput(event.target.value) })}
+            hint="Comma-separated prep tags."
+          />
+        </Collapsible>
 
+        <Collapsible title="Visibility & Behavior" defaultOpen>
           <Select
             label="Visibility"
             value={token.reveal_state}
@@ -221,14 +269,6 @@ export function TokenDetailPanel({
               </option>
             ))}
           </Select>
-
-          <Input
-            label="Tags"
-            value={token.tags.join(', ')}
-            placeholder="boss, clue, session-3"
-            onChange={(event) => onChange({ tags: tagsFromInput(event.target.value) })}
-            hint="Comma-separated prep tags."
-          />
 
           {/* Behavior — only the controls relevant to this token kind. */}
           <div className="grid gap-2 rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-300">
@@ -301,38 +341,9 @@ export function TokenDetailPanel({
               hint="Starting state for this object when deployed."
             />
           )}
+        </Collapsible>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Size (squares)"
-              type="number"
-              min={0.5}
-              max={10}
-              step={0.5}
-              value={token.size}
-              onChange={(event) =>
-                onChange({ size: Math.min(10, Math.max(0.5, Number(event.target.value) || 1)) })
-              }
-            />
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-zinc-300" htmlFor="token-color">
-                Color
-              </label>
-              <input
-                id="token-color"
-                type="color"
-                value={token.color}
-                onChange={(event) => onChange({ color: event.target.value })}
-                className="h-9 w-full cursor-pointer rounded-lg border border-zinc-700 bg-zinc-900"
-              />
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            {kind === 'location' ? 'Linked Location Entry' : 'Codex Entry Link'}
-          </h3>
+        <Collapsible title={kind === 'location' ? 'Linked Location Entry' : 'Codex Entry Link'} defaultOpen>
           {linkedDoc ? (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
               <div className="flex items-start justify-between gap-2">
@@ -421,13 +432,99 @@ export function TokenDetailPanel({
               </div>
             </div>
           )}
-        </section>
+        </Collapsible>
+
+        <Collapsible title="Description & Notes" defaultOpen>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Description</p>
+            <Textarea
+              aria-label="Description"
+              rows={2}
+              maxLength={2000}
+              placeholder="Player-safe summary of what this is."
+              value={token.description}
+              onChange={(event) => onChange({ description: event.target.value })}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Player Notes</p>
+            <Textarea
+              aria-label="Player notes"
+              rows={2}
+              maxLength={2000}
+              placeholder="Read-aloud text or info players get. Becomes public text when deployed."
+              value={token.player_notes}
+              onChange={(event) => onChange({ player_notes: event.target.value })}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-500/80">{dmNotesLabel}</p>
+            <Textarea
+              aria-label="DM notes"
+              rows={3}
+              maxLength={4000}
+              placeholder={dmNotesPlaceholder}
+              value={token.dm_notes}
+              onChange={(event) => onChange({ dm_notes: event.target.value })}
+            />
+          </div>
+        </Collapsible>
+
+        <Collapsible title="Appearance">
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Size (squares)"
+              type="number"
+              min={0.5}
+              max={10}
+              step={0.5}
+              value={token.size}
+              onChange={(event) =>
+                onChange({ size: Math.min(10, Math.max(0.5, Number(event.target.value) || 1)) })
+              }
+            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-zinc-300" htmlFor="token-color">
+                Color
+              </label>
+              <input
+                id="token-color"
+                type="color"
+                value={token.color}
+                onChange={(event) => onChange({ color: event.target.value })}
+                className="h-9 w-full cursor-pointer rounded-lg border border-zinc-700 bg-zinc-900"
+              />
+            </div>
+          </div>
+        </Collapsible>
+
+        {showResource && (
+          <Collapsible title="Stat Reference">
+            <TokenResourceLookup
+              resource={token.resource}
+              defaultCategory={defaultCategoryForTokenType(token.token_type)}
+              onAttach={(resource) => onChange({ resource })}
+              onDetach={() => onChange({ resource: null })}
+            />
+          </Collapsible>
+        )}
+
+        <Collapsible title="Prep Database">
+          <PrepDatabasePanel
+            title="Token Prep Database"
+            parentType="token"
+            parentId={token.id}
+            tags={token.tags}
+            notes={token.prep_notes}
+            links={normalizePrepLinks(token.links, 'token', token.id)}
+            onTagsChange={(tags) => onChange({ tags })}
+            onNotesChange={(prep_notes) => onChange({ prep_notes })}
+            onLinksChange={(links) => onChange({ links })}
+          />
+        </Collapsible>
 
         {related && (
-          <section>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Related Records
-            </h3>
+          <Collapsible title="Related Records">
             <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-400">
               <div className="truncate">Adventure: {related.adventureTitle || related.adventureId}</div>
               <div className="truncate">Chapter: {related.chapterTitle || related.chapterId}</div>
@@ -435,71 +532,8 @@ export function TokenDetailPanel({
                 Prepared Map: {related.preparedMapTitle || related.preparedMapId}
               </div>
             </div>
-          </section>
+          </Collapsible>
         )}
-
-        <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Description
-          </h3>
-          <Textarea
-            aria-label="Description"
-            rows={2}
-            maxLength={2000}
-            placeholder="Player-safe summary of what this is."
-            value={token.description}
-            onChange={(event) => onChange({ description: event.target.value })}
-          />
-        </section>
-
-        <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Player Notes
-          </h3>
-          <Textarea
-            aria-label="Player notes"
-            rows={2}
-            maxLength={2000}
-            placeholder="Read-aloud text or info players get. Becomes public text when deployed."
-            value={token.player_notes}
-            onChange={(event) => onChange({ player_notes: event.target.value })}
-          />
-        </section>
-
-        <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-500/80">
-            {dmNotesLabel}
-          </h3>
-          <Textarea
-            aria-label="DM notes"
-            rows={3}
-            maxLength={4000}
-            placeholder={dmNotesPlaceholder}
-            value={token.dm_notes}
-            onChange={(event) => onChange({ dm_notes: event.target.value })}
-          />
-        </section>
-
-        {showResource && (
-          <TokenResourceLookup
-            resource={token.resource}
-            defaultCategory={defaultCategoryForTokenType(token.token_type)}
-            onAttach={(resource) => onChange({ resource })}
-            onDetach={() => onChange({ resource: null })}
-          />
-        )}
-
-        <PrepDatabasePanel
-          title="Token Prep Database"
-          parentType="token"
-          parentId={token.id}
-          tags={token.tags}
-          notes={token.prep_notes}
-          links={normalizePrepLinks(token.links, 'token', token.id)}
-          onTagsChange={(tags) => onChange({ tags })}
-          onNotesChange={(prep_notes) => onChange({ prep_notes })}
-          onLinksChange={(links) => onChange({ links })}
-        />
         </div>
 
         {/* Footer (fixed) — Remove + Close always reachable */}

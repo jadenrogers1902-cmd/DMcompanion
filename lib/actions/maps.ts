@@ -15,6 +15,23 @@ type TravelOptionsInput = {
   freeroamMovementUnlimited?: boolean
 }
 
+function travelMigrationError(message: string) {
+  const lower = message.toLowerCase()
+  if (
+    lower.includes('schema cache') ||
+    lower.includes('could not find the function') ||
+    lower.includes('function public.create_travel_party') ||
+    lower.includes('function public.set_map_travel_options') ||
+    lower.includes('function public.respond_travel_party_invite') ||
+    lower.includes('function public.review_travel_party') ||
+    lower.includes('relation "map_travel_parties"') ||
+    lower.includes('column maps.travel_mode')
+  ) {
+    return 'Travel options are not ready on the database yet. Apply migration 032_travel_modes_parties.sql to production Supabase, then try again.'
+  }
+  return message
+}
+
 // ────────────────────────────────────────────────────────────
 // Maps
 // ────────────────────────────────────────────────────────────
@@ -116,7 +133,7 @@ export async function setActiveMap(campaignId: string, mapId: string) {
     p_campaign_id: campaignId,
     p_map_id: mapId,
   })
-  if (error) return { error: error.message }
+  if (error) return { error: travelMigrationError(error.message) }
 
   revalidatePath(`/campaigns/${campaignId}/live-map`)
   revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
@@ -132,7 +149,7 @@ export async function deleteMap(
 
   // Remove the row first (RLS ensures DM-only); cascade removes tokens.
   const { error } = await supabase.from('maps').delete().eq('id', mapId)
-  if (error) return { error: error.message }
+  if (error) return { error: travelMigrationError(error.message) }
 
   // Best-effort storage cleanup.
   if (storagePath) {
@@ -292,7 +309,7 @@ export async function updateTokenPosition(
     .from('tokens')
     .update({ x, y, last_x: x, last_y: y, movement_used: 0 })
     .eq('id', tokenId)
-  if (error) return { error: error.message }
+  if (error) return { error: travelMigrationError(error.message) }
   return { success: true }
 }
 
@@ -309,7 +326,7 @@ export async function movePlayerToken(
     p_x: x,
     p_y: y,
   })
-  if (error) return { error: error.message }
+  if (error) return { error: travelMigrationError(error.message) }
   return data ?? { error: 'No response from server.' }
 }
 

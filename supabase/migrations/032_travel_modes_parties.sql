@@ -181,8 +181,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  party_id UUID;
-  member_id UUID;
+  v_party_id UUID;
+  v_member_id UUID;
   normalized_name TEXT;
 BEGIN
   IF NOT is_campaign_member(p_campaign_id) THEN
@@ -202,9 +202,9 @@ BEGIN
 
   INSERT INTO map_travel_parties (campaign_id, map_id, name, created_by, leader_user_id)
   VALUES (p_campaign_id, p_map_id, normalized_name, auth.uid(), p_leader_user_id)
-  RETURNING id INTO party_id;
+  RETURNING id INTO v_party_id;
 
-  FOR member_id IN
+  FOR v_member_id IN
     SELECT DISTINCT x
     FROM unnest(array_append(COALESCE(p_member_user_ids, ARRAY[]::UUID[]), p_leader_user_id)) AS member_ids(x)
     WHERE x IS NOT NULL
@@ -215,16 +215,16 @@ BEGIN
   LOOP
     INSERT INTO map_travel_party_members (party_id, campaign_id, map_id, user_id, status)
     VALUES (
-      party_id,
+      v_party_id,
       p_campaign_id,
       p_map_id,
-      member_id,
-      CASE WHEN member_id = auth.uid() THEN 'accepted' ELSE 'pending' END
+      v_member_id,
+      CASE WHEN v_member_id = auth.uid() THEN 'accepted' ELSE 'pending' END
     )
     ON CONFLICT (party_id, user_id) DO NOTHING;
   END LOOP;
 
-  RETURN jsonb_build_object('ok', TRUE, 'party_id', party_id);
+  RETURN jsonb_build_object('ok', TRUE, 'party_id', v_party_id);
 END;
 $$;
 
@@ -237,9 +237,9 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  UPDATE map_travel_party_members
+  UPDATE map_travel_party_members AS m
     SET status = CASE WHEN p_accepted THEN 'accepted' ELSE 'denied' END
-    WHERE party_id = p_party_id AND user_id = auth.uid();
+    WHERE m.party_id = p_party_id AND m.user_id = auth.uid();
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('error', 'Party invite not found');
@@ -261,7 +261,7 @@ AS $$
 DECLARE
   p map_travel_parties;
 BEGIN
-  SELECT * INTO p FROM map_travel_parties WHERE id = p_party_id;
+  SELECT * INTO p FROM map_travel_parties AS tp WHERE tp.id = p_party_id;
   IF NOT FOUND THEN
     RETURN jsonb_build_object('error', 'Party not found');
   END IF;
@@ -269,11 +269,11 @@ BEGIN
     RETURN jsonb_build_object('error', 'Only the DM can review parties');
   END IF;
 
-  UPDATE map_travel_parties
+  UPDATE map_travel_parties AS tp
     SET status = CASE WHEN p_approved THEN 'approved' ELSE 'denied' END,
         dm_response = NULLIF(TRIM(p_dm_response), ''),
         approved_by = auth.uid()
-    WHERE id = p_party_id;
+    WHERE tp.id = p_party_id;
 
   RETURN jsonb_build_object('ok', TRUE);
 END;

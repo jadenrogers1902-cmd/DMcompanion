@@ -2,8 +2,8 @@
 
 import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Swords, Unlock, Users } from 'lucide-react'
 import { MapCanvas, type AreaDrawTool, type RenderArea, type RenderToken } from './MapCanvas'
+import { PartyPlayersPanel } from './PartyPlayersPanel'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Checkbox } from '@/components/ui/Checkbox'
@@ -606,6 +606,35 @@ export function MapEditor({
     await resetTokenPosition(campaignId, map.id, selected.id)
   }
 
+  // Per-token controls for the Party & Players roster (act on a token by id
+  // rather than the current selection).
+  function focusToken(tokenId: string) {
+    setSelectedId(tokenId)
+    setContextMenuOpen(true)
+    setAddMenuOpen(false)
+  }
+
+  async function lockTokenById(tokenId: string, next: boolean) {
+    patchToken(tokenId, { movement_locked: next })
+    await setTokenMovementLock(campaignId, map.id, tokenId, next)
+  }
+
+  async function resetMovementById(tokenId: string) {
+    const t = tokens.find((x) => x.id === tokenId)
+    if (!t) return
+    patchToken(tokenId, { last_x: t.x, last_y: t.y, movement_used: 0 })
+    await resetTokenMovement(campaignId, map.id, tokenId)
+  }
+
+  async function resetPositionById(tokenId: string) {
+    const t = tokens.find((x) => x.id === tokenId)
+    if (!t) return
+    const ax = t.last_x ?? t.x
+    const ay = t.last_y ?? t.y
+    patchToken(tokenId, { x: ax, y: ay, movement_used: 0 })
+    await resetTokenPosition(campaignId, map.id, tokenId)
+  }
+
   function handleSelectToken(id: string | null) {
     setSelectedId(id)
     setAddMenuOpen(false)
@@ -765,7 +794,7 @@ export function MapEditor({
             }}
             onAdd={handleAddToken}
           />
-          <PartyTravelBubble
+          <PartyPlayersPanel
             open={partyMenuOpen}
             busy={partyBusy !== null}
             feedback={partyFeedback}
@@ -783,6 +812,12 @@ export function MapEditor({
             }}
             onUpdate={handleTravelOptionUpdate}
             onReviewParty={handleReviewParty}
+            tokens={tokens}
+            selectedTokenId={selectedId}
+            onFocusToken={focusToken}
+            onToggleTokenLock={lockTokenById}
+            onResetMovement={resetMovementById}
+            onResetPosition={resetPositionById}
           />
           {selected && contextMenuOpen && tokenMenuPosition && (
             <TokenContextMenu
@@ -1149,208 +1184,6 @@ function TokenAddBubble({
         +
       </button>
     </div>
-  )
-}
-
-function PartyTravelBubble({
-  open,
-  busy,
-  feedback,
-  travelMode,
-  partyOptionsLocked,
-  groupMovementUnlimited,
-  freeroamMovementUnlimited,
-  parties,
-  members,
-  players,
-  onToggle,
-  onUpdate,
-  onReviewParty,
-}: {
-  open: boolean
-  busy: boolean
-  feedback: string | null
-  travelMode: TravelMode
-  partyOptionsLocked: boolean
-  groupMovementUnlimited: boolean
-  freeroamMovementUnlimited: boolean
-  parties: MapTravelParty[]
-  members: MapTravelPartyMember[]
-  players: CodexPlayer[]
-  onToggle: () => void
-  onUpdate: (input: {
-    travelMode?: TravelMode
-    partyOptionsLocked?: boolean
-    groupMovementUnlimited?: boolean
-    freeroamMovementUnlimited?: boolean
-  }) => void
-  onReviewParty: (partyId: string, approved: boolean) => void
-}) {
-  const pendingParties = parties.filter((party) => party.status === 'pending_dm')
-  const activeParty = parties.find((party) => party.status === 'approved')
-  const playerName = (userId: string) =>
-    players.find((player) => player.id === userId)?.name ?? 'Player'
-
-  function partyMemberSummary(partyId: string) {
-    const rows = members.filter((member) => member.party_id === partyId)
-    if (rows.length === 0) return 'No accepted members yet'
-    return rows
-      .map((member) => `${playerName(member.user_id)} (${member.status})`)
-      .join(', ')
-  }
-
-  return (
-    <div className="absolute bottom-4 left-24 z-20">
-      {open && (
-        <div className="mb-3 w-[min(24rem,calc(100vw-2rem))] rounded-lg border border-zinc-700 bg-zinc-950 p-3 shadow-2xl">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-zinc-100">Party Travel</p>
-              <p className="mt-0.5 text-[11px] text-zinc-500">
-                1 square = 5 ft baseline. Default travel movement is 30 ft.
-              </p>
-            </div>
-            <button type="button" onClick={onToggle} className="text-xs text-zinc-500 hover:text-zinc-200">
-              Close
-            </button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            <TravelModeButton
-              active={travelMode === 'group_party'}
-              label="Group Party"
-              icon={<Users className="h-4 w-4" aria-hidden="true" />}
-              disabled={busy}
-              onClick={() => onUpdate({ travelMode: 'group_party' })}
-            />
-            <TravelModeButton
-              active={travelMode === 'freeroam'}
-              label="Freeroam"
-              icon={<Unlock className="h-4 w-4" aria-hidden="true" />}
-              disabled={busy}
-              onClick={() => onUpdate({ travelMode: 'freeroam' })}
-            />
-            <TravelModeButton
-              active={travelMode === 'combat'}
-              label="Combat Mode"
-              icon={<Swords className="h-4 w-4" aria-hidden="true" />}
-              disabled={busy}
-              onClick={() => onUpdate({ travelMode: 'combat' })}
-            />
-          </div>
-
-          <div className="mt-3 grid gap-2">
-            <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-300">
-              <span>Group Party infinite movement</span>
-              <input
-                type="checkbox"
-                checked={groupMovementUnlimited}
-                disabled={busy}
-                onChange={(event) => onUpdate({ groupMovementUnlimited: event.target.checked })}
-              />
-            </label>
-            <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-300">
-              <span>Freeroam infinite movement</span>
-              <input
-                type="checkbox"
-                checked={freeroamMovementUnlimited}
-                disabled={busy}
-                onChange={(event) => onUpdate({ freeroamMovementUnlimited: event.target.checked })}
-              />
-            </label>
-            <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-300">
-              <span>Lock Party Options</span>
-              <input
-                type="checkbox"
-                checked={partyOptionsLocked}
-                disabled={busy || travelMode === 'combat'}
-                onChange={(event) => onUpdate({ partyOptionsLocked: event.target.checked })}
-              />
-            </label>
-          </div>
-
-          <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Party approvals</p>
-            {activeParty && (
-              <p className="mt-2 text-xs text-emerald-300">
-                Active: {activeParty.name} led by {playerName(activeParty.leader_user_id)}
-              </p>
-            )}
-            {pendingParties.length === 0 ? (
-              <p className="mt-2 text-xs text-zinc-500">No parties waiting for DM approval.</p>
-            ) : (
-              <div className="mt-2 grid gap-2">
-                {pendingParties.map((party) => (
-                  <div key={party.id} className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
-                    <p className="text-xs font-medium text-zinc-100">{party.name}</p>
-                    <p className="mt-1 text-[11px] text-zinc-500">
-                      Leader: {playerName(party.leader_user_id)}
-                    </p>
-                    <p className="mt-1 text-[11px] text-zinc-500">{partyMemberSummary(party.id)}</p>
-                    <div className="mt-2 flex gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => onReviewParty(party.id, false)} loading={busy}>
-                        Deny
-                      </Button>
-                      <Button size="sm" onClick={() => onReviewParty(party.id, true)} loading={busy}>
-                        Approve
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {feedback && (
-            <p className="mt-3 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-amber-200">
-              {feedback}
-            </p>
-          )}
-        </div>
-      )}
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label="Open party travel controls"
-        className={`flex h-14 w-14 items-center justify-center rounded-full border shadow-2xl transition focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:ring-offset-2 focus:ring-offset-zinc-950 ${
-          open
-            ? 'border-zinc-300 bg-zinc-300 text-zinc-950'
-            : 'border-zinc-600 bg-zinc-700 text-zinc-100 hover:bg-zinc-600'
-        }`}
-      >
-        <Users className="h-6 w-6" aria-hidden="true" />
-      </button>
-    </div>
-  )
-}
-
-function TravelModeButton({
-  active,
-  label,
-  icon,
-  disabled,
-  onClick,
-}: {
-  active: boolean
-  label: string
-  icon: ReactNode
-  disabled: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-2 text-center text-xs font-semibold transition disabled:opacity-50 ${
-        active
-          ? 'border-amber-400/60 bg-amber-500/15 text-amber-100'
-          : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-600'
-      }`}
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
   )
 }
 

@@ -81,14 +81,14 @@ export async function travelThroughTransport(
   )
 
   const callerIsVoter = voters.has(user.id)
+  // Only someone with a character on the map (or the DM) can move the table.
+  if (!isDm && !callerIsVoter) {
+    return { error: 'You need a character on this map to travel.' }
+  }
   // Group-party mode with more than one player present requires unanimity.
   const needsVote = map.travel_mode === 'group_party' && voters.size > 1 && !isDm
 
   if (needsVote) {
-    if (!callerIsVoter) {
-      return { error: 'You need a character on this map to vote to travel.' }
-    }
-
     // Record / update this player's confirmation for this transport.
     const { error: upsertError } = await admin
       .from('map_transport_confirmations')
@@ -120,15 +120,89 @@ export async function travelThroughTransport(
     if (confirmed < needed) {
       return { ok: true, traveled: false, confirmed, needed }
     }
-    // Unanimous — clear this map's confirmations and travel.
-    await admin.from('map_transport_confirmations').delete().eq('map_id', map.id)
   }
 
   const result = await executeTravel(admin, campaignId, destination, user.id)
   if ('error' in result) return result
 
+  // Carry the party's character tokens onto the destination so players land
+  // with their tokens (prepared maps never contain player tokens).
+  await carryPlayerTokens(admin, campaignId, map.id, result.liveMapId)
+
+  // Travel succeeded — now clear the votes (kept until success so a failed
+  // deploy doesn't lose everyone's confirmation).
+  if (needsVote) {
+    await admin.from('map_transport_confirmations').delete().eq('map_id', map.id)
+  }
+
   revalidatePath(`/campaigns/${campaignId}/live-map`)
   return { ok: true, traveled: true, liveMapId: result.liveMapId }
+}
+
+/**
+ * Ensure every player who had a character token on the origin map also has one
+ * on the destination. Creates a centered token only when that player has none
+ * there yet — so first visits spawn the party and revisits keep each map's own
+ * token positions (no duplicates). Scene tokens and fog stay per-map.
+ */
+async function carryPlayerTokens(
+  admin: SupabaseClient<Database>,
+  campaignId: string,
+  originMapId: string,
+  destMapId: string,
+) {
+  if (originMapId === destMapId) return
+
+  const { data: originPlayers } = await admin
+    .from('tokens')
+    .select('controlled_by_user_id, name, color, size, linked_character_id')
+    .eq('map_id', originMapId)
+    .eq('token_type', 'player')
+    .not('controlled_by_user_id', 'is', null)
+  if (!originPlayers || originPlayers.length === 0) return
+
+  const { data: destPlayers } = await admin
+    .from('tokens')
+    .select('controlled_by_user_id')
+    .eq('map_id', destMapId)
+    .eq('token_type', 'player')
+  const present = new Set((destPlayers ?? []).map((t) => t.controlled_by_user_id))
+
+  // One token per user that isn't already on the destination.
+  const seen = new Set<string>()
+  const missing = originPlayers.filter((t) => {
+    const uid = t.controlled_by_user_id
+    if (!uid || seen.has(uid) || present.has(uid)) return false
+    seen.add(uid)
+    return true
+  })
+  if (missing.length === 0) return
+
+  const { data: destMap } = await admin
+    .from('maps')
+    .select('width, height, grid_size')
+    .eq('id', destMapId)
+    .maybeSingle()
+  const w = destMap?.width || 1000
+  const h = destMap?.height || 1000
+  const gap = destMap?.grid_size || 50
+  const cx = w / 2
+  const cy = h / 2
+
+  const rows = missing.map((t, i) => ({
+    campaign_id: campaignId,
+    map_id: destMapId,
+    token_type: 'player',
+    name: t.name || 'Player',
+    color: t.color || '#3b82f6',
+    size: t.size || 1,
+    x: Math.round(cx + (i - (missing.length - 1) / 2) * gap),
+    y: Math.round(cy),
+    visible_to_players: true,
+    controlled_by_user_id: t.controlled_by_user_id,
+    linked_character_id: t.linked_character_id ?? null,
+  }))
+  await admin.from('tokens').insert(rows)
 }
 
 /**

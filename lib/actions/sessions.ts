@@ -24,6 +24,12 @@ export async function startCampaignSession(campaignId: string, mapId?: string | 
     .maybeSingle()
   if (membership?.role !== 'dm') return { error: 'Only the DM can start a session.' }
 
+  // Starting a session makes the map it was started from the active scene, so
+  // players land directly in the tabletop instead of "no map shared yet".
+  if (mapId) {
+    await supabase.rpc('set_active_map', { p_campaign_id: campaignId, p_map_id: mapId })
+  }
+
   const { data: existing } = await supabase
     .from('campaign_sessions')
     .select('id')
@@ -31,6 +37,7 @@ export async function startCampaignSession(campaignId: string, mapId?: string | 
     .eq('status', 'active')
     .maybeSingle()
   if (existing) {
+    revalidatePath(`/campaigns/${campaignId}/live-map`)
     return { ok: true, sessionId: existing.id, alreadyActive: true }
   }
 

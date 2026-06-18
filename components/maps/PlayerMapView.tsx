@@ -1305,7 +1305,7 @@ export function PlayerMapView({
           </div>
         )}
 
-        {selected && (
+        {selected && !isTransport && (
           <div className="absolute bottom-16 left-3 right-3 z-10 max-w-sm bg-zinc-900/95 border border-zinc-700 rounded-lg p-3 shadow-lg sm:right-auto">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -1350,35 +1350,6 @@ export function PlayerMapView({
               links={playerCodexLinks}
             />
 
-            {/* Transport — travel to another map (vote in party mode) */}
-            {isTransport && (
-              <div className="mt-3 border-t border-zinc-800 pt-3">
-                {mapState.travel_mode === 'combat' ? (
-                  <p className="text-xs text-orange-300">Travel is locked during combat.</p>
-                ) : (
-                  <>
-                    {transportNeedsVote && (
-                      <p className="mb-2 text-[11px] uppercase tracking-wide text-zinc-600">
-                        Party travel — {transportTally.confirmed}/{transportVoters.size} confirmed
-                        {transportTally.mine ? ' (you voted)' : ''}
-                      </p>
-                    )}
-                    <button
-                      type="button"
-                      disabled={transportBusy}
-                      onClick={handleTransportTravel}
-                      className="inline-flex items-center gap-2 rounded-md border border-violet-500/60 bg-violet-500/15 px-3 py-1.5 text-sm font-semibold text-violet-100 transition hover:border-violet-400 hover:bg-violet-500/25 disabled:opacity-50"
-                    >
-                      🌀 {transportBusy ? 'Working…' : transportNeedsVote ? (transportTally.mine ? 'Change vote to here' : 'Place vote') : 'Enter'}
-                    </button>
-                    {transportFeedback && (
-                      <p className="mt-1.5 text-xs text-violet-300">{transportFeedback}</p>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-
             {/* Contextual action menu — only the actions the DM allowed */}
             {!isTransport && contextualActions.length > 0 && (
               <div className="mt-3 border-t border-zinc-800 pt-3">
@@ -1417,6 +1388,77 @@ export function PlayerMapView({
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Portal token — dedicated travel popup */}
+        {selected && isTransport && (
+          <div
+            className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setSelectedId(null)}
+          >
+            <div
+              className="w-full max-w-xs rounded-2xl border border-violet-500/40 bg-zinc-950 p-5 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/15 text-lg">🌀</span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-wide text-violet-300/80">Travel</p>
+                    <p className="truncate text-base font-semibold text-zinc-100">{selected.name || 'New location'}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(null)}
+                  className="shrink-0 rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+                  aria-label="Close"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {selected.public_description && (
+                <p className="mt-3 text-sm text-zinc-300">{selected.public_description}</p>
+              )}
+
+              {mapState.travel_mode === 'combat' ? (
+                <p className="mt-4 rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-xs text-orange-300">
+                  Travel is locked during combat.
+                </p>
+              ) : (
+                <>
+                  {transportNeedsVote && (
+                    <p className="mt-4 text-xs text-zinc-400">
+                      Everyone must agree to travel — {transportTally.confirmed}/{transportVoters.size} confirmed
+                      {transportTally.mine ? ' (you voted)' : ''}.
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    disabled={transportBusy}
+                    onClick={handleTransportTravel}
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-violet-500/60 bg-violet-500/20 px-4 py-2.5 text-sm font-semibold text-violet-50 transition hover:border-violet-400 hover:bg-violet-500/30 disabled:opacity-50"
+                  >
+                    🌀 {transportBusy
+                      ? 'Working…'
+                      : transportNeedsVote
+                        ? transportTally.mine
+                          ? 'Change vote to here'
+                          : 'Vote to go here'
+                        : `Go to ${selected.name || 'this location'}`}
+                  </button>
+                  {transportFeedback && (
+                    <p className="mt-2 text-center text-xs text-violet-300">{transportFeedback}</p>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         )}
 

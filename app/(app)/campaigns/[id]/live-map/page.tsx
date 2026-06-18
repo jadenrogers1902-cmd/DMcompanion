@@ -144,6 +144,7 @@ export default async function MapsPage({ params }: PageProps) {
         <h1 className="text-2xl font-bold text-zinc-100 mb-4">{activeMap.name}</h1>
         {signed?.signedUrl ? (
           <PlayerMapView
+            key={activeMap.id}
             campaignId={id}
             map={activeMap}
             imageUrl={signed.signedUrl}

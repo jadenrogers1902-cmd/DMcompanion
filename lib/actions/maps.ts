@@ -348,6 +348,7 @@ export async function updateToken(
     hidden_dm_actions?: string[] | null
     interactable?: boolean
     object_state?: string | null
+    discoverable?: boolean
     public_description?: string | null
     visible_on_cast?: boolean
     requires_approval?: boolean

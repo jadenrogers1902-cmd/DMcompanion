@@ -208,6 +208,8 @@ export interface Token {
   object_state: string | null
   // For transport ('portal') tokens: the prepared map this token travels to.
   destination_prepared_map_id: string | null
+  // Hidden from players until a revealed area reaches it, then auto-revealed.
+  discoverable: boolean
   // Player-visible flavor text (separate from the DM-only token_dm_notes).
   public_description: string | null
   visible_on_cast: boolean
@@ -1867,6 +1869,7 @@ export type Database = {
           interactable: boolean
           object_state: string | null
           destination_prepared_map_id: string | null
+          discoverable: boolean
           public_description: string | null
           visible_on_cast: boolean
           requires_approval: boolean
@@ -1906,6 +1909,7 @@ export type Database = {
           interactable?: boolean
           object_state?: string | null
           destination_prepared_map_id?: string | null
+          discoverable?: boolean
           public_description?: string | null
           visible_on_cast?: boolean
           requires_approval?: boolean
@@ -1942,6 +1946,7 @@ export type Database = {
           interactable?: boolean
           object_state?: string | null
           destination_prepared_map_id?: string | null
+          discoverable?: boolean
           public_description?: string | null
           visible_on_cast?: boolean
           requires_approval?: boolean

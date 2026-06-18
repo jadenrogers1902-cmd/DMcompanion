@@ -44,6 +44,7 @@ export const REVEAL_STATE_OPTIONS: {
   hint: string
 }[] = [
   { value: 'visible', label: 'Visible to players', hint: 'Players see it as soon as the map goes live.' },
+  { value: 'discoverable', label: 'Discoverable on sight', hint: 'Hidden until a player’s vision reaches it, then revealed automatically. The DM always sees it.' },
   { value: 'hidden', label: 'Hidden until revealed', hint: 'Deploys invisible; reveal it from Live Map.' },
   { value: 'revealed', label: 'Revealed after interaction', hint: 'Plan: shows up once players interact. Deploys visible-off until you reveal it live.' },
   { value: 'dm_only', label: 'DM only', hint: 'Reference marker — players never see it.' },
@@ -141,7 +142,7 @@ export function normalizePreparedToken(raw: Partial<PreparedMapToken>): Prepared
   const type = String(raw.token_type ?? 'custom')
   const meta = preparedTokenTypeMeta(type)
   const reveal: TokenRevealState =
-    raw.reveal_state && ['dm_only', 'hidden', 'visible', 'revealed'].includes(raw.reveal_state)
+    raw.reveal_state && ['dm_only', 'hidden', 'visible', 'discoverable', 'revealed'].includes(raw.reveal_state)
       ? raw.reveal_state
       : raw.visible_to_players === false
         ? 'hidden'

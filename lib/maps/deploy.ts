@@ -125,6 +125,7 @@ export async function instantiatePreparedMap(
           size: token.size,
           color: token.color,
           visible_to_players: revealStateIsPlayerVisible(token.reveal_state),
+          discoverable: token.reveal_state === 'discoverable',
           public_description: token.player_notes || token.description || null,
           movement_locked: token.can_move === false,
           interactable: Boolean(token.interactable),

@@ -136,7 +136,7 @@ export type PreparedTokenType =
   | 'custom'
 
 /** Visibility rule applied when the scene is deployed (and shown in prep). */
-export type TokenRevealState = 'dm_only' | 'hidden' | 'visible' | 'revealed'
+export type TokenRevealState = 'dm_only' | 'hidden' | 'visible' | 'discoverable' | 'revealed'
 
 /** Categorized external resource attached to a token. */
 export type PreparedTokenLinkType = 'wiki' | 'dnd_beyond' | 'srd' | 'roll20' | 'custom'

@@ -426,6 +426,7 @@ export function MapEditor({
       hidden_dm_actions: patch.hidden_dm_actions,
       interactable: patch.interactable,
       object_state: patch.object_state,
+      discoverable: patch.discoverable,
       public_description: patch.public_description,
       visible_on_cast: patch.visible_on_cast,
       requires_approval: patch.requires_approval,
@@ -1563,14 +1564,24 @@ function TokenEditPanel({
             <Checkbox
               label="Visible to players"
               checked={edited.visible_to_players}
-              onChange={(e) => onPatch({ visible_to_players: e.target.checked })}
+              onChange={(e) => onPatch({ visible_to_players: e.target.checked, discoverable: e.target.checked ? false : edited.discoverable })}
+            />
+            <Checkbox
+              label="Discoverable on sight"
+              checked={edited.discoverable}
+              onChange={(e) => onPatch({ discoverable: e.target.checked, visible_to_players: e.target.checked ? false : edited.visible_to_players })}
             />
             <Checkbox
               label="Visible on cast screen"
               checked={edited.visible_on_cast}
               onChange={(e) => onPatch({ visible_on_cast: e.target.checked })}
             />
-            {!edited.visible_to_players && (
+            {edited.discoverable && !edited.visible_to_players && (
+              <p className="rounded-lg border border-blue-900/50 bg-blue-950/20 p-3 text-xs text-blue-200">
+                Hidden from players until their vision reaches it, then revealed automatically. You always see it.
+              </p>
+            )}
+            {!edited.visible_to_players && !edited.discoverable && (
               <p className="rounded-lg border border-amber-900/50 bg-amber-950/20 p-3 text-xs text-amber-200">
                 Hidden tokens stay DM-only and are not sent to player map or action views.
               </p>

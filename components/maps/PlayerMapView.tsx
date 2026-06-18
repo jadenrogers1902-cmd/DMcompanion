@@ -526,7 +526,10 @@ export function PlayerMapView({
 
   const selected = tokens.find((t) => t.id === selectedId) ?? null
   const myControlled = tokens.filter(controls)
-  const visibleTargets = tokens.filter((token) => token.visible_to_players !== false)
+  // Portals are excluded — they are travel points, not action targets.
+  const visibleTargets = tokens.filter(
+    (token) => token.visible_to_players !== false && token.token_type !== 'portal',
+  )
   const actionTarget = visibleTargets.find((token) => token.id === actionTargetId) ?? null
 
   const actorForActionTarget = useMemo(() => {
@@ -1218,6 +1221,9 @@ export function PlayerMapView({
     // request flow is for targeting other tokens and objects.
     const token = tokens.find((t) => t.id === id)
     if (token && controls(token)) return
+    // Portals are travel points — selecting one opens the dedicated travel
+    // popup, never the action-request flow.
+    if (token && token.token_type === 'portal') return
     openGuidedAction(id)
   }
 

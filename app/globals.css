@@ -58,6 +58,34 @@ h6 {
   background: var(--color-muted);
 }
 
+/* Soft gradient fills for filled pills/badges (blue / pink / orange family).
+   Outline / tinted pills stay flat — these only apply to solid fills. */
+.pill-blue {
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  color: #fff;
+  border-color: transparent;
+}
+.pill-violet {
+  background: linear-gradient(135deg, #7c3aed, #c084fc);
+  color: #fff;
+  border-color: transparent;
+}
+.pill-emerald {
+  background: linear-gradient(135deg, #059669, #34d399);
+  color: #062a20;
+  border-color: transparent;
+}
+.pill-sunset {
+  background: linear-gradient(135deg, #ea580c, #f472b6);
+  color: #fff;
+  border-color: transparent;
+}
+.pill-rose {
+  background: linear-gradient(135deg, #e11d48, #fb7185);
+  color: #fff;
+  border-color: transparent;
+}
+
 /* Roll outcome effects (Player Roll Outcome Popup Styling) */
 @keyframes roll-fx-thumb-pop {
   0% {

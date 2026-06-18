@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { logout } from '@/lib/actions/auth'
 import { useCampaignRole } from '@/lib/hooks/useCampaignRole'
+import { useActiveSession } from '@/lib/hooks/useActiveSession'
 import type { Profile } from '@/lib/types/database'
 
 interface SidebarProps {
@@ -42,11 +43,13 @@ export function Sidebar({ profile }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const campaignId = campaignIdFromPath(pathname)
   const role = useCampaignRole(campaignId, profile?.id)
-  const mapLabel = role === 'dm' ? 'Live Map' : 'Adventure'
+  const session = useActiveSession(role === 'player' ? campaignId : null)
+  const liveForPlayer = role === 'player' && session.isLive
+  const mapLabel = role === 'dm' ? 'Live Map' : liveForPlayer ? 'Tabletop' : 'Adventure'
   const campaignNavItems = campaignId
     ? [
         { href: `/campaigns/${campaignId}`, label: 'Dashboard', short: 'D' },
-        { href: `/campaigns/${campaignId}/live-map`, label: mapLabel, short: 'M' },
+        { href: `/campaigns/${campaignId}/live-map`, label: mapLabel, short: 'M', live: liveForPlayer },
         ...(role === 'dm'
           ? [{ href: `/campaigns/${campaignId}/adventures`, label: 'Adventure Maker', short: 'A' }]
           : []),
@@ -122,21 +125,31 @@ export function Sidebar({ profile }: SidebarProps) {
                 }, '')
                 return campaignNavItems.map((item) => {
                   const isActive = item.href === activeHref
+                  const itemLive = (item as { live?: boolean }).live === true
+                  const stateClass = itemLive
+                    ? isActive
+                      ? 'bg-red-500/20 text-red-200 ring-1 ring-red-500/40'
+                      : 'text-red-300 hover:bg-red-500/10 hover:text-red-200'
+                    : isActive
+                      ? 'bg-zinc-800 text-zinc-100'
+                      : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'
                   return (
                   <Link
                     key={item.href}
                     href={item.href}
                     title={collapsed ? item.label : undefined}
                     className={`
-                      rounded-lg text-sm transition-colors
-                      ${collapsed ? 'px-2 py-2.5 text-center font-semibold' : 'px-3 py-2'}
-                      ${
-                        isActive
-                          ? 'bg-zinc-800 text-zinc-100'
-                          : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'
-                      }
+                      flex items-center gap-2 rounded-lg text-sm transition-colors
+                      ${collapsed ? 'justify-center px-2 py-2.5 font-semibold' : 'px-3 py-2'}
+                      ${stateClass}
                     `.trim()}
                   >
+                    {itemLive && (
+                      <span className="relative flex h-2 w-2 shrink-0">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                      </span>
+                    )}
                     {collapsed ? item.short : item.label}
                   </Link>
                 )

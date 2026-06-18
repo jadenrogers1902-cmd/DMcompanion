@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { MemberList } from '@/components/campaigns/MemberList'
 import { InviteCode } from '@/components/campaigns/InviteCode'
+import { PlayerTabletopCard } from '@/components/campaigns/PlayerTabletopCard'
 import { DMUtilityPanel } from '@/components/nav/DMUtilityPanel'
 import type { CampaignMemberWithProfile } from '@/lib/types/database'
 
@@ -276,11 +277,7 @@ export default async function CampaignPage({ params }: PageProps) {
               title="My Characters"
               description="Create and manage your character sheets."
             />
-            <FeatureCard
-              href={`/campaigns/${id}/live-map`}
-              title="Adventure"
-              description="Jump into the live map, move your token, and act on what's around you."
-            />
+            <PlayerTabletopCard campaignId={id} />
             <FeatureCard
               href={`/campaigns/${id}/encounters`}
               title="Encounter View"

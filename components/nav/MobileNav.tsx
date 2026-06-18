@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCampaignRole } from '@/lib/hooks/useCampaignRole'
+import { useActiveSession } from '@/lib/hooks/useActiveSession'
 import type { Profile } from '@/lib/types/database'
 
 const navItems = [
@@ -39,7 +40,9 @@ export function MobileNav({ profile }: MobileNavProps) {
   const pathname = usePathname()
   const campaignId = campaignIdFromPath(pathname)
   const role = useCampaignRole(campaignId, profile?.id)
-  const mapLabel = role === 'dm' ? 'Live Map' : 'Adventure'
+  const session = useActiveSession(role === 'player' ? campaignId : null)
+  const liveForPlayer = role === 'player' && session.isLive
+  const mapLabel = role === 'dm' ? 'Live Map' : liveForPlayer ? 'Tabletop' : 'Adventure'
   const items = campaignId
     ? [
         { href: `/campaigns/${campaignId}`, label: 'Home', icon: navItems[0].icon },
@@ -55,6 +58,7 @@ export function MobileNav({ profile }: MobileNavProps) {
         {
           href: `/campaigns/${campaignId}/live-map`,
           label: mapLabel,
+          live: liveForPlayer,
           icon: (
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75L3.75 4.5v13.125L9 19.875m0-13.125l6-2.625m-6 2.625v13.125m6-15.75l5.25 2.25V19.5L15 17.25m0-13.125V17.25m0 0l-6 2.625" />
@@ -101,13 +105,15 @@ export function MobileNav({ profile }: MobileNavProps) {
           (item.href !== '/dashboard' &&
             item.href !== `/campaigns/${campaignId}` &&
             pathname.startsWith(item.href))
+        const itemLive = (item as { live?: boolean }).live === true
+        const colorClass = itemLive ? 'text-red-400' : isActive ? 'text-amber-400' : 'text-zinc-500'
         return (
           <Link
             key={item.href}
             href={item.href}
             className={`
               flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors min-w-0
-              ${isActive ? 'text-amber-400' : 'text-zinc-500'}
+              ${colorClass}
             `.trim()}
           >
             {item.icon}

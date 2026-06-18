@@ -283,6 +283,22 @@ export interface MapTransportConfirmation {
   updated_at: string
 }
 
+// A live tabletop session — a campaign-level "we are live" signal the DM starts
+// from any live map. At most one row per campaign has status 'active'.
+export type CampaignSessionStatus = 'active' | 'ended'
+
+export interface CampaignSession {
+  id: string
+  campaign_id: string
+  status: CampaignSessionStatus
+  map_id: string | null
+  started_by: string
+  started_at: string
+  ended_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 // DM-only token notes live in a separate, non-realtime table.
 export interface TokenDmNote {
   token_id: string
@@ -1964,6 +1980,37 @@ export type Database = {
         Update: {
           token_id?: string
           destination_prepared_map_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      campaign_sessions: {
+        Row: {
+          id: string
+          campaign_id: string
+          status: string
+          map_id: string | null
+          started_by: string
+          started_at: string
+          ended_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_id: string
+          status?: string
+          map_id?: string | null
+          started_by: string
+          started_at?: string
+          ended_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: string
+          map_id?: string | null
+          ended_at?: string | null
           updated_at?: string
         }
         Relationships: []

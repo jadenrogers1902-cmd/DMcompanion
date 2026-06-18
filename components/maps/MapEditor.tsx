@@ -50,6 +50,8 @@ import {
   reviewTravelParty,
 } from '@/lib/actions/maps'
 import { travelThroughTransport } from '@/lib/actions/transport'
+import { startCampaignSession, endCampaignSession } from '@/lib/actions/sessions'
+import { useActiveSession } from '@/lib/hooks/useActiveSession'
 import { useTokenRealtime } from '@/lib/hooks/useTokenRealtime'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import { actionsForToken } from '@/lib/utils/actions'
@@ -193,6 +195,22 @@ export function MapEditor({
   const [draftDmNote, setDraftDmNote] = useState('')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const gridAutosaveReadyRef = useRef(false)
+
+  // Live tabletop session — startable from any live map; flips the players'
+  // Tabletop tab + live indicator. Realtime-backed so the button reflects state
+  // even if another DM device toggles it.
+  const session = useActiveSession(campaignId)
+  const [sessionBusy, setSessionBusy] = useState(false)
+
+  async function handleToggleSession() {
+    setSessionBusy(true)
+    if (session.isLive) {
+      await endCampaignSession(campaignId)
+    } else {
+      await startCampaignSession(campaignId, map.id)
+    }
+    setSessionBusy(false)
+  }
 
   const selected = tokens.find((t) => t.id === selectedId) ?? null
 
@@ -655,6 +673,24 @@ export function MapEditor({
           {partyOptionsLocked && <Badge variant="warning">Party options locked</Badge>}
         </div>
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleToggleSession}
+            disabled={sessionBusy}
+            className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold transition disabled:opacity-50 ${
+              session.isLive
+                ? 'border border-red-500/70 bg-red-500/15 text-red-200 hover:bg-red-500/25'
+                : 'border border-emerald-500/60 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25'
+            }`}
+          >
+            {session.isLive && (
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+              </span>
+            )}
+            {sessionBusy ? 'Working…' : session.isLive ? 'End session' : 'Start session'}
+          </button>
           <Button
             size="sm"
             variant={partyOptionsLocked ? 'primary' : 'secondary'}

@@ -538,12 +538,13 @@ export function PlayerMapView({
     y: t.y,
     size: t.size,
     color: t.color,
-    visible_to_players: true,
+    visible_to_players: t.visible_to_players,
     max_hp: t.max_hp,
     current_hp: t.current_hp,
     temp_hp: t.temp_hp,
     is_defeated: t.is_defeated,
     showHealth: controls(t),
+    dimmed: t.token_type === 'portal' && t.visible_to_players === false,
   }))
 
   const selected = tokens.find((t) => t.id === selectedId) ?? null
@@ -582,6 +583,7 @@ export function PlayerMapView({
   }, [myCharacters, myControlled, map.grid_size, map.grid_scale_feet, selected])
 
   const isTransport = selected?.token_type === 'portal'
+  const selectedPortalHint = Boolean(isTransport && selected?.visible_to_players === false)
 
   const contextualActions = useMemo(() => {
     if (!selected || selected.controlled_by_user_id === currentUserId) return []
@@ -1458,8 +1460,12 @@ export function PlayerMapView({
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/15 text-lg">🌀</span>
                   <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-wide text-violet-300/80">Travel</p>
-                    <p className="truncate text-base font-semibold text-zinc-100">{selected.name || 'New location'}</p>
+                    <p className="text-[11px] uppercase tracking-wide text-violet-300/80">
+                      {selectedPortalHint ? 'Unrevealed portal' : 'Travel'}
+                    </p>
+                    <p className="truncate text-base font-semibold text-zinc-100">
+                      {selectedPortalHint ? 'Something shimmers here' : selected.name || 'New location'}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -1474,11 +1480,19 @@ export function PlayerMapView({
                 </button>
               </div>
 
-              {selected.public_description && (
+              {selectedPortalHint ? (
+                <p className="mt-3 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-sm text-violet-100">
+                  You can tell there is something here, but it has not been fully discovered yet.
+                </p>
+              ) : selected.public_description && (
                 <p className="mt-3 text-sm text-zinc-300">{selected.public_description}</p>
               )}
 
-              {mapState.travel_mode === 'combat' ? (
+              {selectedPortalHint ? (
+                <p className="mt-4 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-400">
+                  Move closer or wait for the DM to reveal this area before traveling.
+                </p>
+              ) : mapState.travel_mode === 'combat' ? (
                 <p className="mt-4 rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-xs text-orange-300">
                   Travel is locked during combat.
                 </p>

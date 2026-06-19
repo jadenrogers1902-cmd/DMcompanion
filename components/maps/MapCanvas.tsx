@@ -22,6 +22,8 @@ export interface RenderToken {
   showHealth?: boolean
   /** Optional glyph (emoji) rendered instead of the name/type initial. */
   icon?: string | null
+  /** Player-safe hint for not-yet-discovered portals. */
+  dimmed?: boolean
 }
 
 export interface RenderArea {
@@ -616,6 +618,7 @@ export function MapCanvas({
             const px = t.size * gridSize
             const isSelected = selectedTokenId === t.id
             const hiddenFromPlayers = mode === 'dm' && !t.visible_to_players
+            const dimmedPortalHint = mode === 'player' && t.dimmed === true
             const isAlerted = alertTokenIds.includes(t.id)
             const maxHp = Number(t.max_hp ?? 0)
             const currentHp = Number(t.current_hp ?? 0)
@@ -633,21 +636,25 @@ export function MapCanvas({
                   width: px,
                   height: px,
                   transform: 'translate(-50%, -50%)',
-                  backgroundColor: hiddenFromPlayers ? `${t.color}99` : t.color,
+                  backgroundColor: hiddenFromPlayers || dimmedPortalHint ? `${t.color}66` : t.color,
                   border: isSelected
                     ? '3px solid #fbbf24'
-                    : hiddenFromPlayers
-                      ? '2px dashed rgba(255,255,255,0.7)'
+                    : hiddenFromPlayers || dimmedPortalHint
+                      ? '2px dashed rgba(216,180,254,0.78)'
                       : '2px solid rgba(0,0,0,0.5)',
                   borderRadius: '9999px',
                   cursor: isDraggable(t.id) ? 'move' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+                  boxShadow: dimmedPortalHint
+                    ? '0 0 18px rgba(168,85,247,0.35), 0 2px 6px rgba(0,0,0,0.5)'
+                    : '0 2px 6px rgba(0,0,0,0.5)',
+                  opacity: dimmedPortalHint ? 0.58 : 1,
                   touchAction: 'none',
                 }}
-                title={t.name || t.token_type}
+                title={dimmedPortalHint ? 'Something shimmers here' : t.name || t.token_type}
+                aria-label={dimmedPortalHint ? 'Unrevealed portal hint' : t.name || t.token_type}
               >
                 <span
                   style={{
@@ -658,7 +665,7 @@ export function MapCanvas({
                     pointerEvents: 'none',
                   }}
                 >
-                  {t.icon || (t.name?.[0] ?? TYPE_INITIAL[t.token_type]).toUpperCase()}
+                  {dimmedPortalHint ? '?' : t.icon || (t.name?.[0] ?? TYPE_INITIAL[t.token_type]).toUpperCase()}
                 </span>
                 {isAlerted && (
                   <span

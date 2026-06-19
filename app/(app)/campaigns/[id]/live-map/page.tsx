@@ -92,7 +92,7 @@ export default async function MapsPage({ params }: PageProps) {
 
     const [
       { data: signed },
-      { data: tokens },
+      { data: tokens, error: tokensError },
       { data: characters },
       { data: areas },
       { data: members },
@@ -103,8 +103,7 @@ export default async function MapsPage({ params }: PageProps) {
       { data: transportConfirmations },
     ] = await Promise.all([
       supabase.storage.from('maps').createSignedUrl(activeMap.storage_path, 3600),
-      // tokens holds no DM-only columns now; RLS returns only visible rows.
-      supabase.from('tokens').select('*').eq('map_id', activeMap.id),
+      supabase.rpc('get_player_live_map_tokens', { p_map_id: activeMap.id }),
       supabase.from('characters').select('id, name, speed, user_id').eq('campaign_id', id).eq('user_id', user.id),
       // RLS returns only player-visible areas on the active map.
       supabase.from('map_revealed_areas').select('*').eq('map_id', activeMap.id),
@@ -133,6 +132,12 @@ export default async function MapsPage({ params }: PageProps) {
         .eq('map_id', activeMap.id),
     ])
 
+    const fallbackTokens =
+      tokensError
+        ? await supabase.from('tokens').select('*').eq('map_id', activeMap.id)
+        : { data: null }
+    const playerTokens = tokens ?? fallbackTokens.data ?? []
+
     const characterSpeeds: Record<string, number> = {}
     ;(characters ?? []).forEach((c) => {
       characterSpeeds[c.id] = c.speed
@@ -149,7 +154,7 @@ export default async function MapsPage({ params }: PageProps) {
             campaignId={id}
             map={activeMap}
             imageUrl={signed.signedUrl}
-            initialTokens={(tokens ?? []) as PlayerToken[]}
+            initialTokens={playerTokens as PlayerToken[]}
             initialAreas={(areas ?? []) as MapRevealedArea[]}
             currentUserId={user.id}
             characterSpeeds={characterSpeeds}

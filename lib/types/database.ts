@@ -2859,6 +2859,10 @@ export type Database = {
         Args: { p_campaign_id: string }
         Returns: PlayerVisibleCampaignDoc[]
       }
+      get_player_live_map_tokens: {
+        Args: { p_map_id: string }
+        Returns: PlayerToken[]
+      }
     }
     Enums: {
       [_ in never]: never

@@ -143,14 +143,7 @@ type ActionSequenceState =
   | 'resolving_secondary_roll'
   | 'completed'
   | 'cancelled'
-type GuidedActionType =
-  | 'Attack'
-  | 'Interact'
-  | 'Talk'
-  | 'Investigate'
-  | 'Use Item'
-  | 'Cast Spell'
-  | 'Custom Action'
+type GuidedActionType = string
 type SelectedToolType = 'Weapon' | 'Item' | 'Spell' | 'Object' | 'Creature' | 'Detail' | 'Custom'
 type ActionToolOption = {
   id: string
@@ -217,6 +210,10 @@ const GUIDED_ACTION_TYPES: {
     tone: 'border-zinc-600 bg-zinc-900 text-zinc-100',
   },
 ]
+
+function isGuidedPlayerAction(actionType: string) {
+  return GUIDED_ACTION_TYPES.some((item) => item.type === actionType)
+}
 
 function toolCopyForAction(actionType: GuidedActionType) {
   if (actionType === 'Attack') {
@@ -359,9 +356,6 @@ export function PlayerMapView({
   const [warning, setWarning] = useState<string | null>(null)
   const [interactionOpen, setInteractionOpen] = useState(false)
   const [section, setSection] = useState<InteractionSection>('root')
-  const [actionMessage, setActionMessage] = useState('')
-  const [submitting, setSubmitting] = useState<string | null>(null)
-  const [actionFeedback, setActionFeedback] = useState<string | null>(null)
   const [myRequests, setMyRequests] = useState<ActionIntent[]>([])
   const [requestsLoading, setRequestsLoading] = useState(false)
   const [partyMessage, setPartyMessage] = useState('')
@@ -707,7 +701,7 @@ export function PlayerMapView({
     }
   }, [actionTarget, actorForActionTarget?.actor.linked_character_id, guidedActionType])
 
-  const openGuidedAction = useCallback((targetId?: string | null) => {
+  const openGuidedAction = useCallback((targetId?: string | null, actionType?: string) => {
     const nextTargetId = targetId ?? selectedId ?? visibleTargets.find((token) => token.controlled_by_user_id !== currentUserId)?.id ?? null
     if (nextTargetId) {
       setSelectedId(nextTargetId)
@@ -716,6 +710,11 @@ export function PlayerMapView({
     } else {
       setActionFlow('choosing_action')
     }
+    if (actionType) {
+      setGuidedActionType(actionType === 'Custom action' ? 'Custom Action' : actionType)
+      setSelectedToolId('')
+      setGuidedActionMessage('')
+    }
     setInteractionOpen(false)
     setSection('root')
     setGuidedError(null)
@@ -723,6 +722,10 @@ export function PlayerMapView({
     setGuidedIntentId(null)
     window.setTimeout(() => setActionFlow('choosing_action'), 120)
   }, [currentUserId, selectedId, visibleTargets])
+
+  const startActionDraft = useCallback((actionType: string, targetId?: string | null) => {
+    openGuidedAction(targetId ?? selectedId, actionType)
+  }, [openGuidedAction, selectedId])
 
   function closeGuidedAction() {
     setActionFlow('idle')
@@ -1084,40 +1087,6 @@ export function PlayerMapView({
     return () => window.clearInterval(timer)
   }, [nudgeCooldownUntil])
 
-  async function submitContextualAction(actionType: string) {
-    if (!selected || !nearestActor) return
-    const actorCharacterId = nearestActor.actor.linked_character_id
-    if (!actorCharacterId) return
-
-    const range = selected.interaction_range_feet ?? 5
-    if (nearestActor.distance > range) {
-      setActionFeedback(`Too far away — get within ${range} ft to ${actionType.toLowerCase()}.`)
-      setTimeout(() => setActionFeedback(null), 4000)
-      return
-    }
-
-    const key = `${actorCharacterId}:${selected.id}:${actionType}`
-    setSubmitting(key)
-    setActionFeedback(null)
-    const result = await submitActionIntent(
-      campaignId,
-      map.id,
-      actorCharacterId,
-      selected.id,
-      actionType,
-      actionMessage,
-    )
-    setSubmitting(null)
-    if (result?.error) {
-      setActionFeedback(result.error)
-      return
-    }
-    setActionMessage('')
-    setActionFeedback(`${actionType} request sent to the DM.`)
-    void loadMyRequests()
-    setTimeout(() => setActionFeedback(null), 4000)
-  }
-
   async function sendMeeting() {
     setTalkBusy('meeting')
     setTalkFeedback(null)
@@ -1216,15 +1185,11 @@ export function PlayerMapView({
 
   function handleSelectToken(id: string | null) {
     setSelectedId(id)
+    setInteractionOpen(false)
+    setSection('root')
     if (!id) return
-    // Tapping your own token only selects it (drag moves it); the action
-    // request flow is for targeting other tokens and objects.
-    const token = tokens.find((t) => t.id === id)
-    if (token && controls(token)) return
-    // Portals are travel points — selecting one opens the dedicated travel
-    // popup, never the action-request flow.
-    if (token && token.token_type === 'portal') return
-    openGuidedAction(id)
+    // Token selection opens the lightweight card first. Actions only enter the
+    // guided request flow after the player chooses a quick or advanced action.
   }
 
   return (
@@ -1366,32 +1331,26 @@ export function PlayerMapView({
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {contextualActions.map((action) => {
-                    const key = nearestActor
-                      ? `${nearestActor.actor.linked_character_id}:${selected.id}:${action}`
-                      : action
                     return (
                       <button
                         key={action}
                         type="button"
-                        disabled={!nearestActor || submitting === key}
-                        onClick={() => submitContextualAction(action)}
+                        onClick={() => startActionDraft(action, selected.id)}
                         className="rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-xs font-medium text-zinc-200 transition hover:border-amber-500/60 hover:text-amber-200 disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-200"
                       >
-                        {submitting === key ? 'Sending…' : action}
+                        {action}
                       </button>
                     )
                   })}
                 </div>
-                <textarea
-                  value={actionMessage}
-                  onChange={(e) => setActionMessage(e.target.value)}
-                  rows={2}
-                  placeholder="Optional: describe what you want to try."
-                  className="mt-2 w-full rounded-md border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-100 outline-none focus:border-amber-500 resize-none"
-                />
-                {actionFeedback && (
-                  <p className="mt-1.5 text-xs text-amber-300">{actionFeedback}</p>
-                )}
+                <button
+                  type="button"
+                  onClick={() => openGuidedAction(selected.id)}
+                  className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-100 transition hover:border-amber-400 hover:bg-amber-500/20 disabled:opacity-40"
+                >
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                  More actions
+                </button>
               </div>
             )}
           </div>
@@ -1494,11 +1453,7 @@ export function PlayerMapView({
             selected={selected}
             contextualActions={contextualActions}
             nearestActor={nearestActor}
-            actionMessage={actionMessage}
-            setActionMessage={setActionMessage}
-            actionFeedback={actionFeedback}
-            submitting={submitting}
-            submitContextualAction={submitContextualAction}
+            onStartAction={startActionDraft}
             myRequests={myRequests}
             requestsLoading={requestsLoading}
             partyMembers={partyMembers.filter((member) => member.userId !== currentUserId)}
@@ -1648,11 +1603,7 @@ function InteractionMenu({
   selected,
   contextualActions,
   nearestActor,
-  actionMessage,
-  setActionMessage,
-  actionFeedback,
-  submitting,
-  submitContextualAction,
+  onStartAction,
   myRequests,
   requestsLoading,
   partyMembers,
@@ -1688,11 +1639,7 @@ function InteractionMenu({
   selected: Token | null
   contextualActions: string[]
   nearestActor: { actor: Token; distance: number } | null
-  actionMessage: string
-  setActionMessage: (value: string) => void
-  actionFeedback: string | null
-  submitting: string | null
-  submitContextualAction: (actionType: string) => void
+  onStartAction: (actionType: string, targetId?: string | null) => void
   myRequests: ActionIntent[]
   requestsLoading: boolean
   partyMembers: { userId: string; role: string; profile: Profile | null }[]
@@ -1733,7 +1680,7 @@ function InteractionMenu({
       />
       <MenuItem
         title="Requests"
-        description="Open your action requests and submit quick requests to the DM."
+        description="Open your action requests and draft selected-token actions."
         icon={<Hand className="h-4 w-4" aria-hidden="true" />}
         onClick={() => setSection('requests')}
         trailing={false}
@@ -1981,29 +1928,20 @@ function InteractionMenu({
             {nearestActor ? `${nearestActor.distance} ft away` : 'Link a character to a token to act.'}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {contextualActions.map((action) => {
-              const key = nearestActor ? `${nearestActor.actor.linked_character_id}:${selected.id}:${action}` : action
-              return (
-                <button
-                  key={action}
-                  type="button"
-                  disabled={!nearestActor || submitting === key}
-                  onClick={() => submitContextualAction(action)}
-                  className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs font-semibold text-zinc-100 transition hover:border-amber-500/60 hover:text-amber-200 disabled:opacity-45"
-                >
-                  {submitting === key ? 'Sending...' : action}
-                </button>
-              )
-            })}
+            {contextualActions.map((action) => (
+              <button
+                key={action}
+                type="button"
+                onClick={() => onStartAction(action, selected.id)}
+                className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs font-semibold text-zinc-100 transition hover:border-amber-500/60 hover:text-amber-200 disabled:opacity-45"
+              >
+                {action}
+              </button>
+            ))}
           </div>
-          <textarea
-            value={actionMessage}
-            onChange={(event) => setActionMessage(event.target.value)}
-            rows={2}
-            placeholder="Optional: describe what you want to try."
-            className="mt-3 w-full resize-none rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
-          />
-          {actionFeedback && <p className="mt-2 text-xs text-amber-200">{actionFeedback}</p>}
+          <p className="mt-3 text-xs text-zinc-500">
+            Choosing an action opens the request card before anything is sent to the DM.
+          </p>
         </div>
       ) : (
         <p className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-500">
@@ -2251,10 +2189,18 @@ function ActionSequenceOverlay({
   const isCancelled = state === 'cancelled'
   const showRollStep = isRollState || (isApproved && intent?.resolver_status === 'pending_player')
   const isNudgeCoolingDown = Boolean(nudgeCooldownUntil)
-  const selectedAction = GUIDED_ACTION_TYPES.find((item) => item.type === actionType) ?? GUIDED_ACTION_TYPES[0]
+  const selectedAction = GUIDED_ACTION_TYPES.find((item) => item.type === actionType) ?? {
+    type: actionType,
+    label: actionType,
+    description: 'Describe exactly what you want the DM to adjudicate.',
+    icon: <ScrollText className="h-4 w-4" aria-hidden="true" />,
+    tone: 'border-zinc-600 bg-zinc-900 text-zinc-100',
+  }
   const toolCopy = toolCopyForAction(actionType)
   const targetName = target?.name || target?.token_type || null
   const actionSummary = actionToolPhrase(actionType, targetName, selectedTool?.name ?? intent?.selected_tool_name)
+  const rangeFeet = target?.interaction_range_feet ?? (isGuidedPlayerAction(actionType) ? 60 : 5)
+  const outOfRange = Boolean(actor && target && actor.distance > rangeFeet)
 
   const steps = [
     { key: 'choose', label: 'Choose Action', icon: <MousePointer2 className="h-4 w-4" />, active: isChoosing, done: !isChoosing },
@@ -2275,6 +2221,16 @@ function ActionSequenceOverlay({
             <p className="mt-1 text-xs text-zinc-400 sm:text-sm">
               {target ? `${target.name || target.token_type} is selected.` : 'Choose a visible map target.'}
             </p>
+            {isChoosing && target && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-xs font-semibold text-zinc-200 transition hover:border-amber-500/60 hover:text-amber-100"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                Back to token menu
+              </button>
+            )}
           </div>
           <button
             type="button"
@@ -2333,8 +2289,15 @@ function ActionSequenceOverlay({
                 <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
                   <p className="text-xs font-medium text-zinc-300">{actor?.actor.name ?? 'No actor in range'}</p>
                   <p className="mt-1 text-[11px] text-zinc-500">
-                    {actor ? `${actor.distance} ft from target` : 'Link one of your character tokens to act.'}
+                    {actor
+                      ? `${actor.distance} ft from target; range ${rangeFeet} ft`
+                      : 'Link one of your character tokens to act.'}
                   </p>
+                  {outOfRange && (
+                    <p className="mt-2 rounded-md border border-red-800 bg-red-950/50 px-2 py-1.5 text-[11px] text-red-200">
+                      Too far away. Move within {rangeFeet} ft before sending this action.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -2397,10 +2360,13 @@ function ActionSequenceOverlay({
                     placeholder="Describe what you are trying to do."
                     className="mt-3 w-full resize-none rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none focus:border-amber-500 sm:text-sm"
                   />
+                  <p className="mt-2 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-400">
+                    Request: <span className="font-medium text-zinc-100">{actionSummary}</span>
+                  </p>
                   {error && <p className="mt-2 rounded-md border border-red-800 bg-red-950/50 px-3 py-2 text-xs text-red-200">{error}</p>}
                   <button
                     type="button"
-                    disabled={!target || !actor || state === 'submitting_request'}
+                    disabled={!target || !actor || outOfRange || state === 'submitting_request'}
                     onClick={onSubmit}
                     className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-45 sm:w-auto"
                   >

@@ -246,14 +246,14 @@ function AttackResultPanel({
       )}
       {isDM && result.damage_total !== null && (
         <p className="mt-2 text-[11px] text-zinc-600">
-          A suggested map update has been queued below — review and apply it to change token HP.
+          A pending HP update has been queued below and applies when you approve this rolled result.
         </p>
       )}
     </div>
   )
 }
 
-const TOKEN_UPDATE_TYPES = new Set(['damage_token', 'set_token_state', 'set_object_state', 'reveal_object', 'set_awareness'])
+const TOKEN_UPDATE_TYPES = new Set(['damage_token', 'heal_token', 'set_token_state', 'set_object_state', 'reveal_object', 'set_awareness'])
 
 function StateUpdateValue(value: unknown) {
   if (value === null || value === undefined) return 'unknown'
@@ -850,7 +850,7 @@ function DMActionQueue({
                         </p>
                       )}
                       <p className="mt-2 text-[11px] text-zinc-600">
-                        Resolve marks the request resolved and reveals your response to the player. Map and object updates stay explicit through review cards.
+                        Approve resolves the request and reveals your response to the player. Rolled damage or healing applies its pending HP update at the same time.
                       </p>
                     </div>
                   </div>

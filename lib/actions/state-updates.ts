@@ -130,10 +130,9 @@ async function applyPendingStateUpdateRow(
  * Apply a DM-reviewed pending state update.
  *
  * This is the only path that mutates token/object state from the action
- * resolution pipeline — it never runs automatically. The DM may optionally
- * pass `overrides.after` to edit the suggested values before applying
- * (e.g. lowering damage from 7 to 5, or choosing not to mark a token
- * defeated). Token mutations reuse the same `tokens` row that the existing
+ * resolution pipeline. HP updates can run in bulk when the DM approves a
+ * rolled result, while explicit object/reveal updates still use the review
+ * card. Token mutations reuse the same `tokens` row that the existing
  * map/token editor and realtime sync already operate on, so no parallel
  * state model is introduced.
  */

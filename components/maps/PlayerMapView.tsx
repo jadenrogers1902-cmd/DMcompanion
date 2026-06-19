@@ -543,7 +543,7 @@ export function PlayerMapView({
     current_hp: t.current_hp,
     temp_hp: t.temp_hp,
     is_defeated: t.is_defeated,
-    showHealth: controls(t),
+    showHealth: t.visible_to_players !== false && (t.max_hp ?? 0) > 0,
     dimmed: t.visible_to_players === false,
   }))
 

@@ -2201,6 +2201,19 @@ function ActionSequenceOverlay({
   const actionSummary = actionToolPhrase(actionType, targetName, selectedTool?.name ?? intent?.selected_tool_name)
   const rangeFeet = target?.interaction_range_feet ?? (isGuidedPlayerAction(actionType) ? 60 : 5)
   const outOfRange = Boolean(actor && target && actor.distance > rangeFeet)
+  const shortcutActionSelected = !isGuidedPlayerAction(actionType)
+  const activeActionCardClass =
+    'relative overflow-hidden border-transparent bg-zinc-950 text-zinc-50 shadow-[0_0_24px_rgba(56,189,248,0.28)] ring-2 ring-fuchsia-400/40'
+  const inactiveActionCardClass = 'border-zinc-800 bg-zinc-900 text-zinc-300'
+  const activeActionGlow = (
+    <>
+      <span
+        className="pointer-events-none absolute -inset-12 animate-spin bg-[conic-gradient(from_0deg,rgba(236,72,153,0),rgba(236,72,153,0.65),rgba(56,189,248,0.7),rgba(236,72,153,0))] opacity-60 motion-reduce:animate-none"
+        aria-hidden="true"
+      />
+      <span className="pointer-events-none absolute inset-[1px] rounded-[7px] bg-zinc-950/95" aria-hidden="true" />
+    </>
+  )
 
   const steps = [
     { key: 'choose', label: 'Choose Action', icon: <MousePointer2 className="h-4 w-4" />, active: isChoosing, done: !isChoosing },
@@ -2302,77 +2315,101 @@ function ActionSequenceOverlay({
               </div>
 
               <div className="grid gap-4">
-                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                  {GUIDED_ACTION_TYPES.map((item) => (
-                    <button
-                      key={item.type}
-                      type="button"
-                      onClick={() => setActionType(item.type)}
-                      className={`min-h-24 rounded-lg border p-3 text-left transition hover:border-amber-400/60 ${
-                        actionType === item.type ? item.tone : 'border-zinc-800 bg-zinc-900 text-zinc-300'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-md border border-current/25 bg-black/20">
-                          {item.icon}
+                {shortcutActionSelected && (
+                  <div className="relative overflow-hidden rounded-lg border border-transparent bg-zinc-950 p-[1px] shadow-[0_0_24px_rgba(56,189,248,0.28)] ring-2 ring-fuchsia-400/40">
+                    {activeActionGlow}
+                    <div className="relative z-10 rounded-[7px] bg-zinc-950/95 p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200">Selected shortcut</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className={`flex h-8 w-8 items-center justify-center rounded-md border ${selectedAction.tone}`}>
+                          {selectedAction.icon}
                         </span>
-                        <span className="text-sm font-semibold">{item.label}</span>
-                      </span>
-                      <span className="mt-2 block text-xs leading-relaxed opacity-75">{item.description}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-                  <div className="flex items-center gap-2">
-                    <span className={`flex h-9 w-9 items-center justify-center rounded-md border ${selectedAction.tone}`}>
-                      {selectedAction.icon}
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedAction.label}</p>
-                      <p className="text-xs text-zinc-500">{selectedAction.description}</p>
+                        <div>
+                          <p className="text-sm font-semibold text-zinc-50">{selectedAction.label}</p>
+                          <p className="text-xs text-zinc-400">This quick-menu action is active for the request below.</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-zinc-500" htmlFor="guided-tool">
-                    {toolCopy.label}
-                  </label>
-                  <select
-                    id="guided-tool"
-                    value={selectedToolId}
-                    onChange={(event) => setSelectedToolId(event.target.value)}
-                    className="mt-2 min-h-11 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none focus:border-amber-500 sm:text-sm"
-                  >
-                    {toolsLoading && <option value="">Loading choices...</option>}
-                    {!toolsLoading && toolOptions.length === 0 && <option value="">No choices available</option>}
-                    {!toolsLoading && toolOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.name} ({option.source})
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-xs text-zinc-500">{toolCopy.placeholder}</p>
-                  {selectedTool?.note && <p className="mt-1 text-[11px] text-amber-200">{selectedTool.note}</p>}
-                  <textarea
-                    value={message}
-                    onChange={(event) => setMessage(event.target.value)}
-                    rows={3}
-                    maxLength={500}
-                    placeholder="Describe what you are trying to do."
-                    className="mt-3 w-full resize-none rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none focus:border-amber-500 sm:text-sm"
-                  />
-                  <p className="mt-2 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-400">
-                    Request: <span className="font-medium text-zinc-100">{actionSummary}</span>
-                  </p>
-                  {error && <p className="mt-2 rounded-md border border-red-800 bg-red-950/50 px-3 py-2 text-xs text-red-200">{error}</p>}
-                  <button
-                    type="button"
-                    disabled={!target || !actor || outOfRange || state === 'submitting_request'}
-                    onClick={onSubmit}
-                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-45 sm:w-auto"
-                  >
-                    <Send className="h-4 w-4" aria-hidden="true" />
-                    {state === 'submitting_request' ? 'Sending...' : 'Send to DM'}
-                  </button>
+                )}
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {GUIDED_ACTION_TYPES.map((item) => {
+                    const active = actionType === item.type
+                    return (
+                      <button
+                        key={item.type}
+                        type="button"
+                        onClick={() => setActionType(item.type)}
+                        className={`relative min-h-24 overflow-hidden rounded-lg border p-3 text-left transition hover:border-amber-400/60 ${
+                          active ? activeActionCardClass : inactiveActionCardClass
+                        }`}
+                      >
+                        {active && activeActionGlow}
+                        <span className="relative z-10 flex items-center gap-2">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-md border border-current/25 bg-black/20">
+                            {item.icon}
+                          </span>
+                          <span className="text-sm font-semibold">{item.label}</span>
+                        </span>
+                        <span className="relative z-10 mt-2 block text-xs leading-relaxed opacity-75">{item.description}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="relative overflow-hidden rounded-xl border border-transparent bg-zinc-950 p-[1px] shadow-[0_0_20px_rgba(236,72,153,0.16)]">
+                  {activeActionGlow}
+                  <div className="relative z-10 rounded-[11px] bg-zinc-900 p-4">
+                    <div className="flex items-center gap-2">
+                      <span className={`flex h-9 w-9 items-center justify-center rounded-md border ${selectedAction.tone}`}>
+                        {selectedAction.icon}
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-zinc-100">{selectedAction.label}</p>
+                        <p className="text-xs text-zinc-500">{selectedAction.description}</p>
+                      </div>
+                    </div>
+                    <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-zinc-500" htmlFor="guided-tool">
+                      {toolCopy.label}
+                    </label>
+                    <select
+                      id="guided-tool"
+                      value={selectedToolId}
+                      onChange={(event) => setSelectedToolId(event.target.value)}
+                      className="mt-2 min-h-11 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none focus:border-amber-500 sm:text-sm"
+                    >
+                      {toolsLoading && <option value="">Loading choices...</option>}
+                      {!toolsLoading && toolOptions.length === 0 && <option value="">No choices available</option>}
+                      {!toolsLoading && toolOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.name} ({option.source})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-zinc-500">{toolCopy.placeholder}</p>
+                    {selectedTool?.note && <p className="mt-1 text-[11px] text-amber-200">{selectedTool.note}</p>}
+                    <textarea
+                      value={message}
+                      onChange={(event) => setMessage(event.target.value)}
+                      rows={3}
+                      maxLength={500}
+                      placeholder="Describe what you are trying to do."
+                      className="mt-3 w-full resize-none rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none focus:border-amber-500 sm:text-sm"
+                    />
+                    <p className="mt-2 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-400">
+                      Request: <span className="font-medium text-zinc-100">{actionSummary}</span>
+                    </p>
+                    {error && <p className="mt-2 rounded-md border border-red-800 bg-red-950/50 px-3 py-2 text-xs text-red-200">{error}</p>}
+                    <button
+                      type="button"
+                      disabled={!target || !actor || outOfRange || state === 'submitting_request'}
+                      onClick={onSubmit}
+                      className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-45 sm:w-auto"
+                    >
+                      <Send className="h-4 w-4" aria-hidden="true" />
+                      {state === 'submitting_request' ? 'Sending...' : 'Send to DM'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { MapCanvas, type AreaDrawTool, type RenderArea, type RenderToken } from './MapCanvas'
@@ -738,6 +739,15 @@ export function MapEditor({
           {partyOptionsLocked && <Badge variant="warning">Party options locked</Badge>}
         </div>
         <div className="flex gap-2">
+          <Link
+            href={`/campaigns/${campaignId}/live-map/${map.id}/center-screen`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button size="sm" variant="primary">
+              Center screen
+            </Button>
+          </Link>
           <button
             type="button"
             onClick={handleToggleSession}

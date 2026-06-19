@@ -33,6 +33,7 @@ CREATE INDEX IF NOT EXISTS action_hp_effect_results_player_idx ON action_hp_effe
 
 ALTER TABLE action_hp_effect_results ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "action_hp_effect_results_select" ON action_hp_effect_results;
 CREATE POLICY "action_hp_effect_results_select"
   ON action_hp_effect_results FOR SELECT
   TO authenticated
@@ -41,6 +42,7 @@ CREATE POLICY "action_hp_effect_results_select"
     OR player_id = auth.uid()
   );
 
+DROP POLICY IF EXISTS "action_hp_effect_results_insert_player_or_dm" ON action_hp_effect_results;
 CREATE POLICY "action_hp_effect_results_insert_player_or_dm"
   ON action_hp_effect_results FOR INSERT
   TO authenticated

@@ -1,0 +1,2 @@
+-- No-op migration used to verify GitHub Actions Supabase migration automation.
+-- Keeping this file intentional lets the workflow run without changing schema.

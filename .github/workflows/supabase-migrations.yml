@@ -1,6 +1,7 @@
 name: Supabase migrations
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main

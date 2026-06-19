@@ -8,6 +8,7 @@ import type {
   ActionIntent,
   ActionAttackResult,
   ActionAttackResultDmDetail,
+  ActionHpEffectResult,
   ActionIntentDmNote,
   ActionRollRequest,
   ActionRollResult,
@@ -35,6 +36,7 @@ type IntentDetails = ActionIntent & {
   action_roll_results?: ActionRollResult[]
   action_attack_results?: ActionAttackResult[]
   action_attack_result_dm_details?: ActionAttackResultDmDetail[]
+  action_hp_effect_results?: ActionHpEffectResult[]
   pending_state_updates?: PendingStateUpdate[]
 }
 
@@ -85,6 +87,7 @@ export default async function ActionsPage({ params }: PageProps) {
     { data: rollRequestsRaw },
     { data: rollResultsRaw },
     { data: attackResultsRaw },
+    { data: hpEffectResultsRaw },
     { data: attackDetailsRaw },
     { data: pendingUpdatesRaw },
   ] = await Promise.all([
@@ -122,6 +125,11 @@ export default async function ActionsPage({ params }: PageProps) {
       .order('created_at', { ascending: false }),
     supabase
       .from('action_attack_results')
+      .select('*')
+      .eq('campaign_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('action_hp_effect_results')
       .select('*')
       .eq('campaign_id', id)
       .order('created_at', { ascending: false }),
@@ -250,6 +258,12 @@ export default async function ActionsPage({ params }: PageProps) {
     attackResultsByIntent[result.action_intent_id].push(result)
   })
 
+  const hpEffectResultsByIntent: Record<string, ActionHpEffectResult[]> = {}
+  ;((hpEffectResultsRaw ?? []) as ActionHpEffectResult[]).forEach((result) => {
+    hpEffectResultsByIntent[result.action_intent_id] ??= []
+    hpEffectResultsByIntent[result.action_intent_id].push(result)
+  })
+
   const attackDetailsByResult: Record<string, ActionAttackResultDmDetail> = {}
   ;((attackDetailsRaw ?? []) as ActionAttackResultDmDetail[]).forEach((detail) => {
     attackDetailsByResult[detail.attack_result_id] = detail
@@ -272,6 +286,7 @@ export default async function ActionsPage({ params }: PageProps) {
     action_roll_requests: rollRequestsByIntent[intent.id] ?? [],
     action_roll_results: rollResultsByIntent[intent.id] ?? [],
     action_attack_results: attackResultsByIntent[intent.id] ?? [],
+    action_hp_effect_results: hpEffectResultsByIntent[intent.id] ?? [],
     action_attack_result_dm_details: (attackResultsByIntent[intent.id] ?? [])
       .map((result) => attackDetailsByResult[result.id])
       .filter((detail): detail is ActionAttackResultDmDetail => Boolean(detail)),

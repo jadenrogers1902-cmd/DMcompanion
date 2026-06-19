@@ -585,6 +585,7 @@ export interface ActionAttackResultDmDetail {
 
 export type PendingStateUpdateType =
   | 'damage_token'
+  | 'heal_token'
   | 'set_token_state'
   | 'set_object_state'
   | 'reveal_object'
@@ -611,6 +612,27 @@ export interface PendingStateUpdate {
   created_at: string
   applied_at: string | null
   applied_by_dm_id: string | null
+}
+
+export type HpEffectKind = 'damage' | 'healing'
+
+export interface ActionHpEffectResult {
+  id: string
+  action_intent_id: string
+  roll_request_id: string
+  campaign_id: string
+  character_id: string
+  player_id: string
+  target_id: string | null
+  target_name: string | null
+  effect_kind: HpEffectKind
+  formula: string
+  dice_rolled: number[]
+  modifier: number
+  total: number
+  roll_mode: RollMode
+  player_visible_summary: string
+  created_at: string
 }
 
 export interface ActionIntentWithDetails extends ActionIntent {
@@ -2381,6 +2403,29 @@ export type Database = {
           target_ac_source?: string
           dm_summary?: string
         }
+        Relationships: []
+      }
+      action_hp_effect_results: {
+        Row: ActionHpEffectResult & Record<string, unknown>
+        Insert: {
+          id?: string
+          action_intent_id: string
+          roll_request_id: string
+          campaign_id: string
+          character_id: string
+          player_id: string
+          target_id?: string | null
+          target_name?: string | null
+          effect_kind: string
+          formula: string
+          dice_rolled?: number[]
+          modifier?: number
+          total: number
+          roll_mode: string
+          player_visible_summary: string
+          created_at?: string
+        }
+        Update: Record<string, never>
         Relationships: []
       }
       pending_state_updates: {

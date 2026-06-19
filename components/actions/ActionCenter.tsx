@@ -14,6 +14,7 @@ import { applyPendingStateUpdate, rejectPendingStateUpdate } from '@/lib/actions
 import type {
   ActionAttackResult,
   ActionAttackResultDmDetail,
+  ActionHpEffectResult,
   ActionIntent,
   ActionRollRequest,
   ActionRollResult,
@@ -38,6 +39,7 @@ type IntentDetails = ActionIntent & {
   action_roll_results?: ActionRollResult[]
   action_attack_results?: ActionAttackResult[]
   action_attack_result_dm_details?: ActionAttackResultDmDetail[]
+  action_hp_effect_results?: ActionHpEffectResult[]
   pending_state_updates?: PendingStateUpdate[]
 }
 
@@ -278,6 +280,7 @@ function SuggestedStateUpdatePanel({
   const before = update.before ?? {}
   const after = update.after ?? {}
   const isDamage = update.update_type === 'damage_token'
+  const isHealing = update.update_type === 'heal_token'
   const isObject = update.update_type === 'set_object_state' || update.update_type === 'reveal_object' || update.update_type === 'set_token_state'
   const isAwareness = update.update_type === 'set_awareness'
 
@@ -324,11 +327,11 @@ function SuggestedStateUpdatePanel({
   return (
     <div className="mt-3 rounded-md border border-amber-800/60 bg-amber-950/20 p-3">
       <p className="text-xs font-medium text-amber-200">
-        Suggested {isDamage ? 'Map' : isAwareness ? 'Awareness' : 'Object'} Update
+        {isDamage || isHealing ? 'Pending HP Update' : `Suggested ${isAwareness ? 'Awareness' : 'Object'} Update`}
       </p>
       <p className="mt-1 text-xs text-amber-100">{update.summary}</p>
       <div className="mt-2 grid grid-cols-1 gap-1 text-[11px] text-zinc-400 sm:grid-cols-2">
-        {isDamage && (
+        {(isDamage || isHealing) && (
           <span>
             {update.target_name ?? 'Token'} HP: {StateUpdateValue(before.current_hp)} -&gt; {StateUpdateValue(after.current_hp)}
           </span>
@@ -346,7 +349,11 @@ function SuggestedStateUpdatePanel({
         )}
       </div>
 
-      {editing ? (
+      {(isDamage || isHealing) ? (
+        <p className="mt-3 rounded-md border border-amber-700/50 bg-zinc-950 px-2 py-1.5 text-[11px] text-amber-100">
+          This HP change applies automatically when you approve the rolled result.
+        </p>
+      ) : editing ? (
         <div className="mt-3 grid gap-2 rounded-md border border-zinc-800 bg-zinc-950 p-2">
           {isDamage && (
             <>
@@ -412,6 +419,26 @@ function SuggestedStateUpdatePanel({
           Custom updates are recorded for audit only and do not automatically change token/object state.
         </p>
       )}
+    </div>
+  )
+}
+
+function HpEffectResultPanel({ result }: { result: ActionHpEffectResult }) {
+  return (
+    <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-950 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-medium text-zinc-200">
+          {result.effect_kind === 'healing' ? 'Healing Result' : 'Damage Result'}
+        </p>
+        <Badge variant={result.effect_kind === 'healing' ? 'success' : 'default'}>
+          {result.total}
+        </Badge>
+      </div>
+      <p className="mt-2 text-xs text-zinc-300">{result.player_visible_summary}</p>
+      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-zinc-500">
+        <span>Formula: {result.formula}</span>
+        <span>Roll: {result.dice_rolled.join(', ') || '-'}</span>
+      </div>
     </div>
   )
 }
@@ -794,6 +821,10 @@ function DMActionQueue({
                         />
                       ))}
 
+                      {intent.action_hp_effect_results?.map((result) => (
+                        <HpEffectResultPanel key={result.id} result={result} />
+                      ))}
+
                       {intent.pending_state_updates?.map((update) => (
                         <SuggestedStateUpdatePanel key={update.id} campaignId={campaignId} update={update} />
                       ))}
@@ -808,7 +839,7 @@ function DMActionQueue({
                           selectedToolType={intent.selected_tool_type}
                           selectedToolId={intent.selected_tool_id}
                           selectedToolName={intent.selected_tool_name}
-                          hasRollResult={Boolean(submittedRoll) || (intent.action_attack_results?.length ?? 0) > 0}
+                          hasRollResult={Boolean(submittedRoll) || (intent.action_attack_results?.length ?? 0) > 0 || (intent.action_hp_effect_results?.length ?? 0) > 0}
                           compact
                           onActionComplete={() => dismissNudge(intent.id)}
                         />

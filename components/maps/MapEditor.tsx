@@ -384,6 +384,10 @@ export function MapEditor({
         size: t.size,
         color: t.color,
         visible_to_players: t.visible_to_players,
+        max_hp: t.max_hp,
+        current_hp: t.current_hp,
+        temp_hp: t.temp_hp,
+        is_defeated: t.is_defeated,
       })),
     [tokens],
   )

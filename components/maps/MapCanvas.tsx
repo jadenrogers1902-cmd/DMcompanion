@@ -2,7 +2,9 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Heart } from 'lucide-react'
 import type { TokenType } from '@/lib/types/database'
+import { hpBarClass, hpPercent } from '@/lib/utils/hp'
 
 export interface RenderToken {
   id: string
@@ -13,6 +15,11 @@ export interface RenderToken {
   size: number
   color: string
   visible_to_players: boolean
+  max_hp?: number | null
+  current_hp?: number | null
+  temp_hp?: number | null
+  is_defeated?: boolean | null
+  showHealth?: boolean
   /** Optional glyph (emoji) rendered instead of the name/type initial. */
   icon?: string | null
 }
@@ -610,6 +617,11 @@ export function MapCanvas({
             const isSelected = selectedTokenId === t.id
             const hiddenFromPlayers = mode === 'dm' && !t.visible_to_players
             const isAlerted = alertTokenIds.includes(t.id)
+            const maxHp = Number(t.max_hp ?? 0)
+            const currentHp = Number(t.current_hp ?? 0)
+            const tempHp = Number(t.temp_hp ?? 0)
+            const showHealth = (mode === 'dm' || t.showHealth) && maxHp > 0
+            const hpPct = hpPercent(currentHp, maxHp)
             return (
               <div
                 key={t.id}
@@ -672,6 +684,29 @@ export function MapCanvas({
                   >
                     !
                   </span>
+                )}
+                {showHealth && (
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 flex min-w-20 -translate-x-1/2 items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/95 px-1.5 py-1 shadow-lg shadow-black/40"
+                    aria-hidden="true"
+                  >
+                    <Heart
+                      className={`h-3.5 w-3.5 ${
+                        t.is_defeated || currentHp <= 0
+                          ? 'fill-red-800 text-red-600'
+                          : 'fill-red-500 text-red-300'
+                      }`}
+                    />
+                    <div className="h-1.5 w-12 overflow-hidden rounded-full bg-zinc-800">
+                      <div
+                        className={`h-full rounded-full ${hpBarClass(currentHp, maxHp, Boolean(t.is_defeated))}`}
+                        style={{ width: `${hpPct}%` }}
+                      />
+                    </div>
+                    {tempHp > 0 && (
+                      <span className="h-2 w-2 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
+                    )}
+                  </div>
                 )}
               </div>
             )

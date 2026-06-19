@@ -5,6 +5,7 @@ import { Crosshair, Lock, RotateCcw, Swords, Unlock, Users, X } from 'lucide-rea
 import { Button } from '@/components/ui/Button'
 import type { CodexPlayer } from '@/lib/actions/codex'
 import type { MapTravelParty, MapTravelPartyMember, TravelMode, Token } from '@/lib/types/database'
+import { hpBarClass, hpPercent } from '@/lib/utils/hp'
 
 type PanelTab = 'travel' | 'players'
 
@@ -313,8 +314,8 @@ function PlayerRow({
   }
 
   const maxHp = token.max_hp || 0
-  const hpPct = maxHp > 0 ? Math.max(0, Math.min(100, (token.current_hp / maxHp) * 100)) : 0
-  const hpColor = hpPct > 50 ? 'bg-emerald-500' : hpPct > 25 ? 'bg-amber-500' : 'bg-red-500'
+  const hpPct = hpPercent(token.current_hp, maxHp)
+  const hpColor = hpBarClass(token.current_hp, maxHp, token.is_defeated)
 
   return (
     <div className={`rounded-lg border px-3 py-2.5 ${selected ? 'border-amber-500/60 bg-amber-500/5' : 'border-zinc-800 bg-zinc-900'}`}>

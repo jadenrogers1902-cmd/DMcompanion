@@ -75,12 +75,15 @@ export function ActionQueueDmControls({
   const [revealTargetACToPlayers, setRevealTargetACToPlayers] = useState(false)
   const [autoRollDamageOnHit, setAutoRollDamageOnHit] = useState(true)
   const [requireDmReviewBeforeReveal, setRequireDmReviewBeforeReveal] = useState(true)
+  const [hpEffectKind, setHpEffectKind] = useState<'none' | 'damage' | 'healing'>('none')
+  const [hpEffectFormula, setHpEffectFormula] = useState('')
   const noteTimerRef = useRef<number | null>(null)
   const buttonsDisabled = Boolean(busyStatus) || FINAL_STATUSES.includes(status)
   const rollButtonsDisabled = buttonsDisabled || ROLL_IN_PROGRESS_STATUSES.includes(status)
   const effectiveModifier = overrideModifier ? modifier : modifierResult?.modifier ?? modifier
   const selectedWeapon = options?.weapons.find((weapon) => weapon.value === selectedWeaponId) ?? null
   const isAttackRoll = rollType === 'weapon_attack' || rollType === 'attack'
+  const isDcRoll = !isAttackRoll
 
   function normalizedSelectedToolId(value?: string | null) {
     return (value ?? '').split(':').pop() ?? ''
@@ -115,6 +118,7 @@ export function ActionQueueDmControls({
         setRollType('weapon_attack')
         setRollLabel(`${selectedToolName ?? result.options.defaultLabel}: attack roll`)
         setTargetNumber(result.options.targetArmorClass === null ? '' : String(result.options.targetArmorClass))
+        setHpEffectKind('none')
       } else if (selectedToolType === 'Spell') {
         setRollType('spell_attack')
         setRollLabel(`${selectedToolName ?? result.options.defaultLabel}: spell roll`)
@@ -183,6 +187,20 @@ export function ActionQueueDmControls({
   async function requestRoll(statusToSet: ActionIntentStatus) {
     setBusyStatus(statusToSet)
     setError(null)
+    const trimmedTarget = targetNumber.trim()
+    if (isDcRoll && trimmedTarget) {
+      const dc = Number(trimmedTarget)
+      if (!Number.isInteger(dc) || dc < 0 || dc > 20) {
+        setError('DC must be a whole number from 0 through 20, or blank if unknown.')
+        setBusyStatus(null)
+        return
+      }
+    }
+    if (hpEffectKind !== 'none' && !hpEffectFormula.trim()) {
+      setError('Enter an HP effect formula like 1d8+3 before requesting this roll.')
+      setBusyStatus(null)
+      return
+    }
     const context = {
       ...(modifierResult?.rollContext ?? { rollType }),
       targetName: options?.targetName ?? null,
@@ -201,6 +219,17 @@ export function ActionQueueDmControls({
       rangeNormal: selectedWeapon?.rangeNormal ?? null,
       rangeLong: selectedWeapon?.rangeLong ?? null,
       weaponNotes: selectedWeapon?.notes ?? null,
+      ...(hpEffectKind !== 'none'
+        ? {
+            hpEffect: {
+              kind: hpEffectKind,
+              formula: hpEffectFormula.trim(),
+              targetTokenId: modifierResult?.rollContext?.targetTokenId ?? null,
+              targetName: options?.targetName ?? null,
+              label: `${hpEffectKind === 'healing' ? 'Healing' : 'Damage'} ${hpEffectFormula.trim()}${options?.targetName ? ` to ${options.targetName}` : ''}`,
+            },
+          }
+        : {}),
     }
     const targetForRequest = isAttackRoll && !revealTargetACToPlayers
       ? null
@@ -427,16 +456,23 @@ export function ActionQueueDmControls({
             />
           </label>
           <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
-            {isAttackRoll ? 'Target AC' : 'Target/DC'}
+            {isAttackRoll ? 'Target AC' : 'DC'}
             <input
               type="number"
+              min={isAttackRoll ? undefined : 0}
+              max={isAttackRoll ? undefined : 20}
               value={targetNumber}
               onChange={(event) => setTargetNumber(event.target.value)}
-              placeholder="Optional"
+              placeholder={isAttackRoll ? 'Optional' : 'Optional 0-20'}
               className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
             />
           </label>
         </div>
+        {!isAttackRoll && (
+          <p className="mt-2 text-[11px] text-zinc-500">
+            DC is optional, but when entered it must be 0-20.
+          </p>
+        )}
         {isAttackRoll && (
           <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-900 p-3">
             <p className="text-xs font-medium text-zinc-300">Attack resolution</p>
@@ -485,6 +521,44 @@ export function ActionQueueDmControls({
               <p className="mt-2 text-[11px] text-amber-200">
                 Manual AC is only hidden when it can be resolved from target token data. Reveal AC or leave hit/miss unresolved for unknown targets.
               </p>
+            )}
+          </div>
+        )}
+        {!isAttackRoll && (
+          <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-900 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-medium text-zinc-300">HP effect</p>
+              <p className="text-[11px] text-zinc-500">Applies when you approve the rolled result.</p>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {(['none', 'damage', 'healing'] as const).map((kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => setHpEffectKind(kind)}
+                  className={`rounded-md border px-2 py-1.5 text-xs font-semibold transition ${
+                    hpEffectKind === kind
+                      ? 'border-amber-400 bg-amber-500/15 text-amber-100'
+                      : 'border-zinc-700 bg-zinc-950 text-zinc-400 hover:border-zinc-500'
+                  }`}
+                >
+                  {kind === 'none' ? 'None' : kind === 'damage' ? 'Damage' : 'Healing'}
+                </button>
+              ))}
+            </div>
+            {hpEffectKind !== 'none' && (
+              <label className="mt-3 flex flex-col gap-1.5 text-xs text-zinc-400">
+                Formula
+                <input
+                  value={hpEffectFormula}
+                  onChange={(event) => setHpEffectFormula(event.target.value)}
+                  placeholder={hpEffectKind === 'healing' ? '1d8+3' : '2d6'}
+                  className="rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                />
+                <span className="text-[11px] text-zinc-500">
+                  {hpEffectKind === 'healing' ? 'Healing' : 'Damage'} target: {options?.targetName ?? 'selected token'}
+                </span>
+              </label>
             )}
           </div>
         )}

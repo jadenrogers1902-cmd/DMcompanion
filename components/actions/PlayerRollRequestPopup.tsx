@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   markRollRequestRolling,
   submitAttackRollResult,
+  submitHpEffectRollResult,
   submitRollResult,
 } from '@/lib/actions/roll-requests'
 import type {
@@ -53,6 +54,20 @@ function usedRoll(advantageState: AdvantageState, first: number, second: number 
 
 function randomD20() {
   return Math.floor(Math.random() * 20) + 1
+}
+
+function hpEffectFromContext(context: Record<string, unknown> | null | undefined) {
+  const raw = context?.hpEffect
+  if (!raw || typeof raw !== 'object') return null
+  const effect = raw as Record<string, unknown>
+  const kind = effect.kind === 'healing' ? 'healing' : effect.kind === 'damage' ? 'damage' : null
+  const formula = typeof effect.formula === 'string' ? effect.formula : ''
+  if (!kind || !formula.trim()) return null
+  return {
+    kind,
+    formula: formula.trim(),
+    label: typeof effect.label === 'string' ? effect.label : null,
+  }
 }
 
 /**
@@ -292,6 +307,8 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
   const manualTotal = item && used !== null ? used + item.modifier : null
   const needsSecond = item ? item.advantage_state !== 'normal' : false
   const isAttackRoll = item ? item.roll_type === 'weapon_attack' || item.roll_type === 'attack' : false
+  const hpEffect = item ? hpEffectFromContext(item.roll_context) : null
+  const isHpEffectRoll = Boolean(hpEffect)
 
   function setAttackOutcome(
     activeItem: RollPopupItem,
@@ -390,6 +407,21 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
     setBusy(true)
     setError(null)
     void markRollRequestRolling(campaignId, activeItem.id)
+    if (isHpEffectRoll) {
+      const result = await submitHpEffectRollResult(campaignId, activeItem.id, {
+        rollMode: 'manual',
+        manualDiceTotal: Number(rollOne),
+      })
+      setBusy(false)
+      if ('error' in result) {
+        setError(result.error)
+        return
+      }
+      setGenericOutcome(activeItem, 'success', 10, null, result.total)
+      setOutcome((prev) => prev ? { ...prev, summary: result.summary, damageTotal: null } : prev)
+      setMode('result')
+      return
+    }
     if (isAttackRoll) {
       await submitAttack('manual', Number(rollOne), needsSecond ? Number(rollTwo) : null)
       setBusy(false)
@@ -426,6 +458,22 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
     const secondNaturalRoll = needsSecond ? randomD20() : null
     window.setTimeout(async () => {
       window.clearInterval(interval)
+      if (isHpEffectRoll) {
+        const result = await submitHpEffectRollResult(campaignId, activeItem.id, {
+          rollMode: 'automatic',
+        })
+        setBusy(false)
+        if ('error' in result) {
+          setMode('choice')
+          setError(result.error)
+          return
+        }
+        setAnimationNumber(result.total)
+        setGenericOutcome(activeItem, 'success', 10, null, result.total)
+        setOutcome((prev) => prev ? { ...prev, summary: result.summary, damageTotal: null } : prev)
+        setMode('result')
+        return
+      }
       if (isAttackRoll) {
         await submitAttack('automatic', naturalRoll, secondNaturalRoll)
         setBusy(false)
@@ -489,8 +537,10 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
             <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
               <p className="text-sm text-zinc-200">{item.label}</p>
               <p className="mt-1 text-xs text-zinc-500">
-                d20 {formatModifier(item.modifier)}
-                {!isAttackRoll && item.target_number !== null ? ` / Target ${item.target_number}` : ''}
+                {isHpEffectRoll
+                  ? `${hpEffect?.kind === 'healing' ? 'Healing' : 'Damage'} ${hpEffect?.formula}`
+                  : `d20 ${formatModifier(item.modifier)}`}
+                {!isAttackRoll && !isHpEffectRoll && item.target_number !== null ? ` / Target ${item.target_number}` : ''}
               </p>
               <p className="mt-1 text-xs capitalize text-zinc-500">{item.advantage_state.replace('_', ' ')}</p>
               {item.locationName && <p className="mt-1 text-xs text-zinc-600">Location: {item.locationName}</p>}
@@ -561,11 +611,11 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
       {item && mode === 'manual' && (
         <div className="mt-4 flex flex-col gap-3">
           <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
-            Natural d20 roll
+              {isHpEffectRoll ? 'Dice total' : 'Natural d20 roll'}
             <input
               type="number"
-              min={1}
-              max={20}
+              min={isHpEffectRoll ? 0 : 1}
+              max={isHpEffectRoll ? undefined : 20}
               value={rollOne}
               onChange={(event) => setRollOne(event.target.value)}
               className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
@@ -585,7 +635,9 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
             </label>
           )}
           <p className="text-xs text-zinc-500">
-            Used roll: {used ?? '-'} / Modifier: {formatModifier(item.modifier)} / Total: {manualTotal ?? '-'}
+            {isHpEffectRoll
+              ? `Formula: ${hpEffect?.formula}. Enter the dice total before modifiers.`
+              : `Used roll: ${used ?? '-'} / Modifier: ${formatModifier(item.modifier)} / Total: ${manualTotal ?? '-'}`}
           </p>
           <div className="grid grid-cols-2 gap-2">
             <button

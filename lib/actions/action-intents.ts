@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { applyPendingStateUpdatesForIntent } from '@/lib/actions/state-updates'
 import { fetchNotionPage } from '@/lib/notion/client'
 import {
   buildNpcRevealPayload,
@@ -489,6 +490,11 @@ export async function updateActionIntentStatus(
   }
 
   if (status === 'denied' || status === 'resolved') {
+    if (status === 'resolved') {
+      const applied = await applyPendingStateUpdatesForIntent(campaignId, intentId)
+      if (applied?.error) return { error: applied.error }
+    }
+
     const summary =
       dmResponse.trim() ||
       (status === 'denied' ? 'The DM denied this request.' : 'The DM resolved this manually.')

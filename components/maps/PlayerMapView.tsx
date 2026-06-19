@@ -39,6 +39,7 @@ import { sendDMNudge, sendPartyMessage } from '@/lib/actions/party-messages'
 import {
   markRollRequestRolling,
   submitAttackRollResult,
+  submitHpEffectRollResult,
   submitRollResult,
 } from '@/lib/actions/roll-requests'
 import { getRollOutcomeVariant } from '@/lib/utils/roll-outcome-display'
@@ -79,6 +80,16 @@ function removeDuplicateTokens(tokens: Token[]) {
   const byId = new Map<string, Token>()
   tokens.forEach((token) => byId.set(token.id, token))
   return Array.from(byId.values())
+}
+
+function rollRequestHpEffect(req: ActionRollRequest | null) {
+  const raw = req?.roll_context?.hpEffect
+  if (!raw || typeof raw !== 'object') return null
+  const effect = raw as Record<string, unknown>
+  const kind = effect.kind === 'healing' ? 'healing' : effect.kind === 'damage' ? 'damage' : null
+  const formula = typeof effect.formula === 'string' ? effect.formula.trim() : ''
+  if (!kind || !formula) return null
+  return { kind, formula }
 }
 
 function mergeAreaList(areas: MapRevealedArea[], area: MapRevealedArea) {
@@ -528,6 +539,11 @@ export function PlayerMapView({
     size: t.size,
     color: t.color,
     visible_to_players: true,
+    max_hp: t.max_hp,
+    current_hp: t.current_hp,
+    temp_hp: t.temp_hp,
+    is_defeated: t.is_defeated,
+    showHealth: controls(t),
   }))
 
   const selected = tokens.find((t) => t.id === selectedId) ?? null
@@ -848,8 +864,41 @@ export function PlayerMapView({
     manualDamageDiceTotal?: number | null,
   ) {
     const isAttack = req.roll_type === 'weapon_attack' || req.roll_type === 'attack'
+    const hpEffect = rollRequestHpEffect(req)
     const used = inlineUsedRoll(req.advantage_state, naturalRoll, secondNaturalRoll)
     const title = req.label || actionToolPhrase(guidedActionType, actionTarget?.name ?? actionTarget?.token_type ?? null, guidedIntent?.selected_tool_name)
+
+    if (hpEffect) {
+      const result = await submitHpEffectRollResult(campaignId, req.id, {
+        rollMode,
+        manualDiceTotal: rollMode === 'manual' ? naturalRoll : null,
+      })
+      setInlineRollBusy(false)
+      setInlineRollAnimating(false)
+      setInlineAnimNumber(null)
+      if ('error' in result) {
+        setGuidedError(result.error)
+        setInlineRollMode('choice')
+        return
+      }
+      setInlineOutcome({
+        variant: 'success',
+        title,
+        naturalRoll: 10,
+        secondNaturalRoll: null,
+        usedNaturalRoll: 10,
+        modifier: 0,
+        total: result.total,
+        targetNumber: null,
+        summary: result.summary,
+        reviewPending: true,
+        resolved: false,
+      })
+      setInlineRollMode('choice')
+      setActionFlow('resolving_primary_roll')
+      void loadMyRequests()
+      return
+    }
 
     if (isAttack) {
       const result = await submitAttackRollResult(campaignId, req.id, {
@@ -935,6 +984,7 @@ export function PlayerMapView({
       return
     }
     const req = activeRollRequest
+    const hpEffect = rollRequestHpEffect(req)
     const needsSecond = req.advantage_state !== 'normal'
     setGuidedError(null)
     setInlineRollBusy(true)
@@ -945,8 +995,8 @@ export function PlayerMapView({
     const secondNaturalRoll = needsSecond ? randomD20() : null
     window.setTimeout(() => {
       window.clearInterval(interval)
-      setInlineAnimNumber(naturalRoll)
-      void finishInlineRoll(req, 'automatic', naturalRoll, secondNaturalRoll)
+      setInlineAnimNumber(hpEffect ? null : naturalRoll)
+      void finishInlineRoll(req, 'automatic', naturalRoll, hpEffect ? null : secondNaturalRoll)
     }, 1020)
   }
 
@@ -957,9 +1007,21 @@ export function PlayerMapView({
       return
     }
     const req = activeRollRequest
+    const hpEffect = rollRequestHpEffect(req)
     const needsSecond = req.advantage_state !== 'normal'
     const one = Number(inlineManualOne)
     const two = needsSecond ? Number(inlineManualTwo) : null
+    if (hpEffect) {
+      if (!Number.isFinite(one) || one < 0) {
+        setGuidedError('Enter the dice total for the healing or damage roll.')
+        return
+      }
+      setGuidedError(null)
+      setInlineRollBusy(true)
+      void markRollRequestRolling(campaignId, req.id)
+      await finishInlineRoll(req, 'manual', one, null)
+      return
+    }
     if (!Number.isInteger(one) || one < 1 || one > 20) {
       setGuidedError('Enter a natural d20 roll between 1 and 20.')
       return
@@ -2507,6 +2569,7 @@ function ActionSequenceOverlay({
 
           {isRollState && (() => {
             const needsSecond = rollRequest ? rollRequest.advantage_state !== 'normal' : false
+            const hpEffect = rollRequestHpEffect(rollRequest)
             const canRoll = Boolean(rollRequest && rollRequest.status === 'waiting_for_player') && !inlineOutcome
             const showChoice = canRoll && inlineRollMode === 'choice'
             const showManual = canRoll && inlineRollMode === 'manual'
@@ -2557,18 +2620,18 @@ function ActionSequenceOverlay({
                 {showManual && (
                   <div className="mx-auto mt-4 flex max-w-xs flex-col gap-3 text-left">
                     <label className="flex flex-col gap-1 text-xs text-zinc-400">
-                      Natural d20 roll
+                      {hpEffect ? 'Dice total' : 'Natural d20 roll'}
                       <input
                         type="number"
-                        min={1}
-                        max={20}
+                        min={hpEffect ? 0 : 1}
+                        max={hpEffect ? undefined : 20}
                         inputMode="numeric"
                         value={inlineManualOne}
                         onChange={(event) => setInlineManualOne(event.target.value)}
                         className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
                       />
                     </label>
-                    {needsSecond && (
+                    {!hpEffect && needsSecond && (
                       <label className="flex flex-col gap-1 text-xs text-zinc-400">
                         Second d20 roll ({rollRequest?.advantage_state})
                         <input

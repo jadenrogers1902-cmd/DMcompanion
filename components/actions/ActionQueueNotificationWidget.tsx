@@ -41,6 +41,16 @@ function PendingUpdateMiniCard({ campaignId, update, onChanged }: { campaignId: 
     )
   }
 
+  if (update.update_type === 'damage_token' || update.update_type === 'heal_token') {
+    return (
+      <div className="mt-2 rounded-md border border-amber-800/60 bg-amber-950/20 px-2.5 py-2 text-xs text-amber-100">
+        <p className="font-medium text-amber-200">Pending HP Update</p>
+        <p className="mt-1">{update.summary}</p>
+        <p className="mt-1.5 text-[10px] text-amber-200/70">Open the action and approve the result to apply HP.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="mt-2 rounded-md border border-amber-800/60 bg-amber-950/20 px-2.5 py-2 text-xs text-amber-100">
       <p className="font-medium text-amber-200">Suggested Update</p>

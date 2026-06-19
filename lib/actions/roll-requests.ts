@@ -25,6 +25,7 @@ import {
   validateManualDamage,
   type AttackOutcome,
 } from '@/lib/utils/attack-resolution'
+import { applyHpEffect, type HpEffectKind } from '@/lib/utils/hp'
 import {
   calculateRollModifier,
   SKILL_OPTIONS,
@@ -92,6 +93,40 @@ function contextString(context: Record<string, unknown>, key: string) {
 function contextBoolean(context: Record<string, unknown>, key: string, fallback: boolean) {
   const value = context[key]
   return typeof value === 'boolean' ? value : fallback
+}
+
+function hpEffectContext(context: Record<string, unknown>) {
+  const raw = context.hpEffect
+  if (!raw || typeof raw !== 'object') return null
+  const effect = raw as Record<string, unknown>
+  const kind: HpEffectKind | null =
+    effect.kind === 'healing' ? 'healing' : effect.kind === 'damage' ? 'damage' : null
+  const formula = typeof effect.formula === 'string' ? effect.formula.trim() : ''
+  const targetId = typeof effect.targetTokenId === 'string' ? effect.targetTokenId : null
+  const targetName = typeof effect.targetName === 'string' ? effect.targetName : null
+  const label = typeof effect.label === 'string' ? effect.label : null
+  if (!kind || !formula) return null
+  return { kind, formula, targetId, targetName, label }
+}
+
+function rollHpEffectFormula(formulaText: string) {
+  const parsed = parseDamageFormula(formulaText, 0)
+  if (!parsed) return null
+  const diceRolled = Array.from({ length: parsed.diceCount }, () => Math.floor(Math.random() * parsed.dieSize) + 1)
+  const total = Math.max(0, diceRolled.reduce((sum, roll) => sum + roll, 0) + parsed.modifier)
+  return { ...parsed, diceRolled, total }
+}
+
+function manualHpEffectFormula(formulaText: string, diceTotal: number) {
+  const parsed = parseDamageFormula(formulaText, 0)
+  if (!parsed) return null
+  const error = validateManualDamage(parsed, diceTotal, false)
+  if (error) return { error }
+  return {
+    ...parsed,
+    diceRolled: [diceTotal],
+    total: Math.max(0, diceTotal + parsed.modifier),
+  }
 }
 
 function buildAttackPlayerSummary({
@@ -371,6 +406,15 @@ export async function createRollRequest(
 
   const label = input.label?.trim() || `${intent.action_type} roll`
   const targetNumber = maybeInt(input.targetNumber)
+  if (targetNumber !== null && input.targetNumberType === 'dc' && (targetNumber < 0 || targetNumber > 20)) {
+    return { error: 'DC must be from 0 through 20.' }
+  }
+
+  const rollContext = input.rollContext ?? {}
+  const hpEffect = hpEffectContext(rollContext)
+  if (hpEffect && !parseDamageFormula(hpEffect.formula, 0)) {
+    return { error: 'HP effect formula must look like 1d8, 2d6+3, or 1d4-1.' }
+  }
 
   const { error: requestError } = await supabase.from('action_roll_requests').insert({
     action_intent_id: intent.id,
@@ -385,7 +429,7 @@ export async function createRollRequest(
     modifier_breakdown: input.modifierBreakdown ?? [],
     modifier_notes: input.modifierNotes ?? [],
     modifier_warnings: input.modifierWarnings ?? [],
-    roll_context: input.rollContext ?? {},
+    roll_context: rollContext,
     target_number: targetNumber,
     target_number_type: input.targetNumberType ?? (targetNumber === null ? 'unknown' : 'dc'),
     advantage_state: input.advantageState ?? 'normal',
@@ -727,6 +771,12 @@ export async function submitAttackRollResult(
       current_hp: afterHp,
       max_hp: maxHp,
       is_defeated: becomesDefeated ? true : Boolean(targetRaw.is_defeated),
+      hp_effect: {
+        kind: 'damage',
+        amount: damage.total,
+        source: 'attack',
+        roll_result_id: attackResultId,
+      },
     }
     const damageLabel = damageType ? `${damage.total} ${damageType}` : `${damage.total}`
     const summary = becomesDefeated
@@ -784,4 +834,135 @@ export async function revealAttackResult(campaignId: string, attackResultId: str
   if (error) return { error: error.message }
   revalidatePath(ACTIONS_PATH(campaignId))
   return { success: true }
+}
+
+export async function submitHpEffectRollResult(
+  campaignId: string,
+  rollRequestId: string,
+  input: {
+    rollMode: RollMode
+    manualDiceTotal?: number | null
+  },
+): Promise<{ success: true; total: number; summary: string } | { error: string }> {
+  const { supabase, user } = await getClientAndUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: request } = await supabase
+    .from('action_roll_requests')
+    .select('*')
+    .eq('id', rollRequestId)
+    .eq('campaign_id', campaignId)
+    .single()
+
+  const rollRequest = (request ?? null) as ActionRollRequest | null
+  if (!rollRequest) return { error: 'Roll request not found.' }
+  if (rollRequest.player_id !== user.id) return { error: 'This roll request is not assigned to you.' }
+  if (rollRequest.status !== 'waiting_for_player') return { error: 'This roll request is no longer waiting for a roll.' }
+
+  const effect = hpEffectContext(rollRequest.roll_context ?? {})
+  if (!effect) return { error: 'This roll request does not include a healing or damage effect.' }
+
+  const roll = input.rollMode === 'manual'
+    ? manualHpEffectFormula(effect.formula, int(input.manualDiceTotal, 0))
+    : rollHpEffectFormula(effect.formula)
+  if (!roll) return { error: 'HP effect formula must look like 1d8, 2d6+3, or 1d4-1.' }
+  if ('error' in roll) return { error: roll.error }
+
+  const { data: intentRaw } = await supabase
+    .from('action_intents')
+    .select('*')
+    .eq('id', rollRequest.action_intent_id)
+    .eq('campaign_id', campaignId)
+    .single()
+  if (!intentRaw) return { error: 'Action request not found.' }
+
+  const targetId = effect.targetId ?? String(intentRaw.target_token_id)
+  const { data: liveTargetRaw } = await supabase
+    .from('tokens')
+    .select('id, name, token_type, current_hp, max_hp, temp_hp, is_defeated')
+    .eq('id', targetId)
+    .eq('campaign_id', campaignId)
+    .maybeSingle()
+  const targetRaw = liveTargetRaw
+  if (!targetRaw) return { error: 'Target token no longer exists.' }
+
+  const targetName = effect.targetName ?? targetRaw.name ?? targetRaw.token_type ?? 'Target'
+  const preview = applyHpEffect(
+    {
+      current_hp: targetRaw.current_hp ?? 0,
+      max_hp: targetRaw.max_hp ?? 0,
+      temp_hp: targetRaw.temp_hp ?? 0,
+      is_defeated: Boolean(targetRaw.is_defeated),
+    },
+    effect.kind,
+    roll.total,
+  )
+  const verb = effect.kind === 'healing' ? 'heals' : 'takes'
+  const noun = effect.kind === 'healing' ? 'healing' : 'damage'
+  const summary = `${targetName} ${verb} ${roll.total} ${noun}.`
+
+  const effectResultId = randomUUID()
+  const { error: resultError } = await supabase.from('action_hp_effect_results').insert({
+    id: effectResultId,
+    action_intent_id: rollRequest.action_intent_id,
+    roll_request_id: rollRequest.id,
+    campaign_id: rollRequest.campaign_id,
+    character_id: rollRequest.character_id,
+    player_id: rollRequest.player_id,
+    target_id: targetRaw.id,
+    target_name: targetName,
+    effect_kind: effect.kind,
+    formula: roll.formula,
+    dice_rolled: roll.diceRolled,
+    modifier: roll.modifier,
+    total: roll.total,
+    roll_mode: input.rollMode,
+    player_visible_summary: summary,
+  })
+  if (resultError) return { error: resultError.message }
+
+  const { error: pendingError } = await supabase.from('pending_state_updates').insert({
+    campaign_id: rollRequest.campaign_id,
+    action_intent_id: rollRequest.action_intent_id,
+    roll_result_id: effectResultId,
+    update_type: effect.kind === 'healing' ? 'heal_token' : 'damage_token',
+    target_id: targetRaw.id,
+    target_kind: 'token',
+    target_name: targetName,
+    before: {
+      current_hp: targetRaw.current_hp ?? 0,
+      max_hp: targetRaw.max_hp ?? 0,
+      temp_hp: targetRaw.temp_hp ?? 0,
+      is_defeated: Boolean(targetRaw.is_defeated),
+    },
+    after: {
+      current_hp: preview.current_hp,
+      max_hp: preview.max_hp,
+      temp_hp: preview.temp_hp,
+      is_defeated: preview.is_defeated,
+      hp_effect: {
+        kind: effect.kind,
+        amount: roll.total,
+        source: 'hp_effect_roll',
+        roll_result_id: effectResultId,
+      },
+    },
+    summary,
+    status: 'pending_dm_review',
+  })
+  if (pendingError) return { error: pendingError.message }
+
+  const [{ error: requestError }, { error: intentError }] = await Promise.all([
+    supabase.from('action_roll_requests').update({ status: 'rolled' }).eq('id', rollRequest.id),
+    supabase
+      .from('action_intents')
+      .update({ status: 'rolled_waiting_for_dm', resolver_status: 'manual' })
+      .eq('id', rollRequest.action_intent_id),
+  ])
+
+  if (requestError) return { error: requestError.message }
+  if (intentError) return { error: intentError.message }
+
+  revalidatePath(ACTIONS_PATH(campaignId))
+  return { success: true, total: roll.total, summary }
 }

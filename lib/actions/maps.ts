@@ -164,8 +164,6 @@ export async function deleteMap(
 // ────────────────────────────────────────────────────────────
 // Tokens
 // ────────────────────────────────────────────────────────────
-// Token types that start hidden from players by default (secret threats).
-const STARTS_HIDDEN: TokenType[] = ['enemy', 'trap', 'door']
 // Object-ish types that the DM probably wants players to be able to
 // interact with right away (chests, levers, books, etc).
 const STARTS_INTERACTABLE: TokenType[] = [
@@ -180,6 +178,7 @@ export async function addToken(
   input: { token_type: TokenType; name: string; x: number; y: number; size?: number },
 ) {
   const supabase = await createClient()
+  const isPlayerToken = input.token_type === 'player'
 
   const { data: token, error } = await supabase
     .from('tokens')
@@ -192,8 +191,8 @@ export async function addToken(
       y: input.y,
       size: input.size ?? 1,
       color: tokenTypeColor(input.token_type),
-      // Enemies, traps, and doors start hidden from players by default.
-      visible_to_players: !STARTS_HIDDEN.includes(input.token_type),
+      visible_to_players: isPlayerToken,
+      discoverable: !isPlayerToken,
       // Most token/object types are interactable by default; the DM can
       // turn this off per-token. Pure scenery ("object") starts off.
       interactable: STARTS_INTERACTABLE.includes(input.token_type) && input.token_type !== 'object',

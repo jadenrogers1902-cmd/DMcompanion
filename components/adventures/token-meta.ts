@@ -145,7 +145,7 @@ export function normalizePreparedToken(raw: Partial<PreparedMapToken>): Prepared
     raw.reveal_state && ['dm_only', 'hidden', 'visible', 'discoverable', 'revealed'].includes(raw.reveal_state)
       ? raw.reveal_state
       : raw.visible_to_players === false
-        ? 'hidden'
+        ? 'discoverable'
         : 'visible'
   return {
     id: String(raw.id ?? crypto.randomUUID()),

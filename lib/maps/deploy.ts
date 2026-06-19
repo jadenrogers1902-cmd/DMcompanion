@@ -111,6 +111,31 @@ export async function instantiatePreparedMap(
   // only 'visible' deploys player-visible. Player-facing notes become the public
   // description.
   const tokens = sanitizeTokens(prepared.tokens ?? [])
+
+  // Transport tokens are named after the location they lead to, so the player
+  // travel popup shows the destination's name. Look up those titles up front.
+  const destIds = Array.from(
+    new Set(
+      tokens
+        .filter((t) => t.token_type === 'transport' && t.linked_prepared_map_id)
+        .map((t) => t.linked_prepared_map_id as string),
+    ),
+  )
+  const destTitleById = new Map<string, string>()
+  if (destIds.length > 0) {
+    const { data: destRows } = await client
+      .from('prepared_maps')
+      .select('id, title')
+      .in('id', destIds)
+    for (const row of destRows ?? []) destTitleById.set(row.id, row.title)
+  }
+  const liveTokenName = (token: (typeof tokens)[number]) => {
+    if (token.token_type === 'transport' && token.linked_prepared_map_id) {
+      return destTitleById.get(token.linked_prepared_map_id) || token.name || 'Transport'
+    }
+    return token.name
+  }
+
   if (tokens.length > 0) {
     const { data: liveTokens, error: tokenError } = await client
       .from('tokens')
@@ -119,7 +144,7 @@ export async function instantiatePreparedMap(
           campaign_id: campaignId,
           map_id: liveMap.id,
           token_type: toLiveTokenType(token.token_type),
-          name: token.name,
+          name: liveTokenName(token),
           x: token.x,
           y: token.y,
           size: token.size,

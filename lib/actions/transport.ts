@@ -206,11 +206,10 @@ async function carryPlayerTokens(
 }
 
 /**
- * Make `destinationPreparedMapId` the campaign's active live map. Reuses an
- * existing live instance for that prepared map if one exists; otherwise deploys
- * a fresh copy. Uses the service-role client throughout.
+ * Resolve a destination prepared map to a live map id: reuse the existing live
+ * instance if one exists, otherwise deploy a fresh copy. Does NOT activate it.
  */
-async function executeTravel(
+async function resolveDestinationMap(
   admin: SupabaseClient<Database>,
   campaignId: string,
   destinationPreparedMapId: string,
@@ -224,28 +223,39 @@ async function executeTravel(
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+  if (existing?.id) return { liveMapId: existing.id }
 
-  let liveMapId = existing?.id ?? null
+  const { data: prepRow } = await admin
+    .from('prepared_maps')
+    .select('*')
+    .eq('id', destinationPreparedMapId)
+    .eq('campaign_id', campaignId)
+    .maybeSingle()
+  if (!prepRow) return { error: 'Destination map not found.' }
+  const prepared = prepRow as unknown as PreparedMap
 
-  if (!liveMapId) {
-    const { data: prepRow } = await admin
-      .from('prepared_maps')
-      .select('*')
-      .eq('id', destinationPreparedMapId)
-      .eq('campaign_id', campaignId)
-      .maybeSingle()
-    if (!prepRow) return { error: 'Destination map not found.' }
-    const prepared = prepRow as unknown as PreparedMap
+  const result = await instantiatePreparedMap(admin, {
+    campaignId,
+    prepared,
+    liveName: prepared.title,
+    createdBy,
+  })
+  return result
+}
 
-    const result = await instantiatePreparedMap(admin, {
-      campaignId,
-      prepared,
-      liveName: prepared.title,
-      createdBy,
-    })
-    if ('error' in result) return result
-    liveMapId = result.liveMapId
-  }
+/**
+ * Make `destinationPreparedMapId` the campaign's active live map (reuse-or-deploy
+ * then activate). Service-role client throughout.
+ */
+async function executeTravel(
+  admin: SupabaseClient<Database>,
+  campaignId: string,
+  destinationPreparedMapId: string,
+  createdBy: string,
+): Promise<{ liveMapId: string } | { error: string }> {
+  const resolved = await resolveDestinationMap(admin, campaignId, destinationPreparedMapId, createdBy)
+  if ('error' in resolved) return resolved
+  const liveMapId = resolved.liveMapId
 
   // Activate it: deactivate the current active map, then flip this one on.
   await admin.from('maps').update({ is_active: false }).eq('campaign_id', campaignId).eq('is_active', true)
@@ -257,6 +267,47 @@ async function executeTravel(
   if (activateError) return { error: `Could not activate the destination map: ${activateError.message}` }
 
   return { liveMapId }
+}
+
+/**
+ * DM-only: resolve where a portal leads to a live map id WITHOUT activating it,
+ * so the DM can jump to (scout) the destination without moving the players'
+ * active scene. Returns the live map id to navigate to.
+ */
+export async function goToTransportDestination(
+  campaignId: string,
+  tokenId: string,
+): Promise<{ error: string } | { ok: true; liveMapId: string }> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: membership } = await supabase
+    .from('campaign_members')
+    .select('role')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (membership?.role !== 'dm') return { error: 'Only the DM can do that.' }
+
+  const admin = createAdminClient()
+  if (!admin) return { error: 'Travel is not configured on the server.' }
+
+  const { data: token } = await admin
+    .from('tokens')
+    .select('id, campaign_id, token_type, destination_prepared_map_id')
+    .eq('id', tokenId)
+    .maybeSingle()
+  if (!token || token.campaign_id !== campaignId) return { error: 'Transport not found.' }
+  if (token.token_type !== 'portal' || !token.destination_prepared_map_id) {
+    return { error: 'This transport has no destination set.' }
+  }
+
+  const resolved = await resolveDestinationMap(admin, campaignId, token.destination_prepared_map_id, user.id)
+  if ('error' in resolved) return resolved
+  return { ok: true, liveMapId: resolved.liveMapId }
 }
 
 /**

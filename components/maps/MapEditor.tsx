@@ -49,7 +49,7 @@ import {
   upsertTokenDmNote,
   reviewTravelParty,
 } from '@/lib/actions/maps'
-import { travelThroughTransport } from '@/lib/actions/transport'
+import { travelThroughTransport, goToTransportDestination } from '@/lib/actions/transport'
 import { startCampaignSession, endCampaignSession } from '@/lib/actions/sessions'
 import { useActiveSession } from '@/lib/hooks/useActiveSession'
 import { useTokenRealtime } from '@/lib/hooks/useTokenRealtime'
@@ -636,6 +636,33 @@ export function MapEditor({
     await resetTokenPosition(campaignId, map.id, tokenId)
   }
 
+  const [portalBusy, setPortalBusy] = useState(false)
+
+  // Send the party through this portal (deploy/activate destination) and follow
+  // the party there.
+  async function handlePortalTravelParty(tokenId: string) {
+    setPortalBusy(true)
+    const result = await travelThroughTransport(campaignId, tokenId)
+    setPortalBusy(false)
+    if ('error' in result) {
+      window.alert(result.error)
+      return
+    }
+    if (result.traveled) router.push(`/campaigns/${campaignId}/live-map/${result.liveMapId}`)
+  }
+
+  // Jump to the destination map yourself (scout) without moving the players.
+  async function handlePortalGoToLocation(tokenId: string) {
+    setPortalBusy(true)
+    const result = await goToTransportDestination(campaignId, tokenId)
+    setPortalBusy(false)
+    if ('error' in result) {
+      window.alert(result.error)
+      return
+    }
+    router.push(`/campaigns/${campaignId}/live-map/${result.liveMapId}`)
+  }
+
   function handleSelectToken(id: string | null) {
     setSelectedId(id)
     setAddMenuOpen(false)
@@ -831,11 +858,13 @@ export function MapEditor({
               onToggleLock={handleToggleTokenLock}
               onToggleOverride={handleToggleOverride}
               onDelete={handleDeleteToken}
+              portalBusy={portalBusy}
+              onTravelParty={() => handlePortalTravelParty(selected.id)}
+              onGoToLocation={() => handlePortalGoToLocation(selected.id)}
             />
           )}
           {selected && editorOpen && draftToken && (
             <TokenEditPanel
-              campaignId={campaignId}
               token={selected}
               draft={draftToken}
               dmNote={draftDmNote}
@@ -1198,6 +1227,9 @@ function TokenContextMenu({
   onToggleLock,
   onToggleOverride,
   onDelete,
+  portalBusy,
+  onTravelParty,
+  onGoToLocation,
 }: {
   token: Token
   position: CSSProperties
@@ -1208,7 +1240,11 @@ function TokenContextMenu({
   onToggleLock: () => void
   onToggleOverride: () => void
   onDelete: () => void
+  portalBusy?: boolean
+  onTravelParty?: () => void
+  onGoToLocation?: () => void
 }) {
+  const isPortal = token.token_type === 'portal' && Boolean(token.destination_prepared_map_id)
   return (
     <div
       className="absolute z-30 max-h-[calc(100%-1.5rem)] w-72 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950 p-3 shadow-2xl"
@@ -1256,6 +1292,27 @@ function TokenContextMenu({
           </ContextButton>
         </div>
       </div>
+
+      {isPortal && (
+        <div className="mt-3 grid gap-2">
+          <button
+            type="button"
+            disabled={portalBusy}
+            onClick={onTravelParty}
+            className="w-full rounded-md border border-violet-500/60 bg-violet-500/15 px-3 py-2 text-xs font-semibold text-violet-100 transition hover:border-violet-400 hover:bg-violet-500/25 disabled:opacity-50"
+          >
+            🌀 {portalBusy ? 'Working…' : `Travel party to ${token.name || 'location'}`}
+          </button>
+          <button
+            type="button"
+            disabled={portalBusy}
+            onClick={onGoToLocation}
+            className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-zinc-500 hover:text-zinc-100 disabled:opacity-50"
+          >
+            Go to {token.name || 'location'}
+          </button>
+        </div>
+      )}
 
       <Button size="sm" variant="danger" onClick={onDelete} className="mt-3 w-full">
         Delete token
@@ -1343,7 +1400,6 @@ function SliderSetting({
 }
 
 function TokenEditPanel({
-  campaignId,
   token,
   draft,
   dmNote,
@@ -1357,7 +1413,6 @@ function TokenEditPanel({
   onCancel,
   onSave,
 }: {
-  campaignId: string
   token: Token
   draft: Partial<Token>
   dmNote: string
@@ -1372,17 +1427,6 @@ function TokenEditPanel({
   onSave: () => void
 }) {
   const edited = { ...token, ...draft }
-  const [travelBusy, setTravelBusy] = useState(false)
-  const [travelMsg, setTravelMsg] = useState<string | null>(null)
-
-  async function handleTravelHere() {
-    setTravelBusy(true)
-    setTravelMsg(null)
-    const result = await travelThroughTransport(campaignId, token.id)
-    setTravelBusy(false)
-    if ('error' in result) setTravelMsg(result.error)
-    else if (result.traveled) setTravelMsg('Party traveled to the linked map.')
-  }
   const visibleActions = (edited.available_actions ?? actionsForToken({ ...edited, interactable: true })).join(', ')
   const hiddenActions = (edited.hidden_dm_actions ?? []).join(', ')
 
@@ -1487,27 +1531,10 @@ function TokenEditPanel({
             </Select>
 
             {edited.token_type === 'portal' && (
-              <div className="rounded-lg border border-violet-500/40 bg-violet-500/10 p-3">
-                <p className="text-xs font-semibold text-violet-200">🌀 Transport token</p>
-                <p className="mt-1 text-xs text-zinc-400">
-                  {edited.destination_prepared_map_id
-                    ? 'Players tap this to travel to the linked map — automatically in freeroam, or by unanimous party vote in group mode.'
-                    : 'No destination linked. Set one on the prepared map in Adventure Maker, then redeploy.'}
-                </p>
-                {edited.destination_prepared_map_id && (
-                  <>
-                    <button
-                      type="button"
-                      disabled={travelBusy}
-                      onClick={handleTravelHere}
-                      className="mt-2 inline-flex items-center gap-2 rounded-md border border-violet-500/60 bg-violet-500/20 px-3 py-1.5 text-xs font-semibold text-violet-100 transition hover:border-violet-400 hover:bg-violet-500/30 disabled:opacity-50"
-                    >
-                      {travelBusy ? 'Working…' : 'Travel party here now'}
-                    </button>
-                    {travelMsg && <p className="mt-1.5 text-xs text-violet-300">{travelMsg}</p>}
-                  </>
-                )}
-              </div>
+              <p className="rounded-lg border border-violet-500/40 bg-violet-500/10 p-3 text-xs text-zinc-400">
+                🌀 Transport token{edited.destination_prepared_map_id ? '' : ' — no destination linked. Set one on the prepared map in Adventure Maker, then redeploy.'}
+                {edited.destination_prepared_map_id ? ' Use the quick menu (click the token) to travel the party here or go to the location yourself.' : ''}
+              </p>
             )}
           </div>
         )}

@@ -27,7 +27,7 @@ export const PREPARED_TOKEN_TYPES: {
   { value: 'location', label: 'Location', icon: '📍', color: '#0d9488', defaultReveal: 'visible' },
   { value: 'clue', label: 'Clue', icon: '🔍', color: '#7c3aed', defaultReveal: 'hidden' },
   { value: 'loot', label: 'Loot', icon: '💰', color: '#ca8a04', defaultReveal: 'hidden' },
-  { value: 'transport', label: 'Transport', icon: '🌀', color: '#7c3aed', defaultReveal: 'visible' },
+  { value: 'transport', label: 'Transport', icon: '🌀', color: '#7c3aed', defaultReveal: 'discoverable' },
   { value: 'custom', label: 'Custom', icon: '✨', color: '#52525b', defaultReveal: 'visible' },
 ]
 

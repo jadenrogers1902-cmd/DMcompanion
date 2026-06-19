@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PlayerMapView } from '@/components/maps/PlayerMapView'
+import { RemoveLiveMapButton } from '@/components/maps/RemoveLiveMapButton'
 import { DMUtilityPanel } from '@/components/nav/DMUtilityPanel'
 import type {
   CampaignDocLinkPublication,
@@ -222,17 +223,23 @@ export default async function MapsPage({ params }: PageProps) {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
           {mapList.map((m) => (
-            <Link key={m.id} href={`/campaigns/${id}/live-map/${m.id}`}>
-              <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-600 transition-colors h-full">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-zinc-100">{m.name}</h3>
-                  {m.is_active && <Badge variant="success">Active</Badge>}
+            <div key={m.id} className="relative">
+              <RemoveLiveMapButton
+                campaignId={id}
+                mapId={m.id}
+                storagePath={m.storage_path}
+                mapName={m.name}
+              />
+              <Link href={`/campaigns/${id}/live-map/${m.id}`}>
+                <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-600 transition-colors h-full">
+                  <h3 className="font-semibold text-zinc-100 pr-8">{m.name}</h3>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
+                    {m.is_active && <Badge variant="success">Active</Badge>}
+                    <span>{m.width} × {m.height}px · 1 square = {m.grid_scale_feet}ft</span>
+                  </div>
                 </div>
-                <p className="text-xs text-zinc-600 mt-2">
-                  {m.width} × {m.height}px · 1 square = {m.grid_scale_feet}ft
-                </p>
-              </div>
-            </Link>
+              </Link>
+            </div>
           ))}
         </div>
       )}

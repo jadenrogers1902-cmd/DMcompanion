@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { CenterScreenMapView } from '@/components/maps/CenterScreenMapView'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { RenderArea, RenderToken } from '@/components/maps/MapCanvas'
-import type { GameMap, MapRevealedArea, Token } from '@/lib/types/database'
+import type { GameMap, MapRevealedArea, MapTravelParty, Profile, Token } from '@/lib/types/database'
 
 interface PageProps {
   params: Promise<{ id: string; mapId: string }>
@@ -69,7 +69,7 @@ export default async function CenterScreenPage({ params }: PageProps) {
     .single<GameMap>()
   if (!map) notFound()
 
-  const [{ data: signed }, { data: tokens }, { data: areas }] = await Promise.all([
+  const [{ data: signed }, { data: tokens }, { data: areas }, { data: parties }] = await Promise.all([
     supabase.storage.from('maps').createSignedUrl(map.storage_path, 3600),
     supabase
       .from('tokens')
@@ -82,6 +82,13 @@ export default async function CenterScreenPage({ params }: PageProps) {
       .eq('map_id', mapId)
       .eq('visible_to_players', true)
       .order('created_at', { ascending: true }),
+    supabase
+      .from('map_travel_parties')
+      .select('*')
+      .eq('map_id', mapId)
+      .eq('status', 'approved')
+      .order('updated_at', { ascending: false })
+      .limit(1),
   ])
 
   if (!signed?.signedUrl) {
@@ -92,7 +99,32 @@ export default async function CenterScreenPage({ params }: PageProps) {
     )
   }
 
-  const renderTokens = ((tokens ?? []) as Token[])
+  const rawTokens = (tokens ?? []) as Token[]
+  const activeParty = ((parties ?? []) as MapTravelParty[])[0] ?? null
+  const leaderRawToken =
+    activeParty
+      ? rawTokens.find((token) => (
+          token.controlled_by_user_id === activeParty.leader_user_id &&
+          token.token_type === 'player' &&
+          token.visible_to_players !== false
+        )) ?? null
+      : null
+  const fallbackLeaderToken =
+    leaderRawToken ??
+    rawTokens.find((token) => token.token_type === 'player' && token.visible_to_players !== false) ??
+    null
+
+  let leaderLabel: string | null = fallbackLeaderToken?.name ?? null
+  if (activeParty?.leader_user_id) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', activeParty.leader_user_id)
+      .maybeSingle<Pick<Profile, 'display_name'>>()
+    leaderLabel = profile?.display_name ?? leaderLabel
+  }
+
+  const renderTokens = rawTokens
     .map(tokenToCenterScreenToken)
     .filter((token): token is RenderToken => Boolean(token))
 
@@ -112,6 +144,8 @@ export default async function CenterScreenPage({ params }: PageProps) {
         imageUrl={signed.signedUrl}
         tokens={renderTokens}
         revealedAreas={renderAreas}
+        leaderTokenId={fallbackLeaderToken?.id ?? null}
+        leaderLabel={leaderLabel}
       />
     </main>
   )

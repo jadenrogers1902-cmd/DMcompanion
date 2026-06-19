@@ -12,6 +12,8 @@ interface CenterScreenMapViewProps {
   imageUrl: string
   tokens: RenderToken[]
   revealedAreas: RenderArea[]
+  leaderTokenId?: string | null
+  leaderLabel?: string | null
 }
 
 export function CenterScreenMapView({
@@ -20,14 +22,24 @@ export function CenterScreenMapView({
   imageUrl,
   tokens,
   revealedAreas,
+  leaderTokenId,
+  leaderLabel,
 }: CenterScreenMapViewProps) {
   const [chromeHidden, setChromeHidden] = useState(false)
+  const [followLeader, setFollowLeader] = useState(true)
 
   useRealtimeRefresh(`center-screen-${campaignId}-${map.id}`, [
     { table: 'tokens', filter: `map_id=eq.${map.id}` },
     { table: 'map_revealed_areas', filter: `map_id=eq.${map.id}` },
     { table: 'maps', filter: `id=eq.${map.id}` },
+    { table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
   ], { debounceMs: 250 })
+
+  const leaderToken =
+    (leaderTokenId ? tokens.find((token) => token.id === leaderTokenId) : null) ??
+    tokens.find((token) => token.token_type === 'player' && token.visible_to_players) ??
+    null
+  const followTarget = followLeader && leaderToken ? { x: leaderToken.x, y: leaderToken.y } : null
 
   async function enterFullscreen() {
     if (!document.fullscreenElement) {
@@ -36,7 +48,7 @@ export function CenterScreenMapView({
   }
 
   return (
-    <div className="flex h-dvh w-full flex-col overflow-hidden bg-black text-zinc-100">
+    <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-black text-zinc-100">
       {!chromeHidden && (
         <div className="shrink-0 border-b border-zinc-800 bg-zinc-950/95 px-4 py-3 shadow-xl shadow-black/40">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -57,6 +69,17 @@ export function CenterScreenMapView({
               <span className="rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300">
                 {tokens.length} tokens
               </span>
+              <button
+                type="button"
+                onClick={() => setFollowLeader((value) => !value)}
+                className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition ${
+                  followLeader
+                    ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
+                    : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500'
+                }`}
+              >
+                {followLeader ? 'Following leader' : 'Follow leader'}
+              </button>
               <button
                 type="button"
                 onClick={() => window.location.reload()}
@@ -113,8 +136,15 @@ export function CenterScreenMapView({
           canDragToken={() => false}
           revealedAreas={revealedAreas}
           fogEnabled
+          followTarget={followTarget}
+          followGridSquares={20}
         />
       </div>
+      {!chromeHidden && followLeader && leaderToken && (
+        <div className="pointer-events-none absolute bottom-3 left-1/2 z-30 -translate-x-1/2 rounded-full border border-zinc-800 bg-zinc-950/85 px-3 py-1.5 text-xs text-zinc-300 shadow-xl shadow-black/40">
+          Following {leaderLabel ?? leaderToken.name ?? 'party leader'}
+        </div>
+      )}
     </div>
   )
 }

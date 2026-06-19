@@ -70,6 +70,9 @@ interface MapCanvasProps {
   onAreaDrawn?: (shape:
     | { shape_type: 'rectangle'; x: number; y: number; width: number; height: number }
     | { shape_type: 'circle'; x: number; y: number; radius: number }) => void
+  // Presentation mode: keep a world coordinate centered in the viewport when it changes.
+  followTarget?: { x: number; y: number } | null
+  followGridSquares?: number
 }
 
 const MIN_SCALE = 0.1
@@ -142,6 +145,8 @@ export function MapCanvas({
   fogEnabled = false,
   drawTool = null,
   onAreaDrawn,
+  followTarget = null,
+  followGridSquares = 18,
 }: MapCanvasProps) {
   const isDraggable = (id: string) =>
     canDragToken ? canDragToken(id) : mode === 'dm'
@@ -157,6 +162,8 @@ export function MapCanvas({
   const majorStroke = rgba(gridColor, gridOpacity ?? DEFAULT_GRID_OPACITY)
   const minorStroke = rgba(gridColor, (gridOpacity ?? DEFAULT_GRID_OPACITY) * 0.42)
   const lightFill = `rgba(250,250,250,${clamp(dmLightBrightness ?? DEFAULT_DM_LIGHT_BRIGHTNESS, 0, 0.6)})`
+  const followTargetX = followTarget?.x ?? null
+  const followTargetY = followTarget?.y ?? null
 
   function clientToWorld(clientX: number, clientY: number) {
     const vp = viewportRef.current
@@ -225,6 +232,33 @@ export function MapCanvas({
     return () => ro.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageUrl])
+
+  useEffect(() => {
+    const vp = viewportRef.current
+    if (!vp || followTargetX === null || followTargetY === null || width === 0 || height === 0) return
+    const vw = vp.clientWidth
+    const vh = vp.clientHeight
+    const fitScale = Math.min(vw / width, vh / height) * 0.95
+    const focusWorldWidth = Math.max(safeGridSize * followGridSquares, safeGridSize * 8)
+    const focusWorldHeight = Math.max(safeGridSize * Math.round(followGridSquares * 0.7), safeGridSize * 6)
+    const followScale = clamp(
+      Math.max(fitScale, Math.min(vw / focusWorldWidth, vh / focusWorldHeight)),
+      MIN_SCALE,
+      MAX_SCALE,
+    )
+    setScale(followScale)
+    setOffset({
+      x: (vw / 2) - (followTargetX * followScale),
+      y: (vh / 2) - (followTargetY * followScale),
+    })
+  }, [
+    followTargetX,
+    followTargetY,
+    followGridSquares,
+    safeGridSize,
+    width,
+    height,
+  ])
 
   const zoomAround = useCallback((clientX: number, clientY: number, factor: number) => {
     const vp = viewportRef.current

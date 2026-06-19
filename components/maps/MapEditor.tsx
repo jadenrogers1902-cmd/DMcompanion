@@ -181,6 +181,7 @@ export function MapEditor({
   const [partyOptionsLocked, setPartyOptionsLocked] = useState(map.party_options_locked ?? false)
   const [groupMovementUnlimited, setGroupMovementUnlimited] = useState(map.group_movement_unlimited ?? false)
   const [freeroamMovementUnlimited, setFreeroamMovementUnlimited] = useState(map.freeroam_movement_unlimited ?? false)
+  const [playerVisionRadiusFeet, setPlayerVisionRadiusFeet] = useState(map.player_vision_radius_feet ?? 7)
   const [partyMenuOpen, setPartyMenuOpen] = useState(false)
   const [partyBusy, setPartyBusy] = useState<string | null>(null)
   const [partyFeedback, setPartyFeedback] = useState<string | null>(null)
@@ -298,6 +299,7 @@ export function MapEditor({
       setPartyOptionsLocked(m.party_options_locked ?? false)
       setGroupMovementUnlimited(m.group_movement_unlimited ?? false)
       setFreeroamMovementUnlimited(m.freeroam_movement_unlimited ?? false)
+      setPlayerVisionRadiusFeet(m.player_vision_radius_feet ?? 7)
     },
     onAreaUpsert: (area) => setAreas((prev) => mergeAreaList(prev, area)),
     onAreaDelete: (id) => setAreas((prev) => prev.filter((a) => a.id !== id)),
@@ -545,6 +547,7 @@ export function MapEditor({
     partyOptionsLocked?: boolean
     groupMovementUnlimited?: boolean
     freeroamMovementUnlimited?: boolean
+    playerVisionRadiusFeet?: number
   }) {
     setPartyBusy('travel')
     setPartyFeedback(null)
@@ -552,6 +555,7 @@ export function MapEditor({
     if (input.partyOptionsLocked !== undefined) setPartyOptionsLocked(input.partyOptionsLocked)
     if (input.groupMovementUnlimited !== undefined) setGroupMovementUnlimited(input.groupMovementUnlimited)
     if (input.freeroamMovementUnlimited !== undefined) setFreeroamMovementUnlimited(input.freeroamMovementUnlimited)
+    if (input.playerVisionRadiusFeet !== undefined) setPlayerVisionRadiusFeet(input.playerVisionRadiusFeet)
     if (input.travelMode === 'combat') {
       setMapLocked(true)
       setPartyOptionsLocked(true)
@@ -830,6 +834,7 @@ export function MapEditor({
             partyOptionsLocked={partyOptionsLocked}
             groupMovementUnlimited={groupMovementUnlimited}
             freeroamMovementUnlimited={freeroamMovementUnlimited}
+            playerVisionRadiusFeet={playerVisionRadiusFeet}
             parties={initialTravelParties}
             members={initialTravelPartyMembers}
             players={players}

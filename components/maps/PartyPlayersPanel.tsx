@@ -18,6 +18,7 @@ interface PartyPlayersPanelProps {
   partyOptionsLocked: boolean
   groupMovementUnlimited: boolean
   freeroamMovementUnlimited: boolean
+  playerVisionRadiusFeet: number
   parties: MapTravelParty[]
   members: MapTravelPartyMember[]
   players: CodexPlayer[]
@@ -26,6 +27,7 @@ interface PartyPlayersPanelProps {
     partyOptionsLocked?: boolean
     groupMovementUnlimited?: boolean
     freeroamMovementUnlimited?: boolean
+    playerVisionRadiusFeet?: number
   }) => void
   onReviewParty: (partyId: string, approved: boolean) => void
   // Player roster
@@ -53,6 +55,7 @@ export function PartyPlayersPanel({
   partyOptionsLocked,
   groupMovementUnlimited,
   freeroamMovementUnlimited,
+  playerVisionRadiusFeet,
   parties,
   members,
   players,
@@ -70,6 +73,8 @@ export function PartyPlayersPanel({
   const pendingParties = parties.filter((party) => party.status === 'pending_dm')
   const activeParty = parties.find((party) => party.status === 'approved')
   const playerName = (userId: string) => players.find((p) => p.id === userId)?.name ?? 'Player'
+  const visionPresets = [0, 5, 7, 10, 15, 30]
+  const normalizedVisionRadius = Math.max(0, Math.min(300, Math.round(playerVisionRadiusFeet || 0)))
 
   function partyMemberSummary(partyId: string) {
     const rows = members.filter((member) => member.party_id === partyId)
@@ -121,6 +126,50 @@ export function PartyPlayersPanel({
                   <TravelModeButton active={travelMode === 'combat'} label="Combat" icon={<Swords className="h-4 w-4" />} disabled={busy} onClick={() => onUpdate({ travelMode: 'combat' })} />
                 </div>
                 <p className="text-[11px] text-zinc-500">1 square = 5 ft. Default travel allowance is 30 ft.</p>
+
+                <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-sky-200">Vision radius</p>
+                      <p className="mt-1 text-[11px] text-sky-100/70">
+                        New player movement reveals this much fog around each moved token.
+                      </p>
+                    </div>
+                    <span className="rounded-md border border-sky-400/40 bg-zinc-950 px-2 py-1 text-xs font-semibold text-sky-100">
+                      {normalizedVisionRadius} ft
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-1.5">
+                    {visionPresets.map((feet) => (
+                      <button
+                        key={feet}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => onUpdate({ playerVisionRadiusFeet: feet })}
+                        className={`rounded-md border px-2 py-1.5 text-[11px] font-semibold transition disabled:opacity-50 ${
+                          normalizedVisionRadius === feet
+                            ? 'border-sky-300 bg-sky-400/20 text-sky-50'
+                            : 'border-zinc-700 bg-zinc-950 text-zinc-300 hover:border-sky-500/60 hover:text-sky-100'
+                        }`}
+                      >
+                        {feet === 0 ? 'None' : `${feet} ft`}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="mt-3 block text-[11px] font-medium text-sky-100/80">
+                    Custom radius
+                    <input
+                      type="number"
+                      min={0}
+                      max={300}
+                      step={1}
+                      value={normalizedVisionRadius}
+                      disabled={busy}
+                      onChange={(event) => onUpdate({ playerVisionRadiusFeet: Number(event.target.value) })}
+                      className="mt-1 min-h-9 w-full rounded-md border border-sky-500/30 bg-zinc-950 px-3 py-1.5 text-sm text-zinc-100 outline-none transition focus:border-sky-300 disabled:opacity-50"
+                    />
+                  </label>
+                </div>
 
                 <div className="grid gap-2">
                   <ToggleRow label="Group infinite movement" checked={groupMovementUnlimited} disabled={busy} onChange={(v) => onUpdate({ groupMovementUnlimited: v })} />

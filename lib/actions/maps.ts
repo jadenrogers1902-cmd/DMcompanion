@@ -13,6 +13,7 @@ type TravelOptionsInput = {
   partyOptionsLocked?: boolean
   groupMovementUnlimited?: boolean
   freeroamMovementUnlimited?: boolean
+  playerVisionRadiusFeet?: number
 }
 
 function travelMigrationError(message: string) {
@@ -25,9 +26,10 @@ function travelMigrationError(message: string) {
     lower.includes('function public.respond_travel_party_invite') ||
     lower.includes('function public.review_travel_party') ||
     lower.includes('relation "map_travel_parties"') ||
-    lower.includes('column maps.travel_mode')
+    lower.includes('column maps.travel_mode') ||
+    lower.includes('column maps.player_vision_radius_feet')
   ) {
-    return 'Travel options are not ready on the database yet. Apply migration 032_travel_modes_parties.sql to production Supabase, then try again.'
+    return 'Travel options are not ready on the database yet. Apply the latest Supabase travel/vision migrations to production, then try again.'
   }
   return message
 }
@@ -450,6 +452,7 @@ export async function setMapTravelOptions(
     p_party_options_locked: input.partyOptionsLocked ?? null,
     p_group_movement_unlimited: input.groupMovementUnlimited ?? null,
     p_freeroam_movement_unlimited: input.freeroamMovementUnlimited ?? null,
+    p_player_vision_radius_feet: input.playerVisionRadiusFeet ?? null,
   })
   if (error) return { error: error.message }
   if (data?.error) return { error: data.error }

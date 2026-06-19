@@ -124,6 +124,7 @@ export interface GameMap {
   party_options_locked: boolean
   group_movement_unlimited: boolean
   freeroam_movement_unlimited: boolean
+  player_vision_radius_feet: number
   combat_round: number
   source_prepared_map_id: string | null
   created_by: string
@@ -1786,6 +1787,7 @@ export type Database = {
           party_options_locked: boolean
           group_movement_unlimited: boolean
           freeroam_movement_unlimited: boolean
+          player_vision_radius_feet: number
           combat_round: number
           source_prepared_map_id: string | null
           created_by: string
@@ -1815,6 +1817,7 @@ export type Database = {
           party_options_locked?: boolean
           group_movement_unlimited?: boolean
           freeroam_movement_unlimited?: boolean
+          player_vision_radius_feet?: number
           combat_round?: number
           source_prepared_map_id?: string | null
           created_by: string
@@ -1842,6 +1845,7 @@ export type Database = {
           party_options_locked?: boolean
           group_movement_unlimited?: boolean
           freeroam_movement_unlimited?: boolean
+          player_vision_radius_feet?: number
           combat_round?: number
           source_prepared_map_id?: string | null
           updated_at?: string
@@ -2767,6 +2771,7 @@ export type Database = {
           p_party_options_locked?: boolean | null
           p_group_movement_unlimited?: boolean | null
           p_freeroam_movement_unlimited?: boolean | null
+          p_player_vision_radius_feet?: number | null
         }
         Returns: MoveTokenResult
       }

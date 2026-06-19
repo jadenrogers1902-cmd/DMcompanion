@@ -111,7 +111,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
-CREATE OR REPLACE FUNCTION get_player_visible_campaign_docs(p_campaign_id UUID)
+-- The return shape adds npc_profile, so Postgres requires dropping the old
+-- table-returning function before recreating it.
+DROP FUNCTION IF EXISTS get_player_visible_campaign_docs(UUID);
+
+CREATE FUNCTION get_player_visible_campaign_docs(p_campaign_id UUID)
 RETURNS TABLE (
   id UUID,
   campaign_id UUID,

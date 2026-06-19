@@ -267,6 +267,49 @@ export async function getLiveMapDeployContext(campaignId: string, preparedMapId:
 }
 
 /**
+ * Designate (or clear) a prepared map as its chapter's hub — the entry map
+ * players land on when the DM opens the chapter for play. One hub per chapter.
+ */
+export async function setPreparedMapHub(
+  campaignId: string,
+  adventureId: string,
+  chapterId: string,
+  preparedMapId: string,
+  makeHub: boolean,
+) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  if (makeHub) {
+    // Clear any existing hub in this chapter first (one hub per chapter).
+    await supabase
+      .from('prepared_maps')
+      .update({ is_hub: false })
+      .eq('chapter_id', chapterId)
+      .eq('is_hub', true)
+    const { error } = await supabase
+      .from('prepared_maps')
+      .update({ is_hub: true })
+      .eq('id', preparedMapId)
+      .eq('campaign_id', campaignId)
+    if (error) return { error: error.message }
+  } else {
+    const { error } = await supabase
+      .from('prepared_maps')
+      .update({ is_hub: false })
+      .eq('id', preparedMapId)
+      .eq('campaign_id', campaignId)
+    if (error) return { error: error.message }
+  }
+
+  revalidatePrepPaths(campaignId, adventureId, chapterId, preparedMapId)
+  return { ok: true }
+}
+
+/**
  * Instantiate this prepared scene as a live map: copies the image within the
  * 'maps' bucket and creates fresh, independent live `maps` + `tokens` rows. The
  * prepared original is never mutated, so it can be deployed again and live-session

@@ -1202,6 +1202,7 @@ export type Database = {
           description: string | null
           sort_order: number
           status: string
+          is_live: boolean
           prep_notes: Record<string, unknown>[]
           important_links: Record<string, unknown>[]
           tags: string[]
@@ -1216,6 +1217,7 @@ export type Database = {
           description?: string | null
           sort_order?: number
           status?: string
+          is_live?: boolean
           prep_notes?: Record<string, unknown>[]
           important_links?: Record<string, unknown>[]
           tags?: string[]
@@ -1230,6 +1232,7 @@ export type Database = {
           description?: string | null
           sort_order?: number
           status?: string
+          is_live?: boolean
           prep_notes?: Record<string, unknown>[]
           important_links?: Record<string, unknown>[]
           tags?: string[]
@@ -1256,6 +1259,7 @@ export type Database = {
           links: Record<string, unknown>[]
           tags: string[]
           status: string
+          is_hub: boolean
           created_at: string
           updated_at: string
         }
@@ -1276,6 +1280,7 @@ export type Database = {
           links?: Record<string, unknown>[]
           tags?: string[]
           status?: string
+          is_hub?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -1296,6 +1301,7 @@ export type Database = {
           links?: Record<string, unknown>[]
           tags?: string[]
           status?: string
+          is_hub?: boolean
           created_at?: string
           updated_at?: string
         }

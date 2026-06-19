@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { AdventureBreadcrumbs } from '@/components/adventures/AdventureBreadcrumbs'
 import { ChapterSettingsPanel } from '@/components/adventures/ChapterSettingsPanel'
+import { ChapterLiveButton } from '@/components/adventures/ChapterLiveButton'
 import { CreatePreparedMapButton } from '@/components/adventures/CreatePreparedMapButton'
 import {
   adventureStatusBadgeVariant,
@@ -69,6 +70,7 @@ export default async function ChapterWorkspacePage({ params }: PageProps) {
     .eq('chapter_id', chapterId)
     .order('updated_at', { ascending: false })
   const preparedMaps = (mapRows ?? []) as unknown as PreparedMap[]
+  const hubMap = preparedMaps.find((map) => map.is_hub) ?? null
 
   // Signed thumbnails for cards that have an image.
   const thumbnails: Record<string, string> = {}
@@ -96,8 +98,29 @@ export default async function ChapterWorkspacePage({ params }: PageProps) {
         ]}
       />
 
-      <div className="mb-8">
+      <div className="mb-6">
         <ChapterSettingsPanel chapter={chapter} />
+      </div>
+
+      <div className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-zinc-100">Play this chapter</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              {hubMap
+                ? <>Hub map: <span className="text-zinc-300">{hubMap.title}</span>. Opening deploys it as the active map players land on.</>
+                : 'Pick one map below as the hub (entry point), then open the chapter for players.'}
+            </p>
+          </div>
+          <ChapterLiveButton
+            campaignId={id}
+            adventureId={adventureId}
+            chapterId={chapterId}
+            isLive={Boolean(chapter.is_live)}
+            hasHub={Boolean(hubMap)}
+            hubHasImage={Boolean(hubMap?.storage_path)}
+          />
+        </div>
       </div>
 
       <section>
@@ -153,9 +176,12 @@ export default async function ChapterWorkspacePage({ params }: PageProps) {
                     <div className="flex flex-1 flex-col p-4">
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="font-semibold text-zinc-100">{map.title}</h3>
-                        <Badge variant={adventureStatusBadgeVariant(map.status)}>
-                          {adventureStatusLabel(map.status)}
-                        </Badge>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {map.is_hub && <Badge variant="success">Hub</Badge>}
+                          <Badge variant={adventureStatusBadgeVariant(map.status)}>
+                            {adventureStatusLabel(map.status)}
+                          </Badge>
+                        </div>
                       </div>
                       <p className="mt-1 line-clamp-2 text-sm text-zinc-500">
                         {map.description || 'No description yet.'}

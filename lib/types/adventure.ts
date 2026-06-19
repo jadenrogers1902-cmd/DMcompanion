@@ -83,6 +83,8 @@ export interface Chapter {
   /** Presentation order within the adventure (ascending). */
   sort_order: number
   status: AdventureStatus
+  /** Whether this is the campaign's currently playable chapter (one per campaign). */
+  is_live?: boolean
   prep_notes: PrepNote[]
   important_links: PrepImportantLink[]
   tags: string[]
@@ -118,6 +120,8 @@ export type PreparedMap = {
   links: PreparedMapLink[]
   tags: string[]
   status: AdventureStatus
+  /** Whether this is the chapter's hub (entry) map — one per chapter. */
+  is_hub?: boolean
   created_at: string
   updated_at: string
 }

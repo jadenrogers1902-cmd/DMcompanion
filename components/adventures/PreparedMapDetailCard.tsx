@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { DMLinkedCodexDocsPanel } from '@/components/codex/CodexLinkedDocsPanel'
 import { campaignDocTypeLabel } from '@/lib/codex/options'
+import { SetHubButton } from './SetHubButton'
 import type { CodexPlayer } from '@/lib/actions/codex'
 import type { CampaignDoc, CampaignDocLink } from '@/lib/types/database'
 import type { PreparedMap } from '@/lib/types/adventure'
@@ -78,20 +79,30 @@ export function PreparedMapDetailCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="dm">Map</Badge>
+            {map.is_hub && <Badge variant="success">Hub</Badge>}
             <Badge variant="default">{map.tokens.length} token{map.tokens.length === 1 ? '' : 's'}</Badge>
           </div>
           <h1 className="mt-2 text-2xl font-bold text-zinc-100">{map.title}</h1>
           {map.description && <p className="mt-1 text-sm text-zinc-500">{map.description}</p>}
         </div>
-        <Link
-          href={editHref}
-          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-          </svg>
-          Edit Map and Tokens
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <Link
+            href={editHref}
+            className="inline-flex items-center gap-2 rounded-full border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+            </svg>
+            Edit Map and Tokens
+          </Link>
+          <SetHubButton
+            campaignId={campaignId}
+            adventureId={adventureId}
+            chapterId={chapterId}
+            preparedMapId={map.id}
+            isHub={Boolean(map.is_hub)}
+          />
+        </div>
       </div>
 
       {/* Tie Notion/Codex entries to this map (attach / reveal / open). */}

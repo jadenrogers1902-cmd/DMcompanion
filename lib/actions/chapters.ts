@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/types/database'
 import type { AdventureStatus, PrepImportantLink, PrepNote } from '@/lib/types/adventure'
 import { normalizePrepLinks, normalizePrepNotes, normalizeTags } from '@/components/adventures/prep-metadata'
+import { sendPreparedMapToLiveMap } from './prepared-maps'
 
 type ChapterUpdate = Database['public']['Tables']['adventure_chapters']['Update']
 
@@ -130,6 +131,56 @@ export async function deleteChapter(
 
   revalidateChapterPaths(campaignId, adventureId)
   redirect(`/campaigns/${campaignId}/adventures/${adventureId}`)
+}
+
+/**
+ * Open a chapter for players: mark it the campaign's live chapter (only one at a
+ * time) and make its hub map the active live map, so players who open the Live
+ * Map land on the hub. The live session indicator is separate (Start session).
+ */
+export async function setChapterLive(
+  campaignId: string,
+  adventureId: string,
+  chapterId: string,
+) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: hub } = await supabase
+    .from('prepared_maps')
+    .select('id, storage_path')
+    .eq('chapter_id', chapterId)
+    .eq('is_hub', true)
+    .maybeSingle()
+  if (!hub) return { error: 'Set a hub map for this chapter first.' }
+  if (!hub.storage_path) {
+    return { error: 'The hub map needs a background image before opening it for players.' }
+  }
+
+  // Deploy the hub and make it the active map (replace_active also handles the
+  // activation atomically). The prepared map is never mutated.
+  const deploy = await sendPreparedMapToLiveMap(campaignId, hub.id, { mode: 'replace_active' })
+  if ('error' in deploy && deploy.error) return { error: deploy.error }
+
+  // Mark this the campaign's live chapter (clear any other first).
+  await supabase
+    .from('adventure_chapters')
+    .update({ is_live: false })
+    .eq('campaign_id', campaignId)
+    .eq('is_live', true)
+  const { error } = await supabase
+    .from('adventure_chapters')
+    .update({ is_live: true })
+    .eq('id', chapterId)
+    .eq('campaign_id', campaignId)
+  if (error) return { error: error.message }
+
+  revalidateChapterPaths(campaignId, adventureId, chapterId)
+  revalidatePath(`/campaigns/${campaignId}/live-map`)
+  return { ok: true }
 }
 
 export async function moveChapter(

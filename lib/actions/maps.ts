@@ -446,14 +446,17 @@ export async function setMapTravelOptions(
   input: TravelOptionsInput,
 ) {
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('set_map_travel_options', {
+  const args: Database['public']['Functions']['set_map_travel_options']['Args'] = {
     p_map_id: mapId,
     p_travel_mode: input.travelMode ?? null,
     p_party_options_locked: input.partyOptionsLocked ?? null,
     p_group_movement_unlimited: input.groupMovementUnlimited ?? null,
     p_freeroam_movement_unlimited: input.freeroamMovementUnlimited ?? null,
-    p_player_vision_radius_feet: input.playerVisionRadiusFeet ?? null,
-  })
+  }
+  if (input.playerVisionRadiusFeet !== undefined) {
+    args.p_player_vision_radius_feet = input.playerVisionRadiusFeet
+  }
+  const { data, error } = await supabase.rpc('set_map_travel_options', args)
   if (error) return { error: error.message }
   if (data?.error) return { error: data.error }
   revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)

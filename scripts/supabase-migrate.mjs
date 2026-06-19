@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import nextEnv from '@next/env'
 
 const { loadEnvConfig } = nextEnv
@@ -56,6 +56,7 @@ if (!process.env.SUPABASE_ACCESS_TOKEN) {
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx'
 const dbPassword = process.env.SUPABASE_DB_PASSWORD?.trim()
 const passwordArgs = dbPassword ? ['--password', dbPassword] : []
+const baselineBeforeVersion = process.env.SUPABASE_BASELINE_APPLIED_BEFORE_VERSION?.trim()
 
 if (!existsSync('supabase/config.toml')) {
   console.log('Initializing Supabase project config...')
@@ -64,6 +65,32 @@ if (!existsSync('supabase/config.toml')) {
 
 console.log(`Linking Supabase project: ${projectRef}`)
 run(npx, ['supabase', 'link', '--project-ref', projectRef, ...passwordArgs, '--yes'])
+
+if (baselineBeforeVersion) {
+  const baselineVersionNumber = Number(baselineBeforeVersion)
+  const baselineVersions = [
+    ...new Set(
+      readdirSync('supabase/migrations')
+        .map((fileName) => fileName.match(/^(\d+)_/)?.[1])
+        .filter((version) => version && Number(version) < baselineVersionNumber),
+    ),
+  ].sort((a, b) => Number(a) - Number(b))
+
+  if (baselineVersions.length > 0) {
+    console.log(`Marking baseline migrations as applied before ${baselineBeforeVersion}:`)
+    console.log(baselineVersions.join(', '))
+    run(npx, [
+      'supabase',
+      'migration',
+      'repair',
+      '--status',
+      'applied',
+      ...baselineVersions,
+      ...passwordArgs,
+      '--yes',
+    ])
+  }
+}
 
 console.log('Pushing Supabase migrations...')
 run(npx, ['supabase', 'db', 'push', ...passwordArgs, '--yes'])

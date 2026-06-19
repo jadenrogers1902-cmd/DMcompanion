@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import nextEnv from '@next/env'
 
 const { loadEnvConfig } = nextEnv
@@ -36,9 +37,16 @@ if (!process.env.SUPABASE_ACCESS_TOKEN) {
 }
 
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx'
+const dbPassword = process.env.SUPABASE_DB_PASSWORD?.trim()
+const passwordArgs = dbPassword ? ['--password', dbPassword] : []
+
+if (!existsSync('supabase/config.toml')) {
+  console.log('Initializing Supabase project config...')
+  run(npx, ['supabase', 'init'])
+}
 
 console.log(`Linking Supabase project: ${projectRef}`)
-run(npx, ['supabase', 'link', '--project-ref', projectRef])
+run(npx, ['supabase', 'link', '--project-ref', projectRef, ...passwordArgs])
 
 console.log('Pushing Supabase migrations...')
-run(npx, ['supabase', 'db', 'push'])
+run(npx, ['supabase', 'db', 'push', ...passwordArgs])

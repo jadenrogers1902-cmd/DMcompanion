@@ -127,16 +127,39 @@ export async function removeMember(campaignId: string, memberId: string) {
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  // Only the campaign owner can remove members (RLS enforces this too)
+  const { data: membership } = await supabase
+    .from('campaign_members')
+    .select('role')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (membership?.role !== 'dm') {
+    return { error: 'Only the DM can remove players from this campaign.' }
+  }
+
+  const { data: target } = await supabase
+    .from('campaign_members')
+    .select('id, role, user_id')
+    .eq('id', memberId)
+    .eq('campaign_id', campaignId)
+    .maybeSingle()
+
+  if (!target) return { error: 'Player membership not found.' }
+  if (target.role !== 'player') return { error: 'Only player members can be removed here.' }
+  if (target.user_id === user.id) return { error: 'You cannot remove yourself from the campaign.' }
+
   const { error } = await supabase
     .from('campaign_members')
     .delete()
     .eq('id', memberId)
     .eq('campaign_id', campaignId)
+    .eq('role', 'player')
 
   if (error) return { error: error.message }
 
   revalidatePath(`/campaigns/${campaignId}/settings`)
+  revalidatePath(`/campaigns/${campaignId}`)
   return { success: true }
 }
 

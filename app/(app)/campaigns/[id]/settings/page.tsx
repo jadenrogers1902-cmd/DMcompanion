@@ -27,6 +27,8 @@ export default function CampaignSettingsPage({ params }: PageProps) {
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [removeError, setRemoveError] = useState<string | null>(null)
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
 
   useEffect(() => {
     params.then(({ id }) => setCampaignId(id))
@@ -43,13 +45,21 @@ export default function CampaignSettingsPage({ params }: PageProps) {
       if (!user) { router.push('/login'); return }
       setCurrentUserId(user.id)
 
-      const { data: c } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('id', campaignId!)
-        .single()
+      const [{ data: c }, { data: membership }] = await Promise.all([
+        supabase
+          .from('campaigns')
+          .select('*')
+          .eq('id', campaignId!)
+          .single(),
+        supabase
+          .from('campaign_members')
+          .select('role')
+          .eq('campaign_id', campaignId!)
+          .eq('user_id', user.id)
+          .single(),
+      ])
 
-      if (!c || c.owner_id !== user.id) {
+      if (!c || membership?.role !== 'dm') {
         router.push(`/campaigns/${campaignId}`)
         return
       }
@@ -92,10 +102,15 @@ export default function CampaignSettingsPage({ params }: PageProps) {
 
   async function handleRemove(memberId: string) {
     if (!campaignId) return
+    setRemoveError(null)
+    setRemovingMemberId(memberId)
     const result = await removeMember(campaignId, memberId)
-    if (!result.error) {
-      setMembers((prev) => prev.filter((m) => m.id !== memberId))
+    setRemovingMemberId(null)
+    if (result?.error) {
+      setRemoveError(result.error)
+      return
     }
+    setMembers((prev) => prev.filter((m) => m.id !== memberId))
   }
 
   if (loading) {
@@ -163,6 +178,7 @@ export default function CampaignSettingsPage({ params }: PageProps) {
         <CardHeader>
           <CardTitle>Members</CardTitle>
         </CardHeader>
+        {removeError && <Alert message={removeError} />}
         <ul className="flex flex-col gap-3">
           {members.map((member) => (
             <li key={member.id} className="flex items-center justify-between gap-3">
@@ -187,6 +203,8 @@ export default function CampaignSettingsPage({ params }: PageProps) {
                   <Button
                     variant="danger"
                     size="sm"
+                    loading={removingMemberId === member.id}
+                    disabled={Boolean(removingMemberId)}
                     onClick={() => handleRemove(member.id)}
                   >
                     Remove

@@ -2,7 +2,19 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import type { ActionIntentStatus, CharacterAttack, Token } from '@/lib/types/database'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { fetchNotionPage } from '@/lib/notion/client'
+import {
+  buildNpcRevealPayload,
+  buildNpcSummary,
+  extractNpcProfileFromPage,
+  isNpcDocType,
+  normalizeNpcProfile,
+  pageTitle,
+  type NpcProfile,
+  type NpcRevealPayload,
+} from '@/lib/notion/npc-profile'
+import type { ActionIntent, ActionIntentStatus, CampaignDoc, CharacterAttack, Token } from '@/lib/types/database'
 import { actionsForToken, distanceFeet } from '@/lib/utils/actions'
 
 const ACTIONS_PATH = (campaignId: string) => `/campaigns/${campaignId}/actions`
@@ -61,6 +73,144 @@ function stateForAction(actionType: string) {
     Take: 'looted',
   }
   return map[actionType] ?? null
+}
+
+function npcProfileHasContent(profile: NpcProfile) {
+  return Boolean(profile.role || profile.personality || profile.appearance || profile.wares.length > 0)
+}
+
+async function getNotionTokenForCampaign(campaignId: string) {
+  const admin = createAdminClient()
+  if (!admin) return null
+  const { data } = await admin
+    .from('campaign_notion_connections')
+    .select('access_token, is_enabled')
+    .eq('campaign_id', campaignId)
+    .maybeSingle()
+  if (!data?.is_enabled || !data.access_token) return null
+  return data.access_token
+}
+
+async function buildTalkNpcReveal(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  intent: ActionIntent,
+  dmResponse: string,
+  revealedBy: string,
+): Promise<{ payload: NpcRevealPayload; summary: string }> {
+  const { data: targetRaw } = await supabase
+    .from('tokens')
+    .select('id, name, token_type, public_description')
+    .eq('id', intent.target_token_id)
+    .eq('campaign_id', intent.campaign_id)
+    .maybeSingle()
+
+  const target = (targetRaw ?? null) as Pick<Token, 'id' | 'name' | 'token_type' | 'public_description'> | null
+  const fallbackTitle = target?.name || target?.token_type || 'NPC'
+  const fallbackProfile = normalizeNpcProfile({
+    role: target?.token_type ?? null,
+    appearance: target?.public_description ?? null,
+  })
+
+  const { data: linksRaw } = await supabase
+    .from('campaign_doc_links')
+    .select('source_doc_id')
+    .eq('campaign_id', intent.campaign_id)
+    .eq('live_object_id', intent.target_token_id)
+    .in('live_object_type', ['token', 'object'])
+
+  const docIds = Array.from(new Set((linksRaw ?? []).map((link) => link.source_doc_id).filter(Boolean)))
+  let doc: CampaignDoc | null = null
+  if (docIds.length > 0) {
+    const { data: docsRaw } = await supabase
+      .from('campaign_docs')
+      .select('*')
+      .eq('campaign_id', intent.campaign_id)
+      .in('id', docIds)
+    doc = ((docsRaw ?? []) as CampaignDoc[]).find((row) => isNpcDocType(row.doc_type)) ?? null
+  }
+
+  if (!doc) {
+    const fallbackSummary = target?.public_description ?? (dmResponse.trim() || null)
+    const payload = buildNpcRevealPayload({
+      title: fallbackTitle,
+      summary: fallbackSummary,
+      docId: null,
+      profile: fallbackProfile,
+      sourceStatus: 'token_fallback',
+    })
+    return {
+      payload,
+      summary: dmResponse.trim() || `Talk approved. ${payload.title} is ready to talk.`,
+    }
+  }
+
+  let title = doc.title || fallbackTitle
+  let profile = normalizeNpcProfile(doc.npc_profile)
+  let summary = doc.player_summary?.trim() || target?.public_description || null
+  let sourceStatus: NpcRevealPayload['sourceStatus'] = 'cached_codex'
+
+  if (doc.source === 'notion' && doc.source_page_id) {
+    const token = await getNotionTokenForCampaign(intent.campaign_id)
+    if (token) {
+      const pageResult = await fetchNotionPage(token, doc.source_page_id)
+      if (pageResult.ok) {
+        title = pageTitle(pageResult.data, title)
+        const freshProfile = extractNpcProfileFromPage(pageResult.data)
+        if (npcProfileHasContent(freshProfile)) profile = freshProfile
+        summary = doc.player_summary?.trim() || buildNpcSummary(title, profile, target?.public_description)
+        sourceStatus = 'fresh_notion'
+
+        await supabase
+          .from('campaign_docs')
+          .update({
+            title,
+            player_summary: summary,
+            npc_profile: profile,
+            last_synced_at: new Date().toISOString(),
+            sync_status: 'success',
+            sync_error: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', doc.id)
+          .eq('campaign_id', intent.campaign_id)
+      } else {
+        await supabase
+          .from('campaign_docs')
+          .update({
+            sync_status: 'failed',
+            sync_error: pageResult.message,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', doc.id)
+          .eq('campaign_id', intent.campaign_id)
+      }
+    }
+  }
+
+  if (!summary) summary = buildNpcSummary(title, profile, target?.public_description)
+
+  await supabase.from('codex_reveals').insert({
+    campaign_id: intent.campaign_id,
+    doc_id: doc.id,
+    revealed_to_scope: 'player',
+    revealed_to_player_id: intent.actor_user_id,
+    revealed_by: revealedBy,
+    reveal_message: dmResponse.trim() || `Talk approved: ${title}`,
+    reveal_type: 'manual',
+  })
+
+  const payload = buildNpcRevealPayload({
+    title,
+    summary,
+    docId: doc.id,
+    profile,
+    sourceStatus,
+  })
+
+  return {
+    payload,
+    summary: dmResponse.trim() || `Talk approved. ${title} is ready to talk.`,
+  }
 }
 
 export async function submitActionIntent(
@@ -292,6 +442,42 @@ export async function updateActionIntentStatus(
         dm_response: summary,
         response_visibility: 'public',
         resolver_status: 'applied',
+        resolved_at: new Date().toISOString(),
+        resolved_by: user.id,
+      })
+      .eq('id', intentId)
+
+    if (error) return { error: error.message }
+    revalidatePath(ACTIONS_PATH(campaignId))
+    return { success: true }
+  }
+
+  if (status === 'resolved' && intent.action_type === 'Talk') {
+    const { payload, summary } = await buildTalkNpcReveal(supabase, intent as ActionIntent, dmResponse, user.id)
+
+    const { error: resultError } = await supabase.from('action_results').insert({
+      action_intent_id: intent.id,
+      campaign_id: intent.campaign_id,
+      map_id: intent.map_id,
+      actor_user_id: intent.actor_user_id,
+      actor_character_id: intent.actor_character_id,
+      target_type: 'token',
+      target_id: intent.target_token_id,
+      action_type: intent.action_type,
+      result_type: 'npc_profile',
+      result_summary: summary,
+      reveal_payload: payload,
+      public_result: false,
+    })
+    if (resultError) return { error: resultError.message }
+
+    const { error } = await supabase
+      .from('action_intents')
+      .update({
+        status: 'resolved',
+        dm_response: summary,
+        response_visibility: 'actor',
+        resolver_status: 'manual',
         resolved_at: new Date().toISOString(),
         resolved_by: user.id,
       })

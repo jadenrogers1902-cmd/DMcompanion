@@ -522,14 +522,21 @@ export function ActionQueueDmControls({
       </div>
 
       <div className={`grid grid-cols-1 gap-2 ${compact ? '' : 'sm:grid-cols-3'}`}>
-        {/* One press: approve AND open the roll for the player (no separate Ask Roll step). */}
+        <Button
+          size="sm"
+          loading={busyStatus === 'resolved'}
+          disabled={buttonsDisabled}
+          onClick={() => update('resolved')}
+        >
+          Approve
+        </Button>
         <Button
           size="sm"
           loading={busyStatus === 'needs_roll'}
           disabled={rollButtonsDisabled}
           onClick={() => requestRoll('needs_roll')}
         >
-          Approve &amp; Roll
+          Require Roll
         </Button>
         <Button
           size="sm"
@@ -539,15 +546,6 @@ export function ActionQueueDmControls({
           onClick={() => update('denied')}
         >
           Deny
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          loading={busyStatus === 'resolved'}
-          disabled={buttonsDisabled}
-          onClick={() => update('resolved')}
-        >
-          Resolve &amp; Reveal
         </Button>
       </div>
 
@@ -564,10 +562,10 @@ export function ActionQueueDmControls({
       )}
 
       <p className="text-[11px] leading-relaxed text-zinc-600">
-        Dismissal and popup controls never mark a request resolved by themselves. The DM-only note
-        stays private. Reviewing an outcome? Use Resolve &amp; Reveal to complete, Request Another
-        Roll to reroll, the modifier override to modify, Deny to cancel, or the DM-only note to add
-        a note.
+        Dismissal and popup controls never mark a request resolved by themselves. Approve resolves
+        without a roll; Require Roll asks the player to roll first. The DM-only note stays private.
+        Reviewing an outcome? Use Approve to complete, Request Another Roll to reroll, the modifier
+        override to modify, or Deny to cancel.
       </p>
     </div>
   )

@@ -161,7 +161,7 @@ export function MapCanvas({
 
   // Interaction tracking (refs avoid re-render churn during a gesture)
   const interaction = useRef<{
-    kind: 'none' | 'pan' | 'token' | 'draw'
+    kind: 'none' | 'pan' | 'token' | 'draw' | 'pinch'
     pointerId: number
     startClientX: number
     startClientY: number
@@ -187,6 +187,15 @@ export function MapCanvas({
     drawStartY: 0,
     moved: false,
   })
+  const activePointers = useRef(new Map<number, { x: number; y: number }>())
+  const pinch = useRef<{
+    initialDistance: number
+    initialScale: number
+    initialOffsetX: number
+    initialOffsetY: number
+    initialCenterX: number
+    initialCenterY: number
+  } | null>(null)
 
   const fit = useCallback(() => {
     const vp = viewportRef.current
@@ -225,6 +234,54 @@ export function MapCanvas({
     })
   }, [])
 
+  function pointerDistance(points: { x: number; y: number }[]) {
+    return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y)
+  }
+
+  function pointerCenter(points: { x: number; y: number }[]) {
+    return {
+      x: (points[0].x + points[1].x) / 2,
+      y: (points[0].y + points[1].y) / 2,
+    }
+  }
+
+  function beginPinch() {
+    const vp = viewportRef.current
+    const points = Array.from(activePointers.current.values())
+    if (!vp || points.length < 2) return
+    const rect = vp.getBoundingClientRect()
+    const center = pointerCenter(points)
+    interaction.current.kind = 'pinch'
+    interaction.current.moved = true
+    setDragPos(null)
+    setDrawRect(null)
+    setDrawCircle(null)
+    pinch.current = {
+      initialDistance: Math.max(1, pointerDistance(points)),
+      initialScale: scale,
+      initialOffsetX: offset.x,
+      initialOffsetY: offset.y,
+      initialCenterX: center.x - rect.left,
+      initialCenterY: center.y - rect.top,
+    }
+  }
+
+  function updatePinch() {
+    const vp = viewportRef.current
+    const state = pinch.current
+    const points = Array.from(activePointers.current.values())
+    if (!vp || !state || points.length < 2) return
+    const rect = vp.getBoundingClientRect()
+    const center = pointerCenter(points)
+    const cx = center.x - rect.left
+    const cy = center.y - rect.top
+    const nextScale = clamp(state.initialScale * (pointerDistance(points) / state.initialDistance), MIN_SCALE, MAX_SCALE)
+    const worldX = (state.initialCenterX - state.initialOffsetX) / state.initialScale
+    const worldY = (state.initialCenterY - state.initialOffsetY) / state.initialScale
+    setScale(nextScale)
+    setOffset({ x: cx - worldX * nextScale, y: cy - worldY * nextScale })
+  }
+
   useEffect(() => {
     const vp = viewportRef.current
     if (!vp) return
@@ -244,7 +301,13 @@ export function MapCanvas({
     const tokenEl = target.closest('[data-token-id]') as HTMLElement | null
     const vp = viewportRef.current
     if (!vp) return
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     vp.setPointerCapture(e.pointerId)
+
+    if (!drawTool && activePointers.current.size === 2) {
+      beginPinch()
+      return
+    }
 
     const i = interaction.current
     i.pointerId = e.pointerId
@@ -274,9 +337,10 @@ export function MapCanvas({
           return
         }
       }
-      // Not draggable: defer selection until pointer up so clicks and drags
-      // share one predictable path.
-      i.kind = 'token'
+      // Not draggable: tap selects it, drag pans the map.
+      i.kind = 'pan'
+      i.startOffsetX = offset.x
+      i.startOffsetY = offset.y
       return
     }
 
@@ -287,6 +351,13 @@ export function MapCanvas({
   }
 
   function handlePointerMove(e: React.PointerEvent) {
+    if (activePointers.current.has(e.pointerId)) {
+      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    }
+    if (pinch.current) {
+      updatePinch()
+      return
+    }
     const i = interaction.current
     if (i.kind === 'none') return
     const dx = e.clientX - i.startClientX
@@ -321,6 +392,15 @@ export function MapCanvas({
     const i = interaction.current
     const vp = viewportRef.current
     if (vp?.hasPointerCapture(e.pointerId)) vp.releasePointerCapture(e.pointerId)
+    activePointers.current.delete(e.pointerId)
+
+    if (pinch.current) {
+      pinch.current = null
+      activePointers.current.clear()
+      i.kind = 'none'
+      i.tokenId = null
+      return
+    }
 
     if (i.kind === 'token' && i.tokenId) {
       if (i.moved && dragPos) {
@@ -349,8 +429,8 @@ export function MapCanvas({
       setDrawRect(null)
       setDrawCircle(null)
     } else if (i.kind === 'pan' && !i.moved) {
-      // background click → deselect
-      onSelectToken?.(null)
+      // Background click deselects; token tap selects.
+      onSelectToken?.(i.tokenId ?? null)
     }
     i.kind = 'none'
     i.tokenId = null

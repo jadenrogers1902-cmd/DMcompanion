@@ -46,9 +46,11 @@ import { PlayerRollOutcomePanel, type PlayerRollOutcomeData } from '@/components
 import { PlayerLinkedCodexDocsPanel } from '@/components/codex/CodexLinkedDocsPanel'
 import { createClient } from '@/lib/supabase/client'
 import { actionsForToken, distanceFeet } from '@/lib/utils/actions'
+import type { NpcRevealPayload } from '@/lib/notion/npc-profile'
 import {
   type ActionIntent,
   type ActionIntentStatus,
+  type ActionResult,
   type ActionRollRequest,
   type ActionRollResult,
   type AdvantageState,
@@ -322,6 +324,15 @@ function randomD20() {
   return Math.floor(Math.random() * 20) + 1
 }
 
+function isNpcRevealPayload(value: unknown): value is NpcRevealPayload {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    (value as { kind?: unknown }).kind === 'npc_profile' &&
+    typeof (value as { title?: unknown }).title === 'string',
+  )
+}
+
 export function PlayerMapView({
   campaignId,
   map,
@@ -378,6 +389,7 @@ export function PlayerMapView({
   const [guidedIntentId, setGuidedIntentId] = useState<string | null>(null)
   const [activeRollRequest, setActiveRollRequest] = useState<ActionRollRequest | null>(null)
   const [inlineRollResult, setInlineRollResult] = useState<ActionRollResult | null>(null)
+  const [npcRevealPayload, setNpcRevealPayload] = useState<NpcRevealPayload | null>(null)
   const [inlineRollBusy, setInlineRollBusy] = useState(false)
   const [inlineRollAnimating, setInlineRollAnimating] = useState(false)
   // Inline roll sub-flow (automatic / manual / attack-damage), mirroring the
@@ -732,6 +744,7 @@ export function PlayerMapView({
     setGuidedError(null)
     setGuidedIntent(null)
     setGuidedIntentId(null)
+    setNpcRevealPayload(null)
     setNudgeCooldownUntil(null)
   }
 
@@ -743,6 +756,7 @@ export function PlayerMapView({
 
     setActionFlow('submitting_request')
     setGuidedError(null)
+    setNpcRevealPayload(null)
     const result = await submitActionIntent(
       campaignId,
       map.id,
@@ -1005,7 +1019,7 @@ export function PlayerMapView({
     }
 
     async function loadIntent() {
-      const [{ data }, { data: rollRequest }, { data: rollResult }] = await Promise.all([
+      const [{ data }, { data: rollRequest }, { data: rollResult }, { data: npcRevealResult }] = await Promise.all([
         supabase
         .from('action_intents')
         .select('*')
@@ -1025,13 +1039,23 @@ export function PlayerMapView({
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from('action_results')
+          .select('*')
+          .eq('action_intent_id', intentId)
+          .eq('result_type', 'npc_profile')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ])
       if (!data) return
       const intent = data as ActionIntent
       const nextRollRequest = (rollRequest ?? null) as ActionRollRequest | null
+      const revealResult = (npcRevealResult ?? null) as ActionResult | null
       setGuidedIntent(intent)
       setActiveRollRequest(nextRollRequest)
       setInlineRollResult((rollResult ?? null) as ActionRollResult | null)
+      setNpcRevealPayload(isNpcRevealPayload(revealResult?.reveal_payload) ? revealResult.reveal_payload : null)
 
       // A fresh waiting roll request (first issue or a DM reroll) resets the
       // inline sub-flow once — never while the player is viewing a locked result.
@@ -1504,6 +1528,7 @@ export function PlayerMapView({
             message={guidedActionMessage}
             setMessage={setGuidedActionMessage}
             intent={guidedIntent}
+            npcReveal={npcRevealPayload}
             rollRequest={activeRollRequest}
             rollResult={inlineRollResult}
             inlineRollBusy={inlineRollBusy}
@@ -2105,6 +2130,7 @@ function ActionSequenceOverlay({
   message,
   setMessage,
   intent,
+  npcReveal,
   rollRequest,
   rollResult,
   inlineRollBusy,
@@ -2146,6 +2172,7 @@ function ActionSequenceOverlay({
   message: string
   setMessage: (value: string) => void
   intent: ActionIntent | null
+  npcReveal: NpcRevealPayload | null
   rollRequest: ActionRollRequest | null
   rollResult: ActionRollResult | null
   inlineRollBusy: boolean
@@ -2452,6 +2479,11 @@ function ActionSequenceOverlay({
               <p className="mx-auto mt-2 max-w-2xl text-sm text-zinc-300">
                 {intent?.dm_response || (isDenied ? 'The DM denied this request.' : 'The DM approved this request.')}
               </p>
+              {npcReveal && !isDenied && !isCancelled && (
+                <div className="mx-auto mt-5 max-w-2xl text-left">
+                  <NpcRevealCard reveal={npcReveal} />
+                </div>
+              )}
               <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
                 {isDenied && (
                   <button
@@ -2633,6 +2665,79 @@ function ActionSequenceOverlay({
           })()}
         </div>
       </div>
+    </div>
+  )
+}
+
+function NpcRevealCard({ reveal }: { reveal: NpcRevealPayload }) {
+  const sourceLabel =
+    reveal.sourceStatus === 'fresh_notion'
+      ? 'Updated from Notion'
+      : reveal.sourceStatus === 'cached_codex'
+        ? 'Latest saved Codex snapshot'
+        : 'Map token fallback'
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-sky-400/35 bg-zinc-950 shadow-[0_0_32px_rgba(14,165,233,0.18)]">
+      <div className="border-b border-zinc-800 bg-gradient-to-r from-sky-500/15 via-fuchsia-500/10 to-zinc-950 px-4 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200">NPC Profile</p>
+            <h4 className="mt-1 text-lg font-bold text-zinc-50">{reveal.title}</h4>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {reveal.role && (
+              <span className="rounded-md border border-fuchsia-400/40 bg-fuchsia-500/15 px-2 py-1 text-xs font-semibold text-fuchsia-100">
+                {reveal.role}
+              </span>
+            )}
+            <span className="rounded-md border border-sky-400/30 bg-sky-500/10 px-2 py-1 text-[11px] text-sky-100">
+              {sourceLabel}
+            </span>
+          </div>
+        </div>
+        {reveal.summary && <p className="mt-2 text-sm leading-relaxed text-zinc-300">{reveal.summary}</p>}
+      </div>
+
+      <div className="grid gap-3 p-4 sm:grid-cols-2">
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Personality</p>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-200">
+            {reveal.personality || 'No personality notes were revealed yet.'}
+          </p>
+        </div>
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Appearance</p>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-200">
+            {reveal.appearance || 'No appearance notes were revealed yet.'}
+          </p>
+        </div>
+      </div>
+
+      <details className="border-t border-zinc-800 px-4 py-3">
+        <summary className="cursor-pointer text-sm font-semibold text-amber-100">
+          Wares {reveal.wares.length > 0 ? `(${reveal.wares.length})` : ''}
+        </summary>
+        {reveal.wares.length > 0 ? (
+          <div className="mt-3 grid gap-2">
+            {reveal.wares.map((item, index) => (
+              <div key={`${item.name}-${index}`} className="rounded-lg border border-zinc-800 bg-zinc-900/70 px-3 py-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-zinc-100">{item.name}</p>
+                  {item.price && <span className="text-xs font-semibold text-amber-200">{item.price}</span>}
+                </div>
+                {(item.quantity || item.description) && (
+                  <p className="mt-1 text-xs text-zinc-400">
+                    {[item.quantity ? `Qty ${item.quantity}` : null, item.description].filter(Boolean).join(' - ')}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-zinc-500">No wares were revealed for this character.</p>
+        )}
+      </details>
     </div>
   )
 }

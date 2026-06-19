@@ -4,6 +4,7 @@
 
 import type { CampaignDocType, NotionSyncMapping } from '@/lib/types/database'
 import { parseNotionProperties, parseNotionTitle, type NotionPage } from './client'
+import { extractNpcProfileFromProperties, isNpcDocType, type NpcProfile } from './npc-profile'
 
 export type MappingPreviewField = { label: string; value: string }
 
@@ -40,6 +41,7 @@ export type MappedDocFields = {
   player_summary?: string | null
   tags?: string[]
   status?: string | null
+  npc_profile?: NpcProfile
   relations: { property: string; pageIds: string[] }[]
   /** Mapped property names absent from this page (graceful drift report). */
   warnings: string[]
@@ -99,6 +101,10 @@ export function mapPageToDoc(page: NotionPage, mapping: NotionSyncMapping): Mapp
 
   const status = mapped(mapping.status_property, 'Status')
   if (status.has) out.status = toStringValue(status.value).trim() || null
+
+  if (isNpcDocType(mapping.doc_type)) {
+    out.npc_profile = extractNpcProfileFromProperties(props)
+  }
 
   // Optional source URL property overrides the canonical page URL if present.
   const sourceUrlProp = mapped(mapping.source_url_property, 'Source URL')

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { instantiatePreparedMap } from '@/lib/maps/deploy'
+import { instantiatePreparedMap, syncPreparedTokensToLiveMap } from '@/lib/maps/deploy'
 import type { Database } from '@/lib/types/database'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PreparedMap } from '@/lib/types/adventure'
@@ -56,29 +56,42 @@ export async function travelThroughTransport(
     return { error: 'This transport has no destination set yet.' }
   }
 
-  const { data: map } = await admin
-    .from('maps')
-    .select('id, campaign_id, is_active, travel_mode')
-    .eq('id', token.map_id)
-    .maybeSingle()
-  if (!map || map.campaign_id !== campaignId) return { error: 'Map not found.' }
-  if (!map.is_active) return { error: 'This transport is not on the active map.' }
-  if (map.travel_mode === 'combat') return { error: 'Travel is locked during combat.' }
-
   const destination = token.destination_prepared_map_id
 
-  // The set of "voters": players who control a character token on this map.
-  const { data: playerTokens } = await admin
-    .from('tokens')
-    .select('controlled_by_user_id')
-    .eq('map_id', map.id)
-    .eq('token_type', 'player')
-    .not('controlled_by_user_id', 'is', null)
-  const voters = new Set(
-    (playerTokens ?? [])
-      .map((row) => row.controlled_by_user_id)
-      .filter((id): id is string => Boolean(id)),
-  )
+  // The party travels FROM the campaign's active map (where the players are).
+  // A player can only use a portal that's on their active map; the DM can send
+  // the party from any portal (e.g. while prepping another scene) and the party
+  // still leaves from their current active map.
+  const { data: activeMap } = await admin
+    .from('maps')
+    .select('id, travel_mode')
+    .eq('campaign_id', campaignId)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (!isDm && (!activeMap || activeMap.id !== token.map_id)) {
+    return { error: 'This transport is not on the active map.' }
+  }
+  if (!isDm && activeMap?.travel_mode === 'combat') {
+    return { error: 'Travel is locked during combat.' }
+  }
+
+  const partyMapId = activeMap?.id ?? null
+  const partyTravelMode = activeMap?.travel_mode ?? 'freeroam'
+
+  // The set of "voters": players who control a character token on the party map.
+  const voters = new Set<string>()
+  if (partyMapId) {
+    const { data: playerTokens } = await admin
+      .from('tokens')
+      .select('controlled_by_user_id')
+      .eq('map_id', partyMapId)
+      .eq('token_type', 'player')
+      .not('controlled_by_user_id', 'is', null)
+    for (const row of playerTokens ?? []) {
+      if (row.controlled_by_user_id) voters.add(row.controlled_by_user_id)
+    }
+  }
 
   const callerIsVoter = voters.has(user.id)
   // Only someone with a character on the map (or the DM) can move the table.
@@ -86,16 +99,16 @@ export async function travelThroughTransport(
     return { error: 'You need a character on this map to travel.' }
   }
   // Group-party mode with more than one player present requires unanimity.
-  const needsVote = map.travel_mode === 'group_party' && voters.size > 1 && !isDm
+  const needsVote = partyTravelMode === 'group_party' && voters.size > 1 && !isDm
 
-  if (needsVote) {
+  if (needsVote && partyMapId) {
     // Record / update this player's confirmation for this transport.
     const { error: upsertError } = await admin
       .from('map_transport_confirmations')
       .upsert(
         {
           campaign_id: campaignId,
-          map_id: map.id,
+          map_id: partyMapId,
           token_id: token.id,
           destination_prepared_map_id: destination,
           user_id: user.id,
@@ -107,7 +120,7 @@ export async function travelThroughTransport(
     const { data: confirmations } = await admin
       .from('map_transport_confirmations')
       .select('user_id, token_id')
-      .eq('map_id', map.id)
+      .eq('map_id', partyMapId)
 
     const confirmedVoters = new Set(
       (confirmations ?? [])
@@ -122,17 +135,23 @@ export async function travelThroughTransport(
     }
   }
 
-  const result = await executeTravel(admin, campaignId, destination, user.id)
+  const result = await resolveDestinationMap(admin, campaignId, destination, user.id)
   if ('error' in result) return result
 
   // Carry the party's character tokens onto the destination so players land
   // with their tokens (prepared maps never contain player tokens).
-  await carryPlayerTokens(admin, campaignId, map.id, result.liveMapId)
+  if (partyMapId) {
+    const carry = await carryPlayerTokens(admin, campaignId, partyMapId, result.liveMapId, user.id)
+    if ('error' in carry) return carry
+  }
+
+  const activation = await activateLiveMap(admin, campaignId, result.liveMapId)
+  if ('error' in activation) return activation
 
   // Travel succeeded — now clear the votes (kept until success so a failed
   // deploy doesn't lose everyone's confirmation).
-  if (needsVote) {
-    await admin.from('map_transport_confirmations').delete().eq('map_id', map.id)
+  if (needsVote && partyMapId) {
+    await admin.from('map_transport_confirmations').delete().eq('map_id', partyMapId)
   }
 
   revalidatePath(`/campaigns/${campaignId}/live-map`)
@@ -150,8 +169,9 @@ async function carryPlayerTokens(
   campaignId: string,
   originMapId: string,
   destMapId: string,
-) {
-  if (originMapId === destMapId) return
+  createdBy: string,
+): Promise<{ ok: true } | { error: string }> {
+  if (originMapId === destMapId) return { ok: true }
 
   const { data: originPlayers } = await admin
     .from('tokens')
@@ -159,14 +179,20 @@ async function carryPlayerTokens(
     .eq('map_id', originMapId)
     .eq('token_type', 'player')
     .not('controlled_by_user_id', 'is', null)
-  if (!originPlayers || originPlayers.length === 0) return
+  if (!originPlayers || originPlayers.length === 0) return { ok: true }
 
   const { data: destPlayers } = await admin
     .from('tokens')
-    .select('controlled_by_user_id')
+    .select('controlled_by_user_id, x, y')
     .eq('map_id', destMapId)
     .eq('token_type', 'player')
   const present = new Set((destPlayers ?? []).map((t) => t.controlled_by_user_id))
+  const originUserIds = new Set(
+    originPlayers.map((token) => token.controlled_by_user_id).filter((id): id is string => Boolean(id)),
+  )
+  const revealPoints: { x: number; y: number }[] = (destPlayers ?? [])
+    .filter((token) => token.controlled_by_user_id && originUserIds.has(token.controlled_by_user_id))
+    .map((token) => ({ x: token.x, y: token.y }))
 
   // One token per user that isn't already on the destination.
   const seen = new Set<string>()
@@ -176,16 +202,17 @@ async function carryPlayerTokens(
     seen.add(uid)
     return true
   })
-  if (missing.length === 0) return
 
   const { data: destMap } = await admin
     .from('maps')
-    .select('width, height, grid_size')
+    .select('width, height, grid_size, grid_scale_feet')
     .eq('id', destMapId)
     .maybeSingle()
   const w = destMap?.width || 1000
   const h = destMap?.height || 1000
   const gap = destMap?.grid_size || 50
+  const scale = Math.max(1, destMap?.grid_scale_feet || 5)
+  const revealRadius = (7 / scale) * gap
   const cx = w / 2
   const cy = h / 2
 
@@ -202,7 +229,31 @@ async function carryPlayerTokens(
     controlled_by_user_id: t.controlled_by_user_id,
     linked_character_id: t.linked_character_id ?? null,
   }))
-  await admin.from('tokens').insert(rows)
+  if (rows.length > 0) {
+    const { data: inserted, error: insertError } = await admin
+      .from('tokens')
+      .insert(rows)
+      .select('x, y')
+    if (insertError) return { error: `Could not carry party tokens to the destination: ${insertError.message}` }
+    revealPoints.push(...((inserted ?? []) as { x: number; y: number }[]))
+  }
+
+  if (revealPoints.length === 0) return { ok: true }
+
+  const { error: revealError } = await admin.from('map_revealed_areas').insert(
+    revealPoints.map((point) => ({
+      campaign_id: campaignId,
+      map_id: destMapId,
+      shape_type: 'circle',
+      x: point.x,
+      y: point.y,
+      radius: revealRadius,
+      visible_to_players: true,
+      created_by: createdBy,
+    })),
+  )
+  if (revealError) return { error: `Could not reveal the party arrival area: ${revealError.message}` }
+  return { ok: true }
 }
 
 /**
@@ -215,16 +266,6 @@ async function resolveDestinationMap(
   destinationPreparedMapId: string,
   createdBy: string,
 ): Promise<{ liveMapId: string } | { error: string }> {
-  const { data: existing } = await admin
-    .from('maps')
-    .select('id')
-    .eq('campaign_id', campaignId)
-    .eq('source_prepared_map_id', destinationPreparedMapId)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (existing?.id) return { liveMapId: existing.id }
-
   const { data: prepRow } = await admin
     .from('prepared_maps')
     .select('*')
@@ -233,6 +274,25 @@ async function resolveDestinationMap(
     .maybeSingle()
   if (!prepRow) return { error: 'Destination map not found.' }
   const prepared = prepRow as unknown as PreparedMap
+
+  const { data: existing } = await admin
+    .from('maps')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('source_prepared_map_id', destinationPreparedMapId)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (existing?.id) {
+    const synced = await syncPreparedTokensToLiveMap(admin, {
+      campaignId,
+      prepared,
+      liveMapId: existing.id,
+      createdBy,
+    })
+    if ('error' in synced) return synced
+    return { liveMapId: existing.id }
+  }
 
   const result = await instantiatePreparedMap(admin, {
     campaignId,
@@ -244,20 +304,15 @@ async function resolveDestinationMap(
 }
 
 /**
- * Make `destinationPreparedMapId` the campaign's active live map (reuse-or-deploy
- * then activate). Service-role client throughout.
+ * Make an already-resolved live map the campaign's active live map.
  */
-async function executeTravel(
+async function activateLiveMap(
   admin: SupabaseClient<Database>,
   campaignId: string,
-  destinationPreparedMapId: string,
-  createdBy: string,
+  liveMapId: string,
 ): Promise<{ liveMapId: string } | { error: string }> {
-  const resolved = await resolveDestinationMap(admin, campaignId, destinationPreparedMapId, createdBy)
-  if ('error' in resolved) return resolved
-  const liveMapId = resolved.liveMapId
-
-  // Activate it: deactivate the current active map, then flip this one on.
+  // Activate it only after the destination is ready. Players refresh as soon as
+  // the active map changes, so token carry/reveal work must happen first.
   await admin.from('maps').update({ is_active: false }).eq('campaign_id', campaignId).eq('is_active', true)
   const { error: activateError } = await admin
     .from('maps')

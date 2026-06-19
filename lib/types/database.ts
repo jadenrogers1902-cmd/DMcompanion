@@ -209,6 +209,8 @@ export interface Token {
   object_state: string | null
   // For transport ('portal') tokens: the prepared map this token travels to.
   destination_prepared_map_id: string | null
+  // PreparedMapToken.id from Adventure Maker JSONB, when this live token was deployed from prep.
+  source_prepared_token_id: string | null
   // Hidden from players until a revealed area reaches it, then auto-revealed.
   discoverable: boolean
   // Player-visible flavor text (separate from the DM-only token_dm_notes).
@@ -438,6 +440,7 @@ export interface ActionResult {
   result_type: string
   result_summary: string | null
   private_dm_details: string | null
+  reveal_payload: Record<string, unknown> | null
   public_result: boolean
   created_at: string
 }
@@ -817,6 +820,7 @@ export interface CampaignDoc {
   title: string
   dm_summary: string | null
   player_summary: string | null
+  npc_profile: Record<string, unknown>
   dm_notes: string | null
   tags: string[]
   status: CampaignDocStatus
@@ -940,6 +944,7 @@ export interface PlayerVisibleCampaignDoc {
   doc_type: CampaignDocType
   title: string
   player_summary: string | null
+  npc_profile: Record<string, unknown>
   tags: string[]
   status: CampaignDocStatus
   visibility: CampaignDocVisibility
@@ -955,6 +960,7 @@ export interface CampaignDocPublication {
   doc_type: CampaignDocType
   title: string
   player_summary: string
+  npc_profile: Record<string, unknown>
   tags: string[]
   status: CampaignDocStatus
   visibility: CampaignDocVisibility
@@ -1323,6 +1329,7 @@ export type Database = {
           title: string
           dm_summary?: string | null
           player_summary?: string | null
+          npc_profile?: Record<string, unknown>
           dm_notes?: string | null
           tags?: string[]
           status?: string
@@ -1346,6 +1353,7 @@ export type Database = {
           title?: string
           dm_summary?: string | null
           player_summary?: string | null
+          npc_profile?: Record<string, unknown>
           dm_notes?: string | null
           tags?: string[]
           status?: string
@@ -1879,6 +1887,7 @@ export type Database = {
           interactable: boolean
           object_state: string | null
           destination_prepared_map_id: string | null
+          source_prepared_token_id: string | null
           discoverable: boolean
           public_description: string | null
           visible_on_cast: boolean
@@ -1919,6 +1928,7 @@ export type Database = {
           interactable?: boolean
           object_state?: string | null
           destination_prepared_map_id?: string | null
+          source_prepared_token_id?: string | null
           discoverable?: boolean
           public_description?: string | null
           visible_on_cast?: boolean
@@ -1956,6 +1966,7 @@ export type Database = {
           interactable?: boolean
           object_state?: string | null
           destination_prepared_map_id?: string | null
+          source_prepared_token_id?: string | null
           discoverable?: boolean
           public_description?: string | null
           visible_on_cast?: boolean
@@ -2480,6 +2491,7 @@ export type Database = {
           result_type?: string
           result_summary?: string | null
           private_dm_details?: string | null
+          reveal_payload?: Record<string, unknown> | null
           public_result?: boolean
           created_at?: string
         }
@@ -2487,6 +2499,7 @@ export type Database = {
           result_type?: string
           result_summary?: string | null
           private_dm_details?: string | null
+          reveal_payload?: Record<string, unknown> | null
           public_result?: boolean
         }
         Relationships: []

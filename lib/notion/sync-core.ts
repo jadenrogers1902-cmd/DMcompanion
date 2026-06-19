@@ -92,6 +92,7 @@ export async function upsertDocCore(
     if (fields.dm_notes !== undefined) patch.dm_notes = fields.dm_notes?.slice(0, 12000) ?? null
     if (fields.player_summary !== undefined)
       patch.player_summary = fields.player_summary?.slice(0, 2000) ?? null
+    if (fields.npc_profile !== undefined) patch.npc_profile = fields.npc_profile
     if (nextTags !== undefined) patch.tags = nextTags
     if (statusEnum) patch.status = statusEnum
     // Inherit the mapping's Adventure when set; never clobber an existing
@@ -121,6 +122,7 @@ export async function upsertDocCore(
       title: (fields.title ?? 'Untitled').slice(0, 160),
       dm_summary: fields.dm_summary?.slice(0, 2000) ?? null,
       player_summary: fields.player_summary?.slice(0, 2000) ?? null,
+      npc_profile: fields.npc_profile ?? {},
       dm_notes: fields.dm_notes?.slice(0, 12000) ?? null,
       tags: nextTags ?? [],
       status: statusEnum ?? 'draft',

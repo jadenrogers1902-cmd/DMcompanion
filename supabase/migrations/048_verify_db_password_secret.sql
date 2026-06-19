@@ -1,0 +1,1 @@
+-- No-op migration used to verify the GitHub Actions SUPABASE_DB_PASSWORD secret.

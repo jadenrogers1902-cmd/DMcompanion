@@ -29,9 +29,9 @@ test('DM action queue renders expandable action cards', async ({ page }) => {
   await expect(firstCardButton).toBeVisible()
   await firstCardButton.click()
   await expect(cards.first().getByLabel('DM response')).toBeVisible()
-  await expect(cards.first().getByRole('button', { name: 'Approve & Roll' })).toBeVisible()
+  await expect(cards.first().getByRole('button', { name: 'Approve' })).toBeVisible()
+  await expect(cards.first().getByRole('button', { name: 'Require Roll' })).toBeVisible()
   await expect(cards.first().getByRole('button', { name: 'Deny' })).toBeVisible()
-  await expect(cards.first().getByRole('button', { name: 'Resolve & Reveal' })).toBeVisible()
 })
 
 test('Clear Board uses one confirmed flow from the full queue when explicitly enabled', async ({ page }) => {

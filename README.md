@@ -51,6 +51,29 @@ E2E_DM_PASSWORD
 E2E_CAMPAIGN_ID
 ```
 
+Use the fail-fast helper before running authenticated QA:
+
+```bash
+npm.cmd run check:e2e-env
+npm.cmd run test:e2e:auth
+```
+
+If those values are absent, the helper prints the exact `.env.local` keys to add
+instead of letting authenticated tests silently skip.
+
+Apply Supabase migrations without using the SQL editor:
+
+```bash
+npm.cmd run db:migrate
+```
+
+`db:migrate` derives the project ref from `NEXT_PUBLIC_SUPABASE_URL` or
+`SUPABASE_PROJECT_REF`, links the Supabase CLI, then runs `supabase db push`.
+For unattended runs, set `SUPABASE_ACCESS_TOKEN`. The GitHub Actions workflow
+`.github/workflows/supabase-migrations.yml` runs the same command on pushes to
+`main` that change `supabase/migrations/**` when repository secrets
+`SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF` are configured.
+
 Notion API runtime QA also requires the relevant Supabase migrations plus server-only environment values such as `SUPABASE_SERVICE_ROLE_KEY`, and optional webhook QA requires `NOTION_WEBHOOK_SECRET` and a public HTTPS deployment.
 
 ## Documentation

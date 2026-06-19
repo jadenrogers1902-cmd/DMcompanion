@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:e2e-env": "node scripts/check-e2e-env.mjs",
+    "db:migrate": "node scripts/supabase-migrate.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:auth": "npm run check:e2e-env && playwright test tests/e2e/dm-action-queue.auth.spec.ts --reporter=line",
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {

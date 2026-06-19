@@ -544,7 +544,7 @@ export function PlayerMapView({
     temp_hp: t.temp_hp,
     is_defeated: t.is_defeated,
     showHealth: controls(t),
-    dimmed: t.token_type === 'portal' && t.visible_to_players === false,
+    dimmed: t.visible_to_players === false,
   }))
 
   const selected = tokens.find((t) => t.id === selectedId) ?? null
@@ -583,7 +583,7 @@ export function PlayerMapView({
   }, [myCharacters, myControlled, map.grid_size, map.grid_scale_feet, selected])
 
   const isTransport = selected?.token_type === 'portal'
-  const selectedPortalHint = Boolean(isTransport && selected?.visible_to_players === false)
+  const selectedHiddenHint = Boolean(selected && selected.visible_to_players === false)
 
   const contextualActions = useMemo(() => {
     if (!selected || selected.controlled_by_user_id === currentUserId) return []
@@ -1373,7 +1373,7 @@ export function PlayerMapView({
                   style={{ backgroundColor: selected.color }}
                 />
                 <span className="text-sm font-medium text-zinc-100 truncate">
-                  {selected.name || 'Token'}
+                  {selectedHiddenHint ? 'Something is here' : selected.name || 'Token'}
                 </span>
                 {controls(selected) && (
                   <span className="text-xs text-emerald-400 shrink-0">Yours</span>
@@ -1390,27 +1390,33 @@ export function PlayerMapView({
                 </svg>
               </button>
             </div>
-            {selected.public_description && (
+            {selectedHiddenHint ? (
+              <p className="mt-3 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-sm text-violet-100">
+                You can make out a presence or object here, but it has not been fully discovered yet.
+              </p>
+            ) : selected.public_description && (
               <p className="text-xs text-zinc-300 mt-1.5">{selected.public_description}</p>
             )}
-            {selected.notes && (
+            {!selectedHiddenHint && selected.notes && (
               <p className="text-xs text-zinc-400 mt-1.5">{selected.notes}</p>
             )}
-            {selected.object_state && selected.object_state !== 'visible' && (
+            {!selectedHiddenHint && selected.object_state && selected.object_state !== 'visible' && (
               <p className="text-[11px] text-amber-400/80 mt-1 capitalize">
                 State: {selected.object_state}
               </p>
             )}
 
-            <PlayerLinkedCodexDocsPanel
-              objectType={codexObjectTypeForToken(selected)}
-              objectId={selected.id}
-              docs={playerCodexDocs}
-              links={playerCodexLinks}
-            />
+            {!selectedHiddenHint && (
+              <PlayerLinkedCodexDocsPanel
+                objectType={codexObjectTypeForToken(selected)}
+                objectId={selected.id}
+                docs={playerCodexDocs}
+                links={playerCodexLinks}
+              />
+            )}
 
             {/* Contextual action menu — only the actions the DM allowed */}
-            {!isTransport && contextualActions.length > 0 && (
+            {!selectedHiddenHint && !isTransport && contextualActions.length > 0 && (
               <div className="mt-3 border-t border-zinc-800 pt-3">
                 <p className="text-[11px] uppercase tracking-wide text-zinc-600 mb-2">
                   {nearestActor
@@ -1461,10 +1467,10 @@ export function PlayerMapView({
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/15 text-lg">🌀</span>
                   <div className="min-w-0">
                     <p className="text-[11px] uppercase tracking-wide text-violet-300/80">
-                      {selectedPortalHint ? 'Unrevealed portal' : 'Travel'}
+                      {selectedHiddenHint ? 'Unrevealed portal' : 'Travel'}
                     </p>
                     <p className="truncate text-base font-semibold text-zinc-100">
-                      {selectedPortalHint ? 'Something shimmers here' : selected.name || 'New location'}
+                      {selectedHiddenHint ? 'Something is here' : selected.name || 'New location'}
                     </p>
                   </div>
                 </div>
@@ -1480,7 +1486,7 @@ export function PlayerMapView({
                 </button>
               </div>
 
-              {selectedPortalHint ? (
+              {selectedHiddenHint ? (
                 <p className="mt-3 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-sm text-violet-100">
                   You can tell there is something here, but it has not been fully discovered yet.
                 </p>
@@ -1488,7 +1494,7 @@ export function PlayerMapView({
                 <p className="mt-3 text-sm text-zinc-300">{selected.public_description}</p>
               )}
 
-              {selectedPortalHint ? (
+              {selectedHiddenHint ? (
                 <p className="mt-4 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-400">
                   Move closer or wait for the DM to reveal this area before traveling.
                 </p>

@@ -10,16 +10,19 @@ import {
   Dices,
   Hand,
   Hourglass,
+  LocateFixed,
   Mail,
   Megaphone,
   MessageCircle,
   MousePointer2,
+  Move,
   Package,
   ScrollText,
   Search,
   Send,
   Sparkles,
   Swords,
+  Target,
   Users,
   WandSparkles,
   X,
@@ -69,6 +72,8 @@ import {
   type TokenType,
   type TravelMode,
 } from '@/lib/types/database'
+
+type PlayerMapInteractionMode = 'hand' | 'move' | 'target'
 
 function mergeTokenList(tokens: Token[], token: Token) {
   const next = tokens.filter((t) => t.id !== token.id)
@@ -376,6 +381,17 @@ export function PlayerMapView({
   const [transportFeedback, setTransportFeedback] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
+  const [mapInteractionMode, setMapInteractionMode] = useState<PlayerMapInteractionMode>('hand')
+  const [viewportCommand, setViewportCommand] = useState<
+    { type: 'fit' } | { type: 'center'; x: number; y: number; gridSquares?: number; nonce: number } | undefined
+  >(undefined)
+  const [movementPreview, setMovementPreview] = useState<{
+    id: string
+    x: number
+    y: number
+    feet: number
+    overLimit: boolean
+  } | null>(null)
   const [interactionOpen, setInteractionOpen] = useState(false)
   const [section, setSection] = useState<InteractionSection>('root')
   const [myRequests, setMyRequests] = useState<ActionIntent[]>([])
@@ -502,6 +518,7 @@ export function PlayerMapView({
   const controls = (t: Token) => t.controlled_by_user_id === currentUserId
 
   function canDrag(id: string) {
+    if (mapInteractionMode !== 'move') return false
     const t = tokens.find((x) => x.id === id)
     if (!t) return false
     return controls(t) && !t.movement_locked && !mapLocked
@@ -549,6 +566,66 @@ export function PlayerMapView({
 
   const selected = tokens.find((t) => t.id === selectedId) ?? null
   const myControlled = tokens.filter(controls)
+  const primaryControlledToken =
+    (selected && controls(selected) ? selected : null) ??
+    myControlled.find((token) => token.token_type === 'player') ??
+    myControlled[0] ??
+    null
+  const canUseMoveMode = myControlled.length > 0 && !mapLocked
+  const effectiveMapInteractionMode =
+    mapInteractionMode === 'move' && !canUseMoveMode ? 'hand' : mapInteractionMode
+
+  function movementAllowanceFor(token: Token) {
+    if (mapState.travel_mode === 'group_party' && mapState.group_movement_unlimited) return null
+    if (mapState.travel_mode === 'freeroam' && mapState.freeroam_movement_unlimited) return null
+    if (token.linked_character_id && characterSpeeds[token.linked_character_id] !== undefined) {
+      return characterSpeeds[token.linked_character_id]
+    }
+    return 30
+  }
+
+  function movementFeetFrom(token: Token, x: number, y: number) {
+    const dx = x - token.x
+    const dy = y - token.y
+    const pixels = Math.sqrt((dx * dx) + (dy * dy))
+    return Math.round((pixels / Math.max(1, map.grid_size)) * Math.max(1, map.grid_scale_feet))
+  }
+
+  function centerOnControlledToken() {
+    if (!primaryControlledToken) {
+      setWarning('You have no token to center on yet.')
+      setTimeout(() => setWarning(null), 3500)
+      return
+    }
+    setViewportCommand({
+      type: 'center',
+      x: primaryControlledToken.x,
+      y: primaryControlledToken.y,
+      gridSquares: 14,
+      nonce: Date.now(),
+    })
+  }
+
+  function fitMapToScreen() {
+    setViewportCommand({ type: 'fit' })
+  }
+
+  function handleTokenDragPreview(preview: { id: string; x: number; y: number } | null) {
+    if (!preview) {
+      setMovementPreview(null)
+      return
+    }
+    const token = tokens.find((item) => item.id === preview.id)
+    if (!token) return
+    const feet = movementFeetFrom(token, preview.x, preview.y)
+    const allowance = movementAllowanceFor(token)
+    const used = Math.round(token.movement_used || 0)
+    setMovementPreview({
+      ...preview,
+      feet,
+      overLimit: allowance !== null && used + feet > allowance,
+    })
+  }
   // Portals are excluded — they are travel points, not action targets.
   const visibleTargets = tokens.filter(
     (token) => token.visible_to_players !== false && token.token_type !== 'portal',
@@ -1306,7 +1383,11 @@ export function PlayerMapView({
           </span>
         ) : myControlled.length > 0 ? (
           <span className="text-xs text-zinc-500">
-            Drag your token to move it.
+            {effectiveMapInteractionMode === 'move'
+              ? 'Move mode: drag your token.'
+              : effectiveMapInteractionMode === 'target'
+                ? 'Target mode: tap tokens to interact.'
+                : 'Hand mode: pan and pinch the map.'}
           </span>
         ) : (
           <span className="text-xs text-zinc-600">
@@ -1354,9 +1435,31 @@ export function PlayerMapView({
           onSelectToken={handleSelectToken}
           onMoveToken={handleMove}
           canDragToken={canDrag}
+          viewportCommand={viewportCommand}
+          onTokenDragPreview={handleTokenDragPreview}
           revealedAreas={renderAreas}
           fogEnabled
         />
+
+        <MobileMapControls
+          mode={effectiveMapInteractionMode}
+          setMode={setMapInteractionMode}
+          canMove={canUseMoveMode}
+          onCenter={centerOnControlledToken}
+          onFit={fitMapToScreen}
+        />
+
+        {movementPreview && (
+          <div
+            className={`absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-xl backdrop-blur ${
+              movementPreview.overLimit
+                ? 'border-red-400/60 bg-red-950/85 text-red-100'
+                : 'border-emerald-400/60 bg-emerald-950/85 text-emerald-100'
+            }`}
+          >
+            Moving {movementPreview.feet} ft{movementPreview.overLimit ? ' - over limit' : ''}
+          </div>
+        )}
 
         {areas.length === 0 && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-zinc-900/95 border border-zinc-700 rounded-lg px-3.5 py-2 text-xs text-zinc-400 shadow-lg">
@@ -1649,10 +1752,99 @@ export function PlayerMapView({
       </div>
 
       <p className="text-xs text-zinc-600 text-center">
-        Drag to pan · scroll or use the buttons to zoom · 1 square = {map.grid_scale_feet} ft
+        Hand: pan/pinch - Move: drag your token - Target: tap to interact - 1 square = {map.grid_scale_feet} ft
       </p>
 
     </div>
+  )
+}
+
+function MobileMapControls({
+  mode,
+  setMode,
+  canMove,
+  onCenter,
+  onFit,
+}: {
+  mode: PlayerMapInteractionMode
+  setMode: (mode: PlayerMapInteractionMode) => void
+  canMove: boolean
+  onCenter: () => void
+  onFit: () => void
+}) {
+  return (
+    <div className="absolute left-3 top-3 z-30 flex max-w-[calc(100%-1.5rem)] flex-col gap-2">
+      <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950/92 shadow-xl shadow-black/35 backdrop-blur">
+        <MobileModeButton
+          active={mode === 'hand'}
+          label="Hand"
+          icon={<Hand className="h-4 w-4" aria-hidden="true" />}
+          onClick={() => setMode('hand')}
+        />
+        <MobileModeButton
+          active={mode === 'move'}
+          label="Move"
+          icon={<Move className="h-4 w-4" aria-hidden="true" />}
+          disabled={!canMove}
+          onClick={() => setMode('move')}
+        />
+        <MobileModeButton
+          active={mode === 'target'}
+          label="Target"
+          icon={<Target className="h-4 w-4" aria-hidden="true" />}
+          onClick={() => setMode('target')}
+        />
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onCenter}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-950/90 px-3 text-xs font-semibold text-zinc-100 shadow-lg shadow-black/30 backdrop-blur transition hover:border-amber-400/70 hover:text-amber-100"
+        >
+          <LocateFixed className="h-4 w-4" aria-hidden="true" />
+          Me
+        </button>
+        <button
+          type="button"
+          onClick={onFit}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-950/90 px-3 text-xs font-semibold text-zinc-100 shadow-lg shadow-black/30 backdrop-blur transition hover:border-amber-400/70 hover:text-amber-100"
+        >
+          <MousePointer2 className="h-4 w-4" aria-hidden="true" />
+          Fit
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function MobileModeButton({
+  active,
+  label,
+  icon,
+  disabled,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  icon: React.ReactNode
+  disabled?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`flex min-h-11 min-w-16 flex-col items-center justify-center gap-0.5 px-3 py-2 text-[11px] font-semibold transition disabled:opacity-40 ${
+        active
+          ? 'bg-amber-500 text-zinc-950'
+          : 'border-r border-zinc-800 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100'
+      }`}
+      aria-pressed={active}
+    >
+      {icon}
+      {label}
+    </button>
   )
 }
 

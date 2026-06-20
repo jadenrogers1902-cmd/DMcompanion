@@ -73,6 +73,8 @@ interface MapCanvasProps {
   // Presentation mode: keep a world coordinate centered in the viewport when it changes.
   followTarget?: { x: number; y: number } | null
   followGridSquares?: number
+  viewportCommand?: { type: 'fit' } | { type: 'center'; x: number; y: number; gridSquares?: number; nonce: number }
+  onTokenDragPreview?: (preview: { id: string; x: number; y: number } | null) => void
 }
 
 const MIN_SCALE = 0.1
@@ -147,6 +149,8 @@ export function MapCanvas({
   onAreaDrawn,
   followTarget = null,
   followGridSquares = 18,
+  viewportCommand,
+  onTokenDragPreview,
 }: MapCanvasProps) {
   const isDraggable = (id: string) =>
     canDragToken ? canDragToken(id) : mode === 'dm'
@@ -164,6 +168,7 @@ export function MapCanvas({
   const lightFill = `rgba(250,250,250,${clamp(dmLightBrightness ?? DEFAULT_DM_LIGHT_BRIGHTNESS, 0, 0.6)})`
   const followTargetX = followTarget?.x ?? null
   const followTargetY = followTarget?.y ?? null
+  const viewportCommandNonce = viewportCommand && 'nonce' in viewportCommand ? viewportCommand.nonce : null
 
   function clientToWorld(clientX: number, clientY: number) {
     const vp = viewportRef.current
@@ -258,6 +263,39 @@ export function MapCanvas({
     safeGridSize,
     width,
     height,
+  ])
+
+  useEffect(() => {
+    if (!viewportCommand) return
+    if (viewportCommand.type === 'fit') {
+      fit()
+      return
+    }
+    const vp = viewportRef.current
+    if (!vp || width === 0 || height === 0) return
+    const vw = vp.clientWidth
+    const vh = vp.clientHeight
+    const fitScale = Math.min(vw / width, vh / height) * 0.95
+    const gridSquares = viewportCommand.gridSquares ?? 16
+    const focusWorldWidth = Math.max(safeGridSize * gridSquares, safeGridSize * 8)
+    const focusWorldHeight = Math.max(safeGridSize * Math.round(gridSquares * 0.7), safeGridSize * 6)
+    const nextScale = clamp(
+      Math.max(fitScale, Math.min(vw / focusWorldWidth, vh / focusWorldHeight)),
+      MIN_SCALE,
+      MAX_SCALE,
+    )
+    setScale(nextScale)
+    setOffset({
+      x: (vw / 2) - (viewportCommand.x * nextScale),
+      y: (vh / 2) - (viewportCommand.y * nextScale),
+    })
+  }, [
+    viewportCommand,
+    viewportCommandNonce,
+    fit,
+    height,
+    safeGridSize,
+    width,
   ])
 
   const zoomAround = useCallback((clientX: number, clientY: number, factor: number) => {
@@ -410,11 +448,13 @@ export function MapCanvas({
     if (i.kind === 'pan') {
       setOffset({ x: i.startOffsetX + dx, y: i.startOffsetY + dy })
     } else if (i.kind === 'token' && i.tokenId) {
-      setDragPos({
+      const preview = {
         id: i.tokenId,
         x: i.tokenStartX + dx / scale,
         y: i.tokenStartY + dy / scale,
-      })
+      }
+      setDragPos(preview)
+      onTokenDragPreview?.(preview)
     } else if (i.kind === 'draw') {
       const w = clientToWorld(e.clientX, e.clientY)
       if (drawTool === 'rectangle') {
@@ -452,6 +492,7 @@ export function MapCanvas({
         onSelectToken?.(i.tokenId)
       }
       setDragPos(null)
+      onTokenDragPreview?.(null)
     } else if (i.kind === 'draw') {
       if (drawTool === 'rectangle' && drawRect && drawRect.w > 4 && drawRect.h > 4) {
         onAreaDrawn?.({

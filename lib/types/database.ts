@@ -125,6 +125,7 @@ export interface GameMap {
   group_movement_unlimited: boolean
   freeroam_movement_unlimited: boolean
   player_vision_radius_feet: number
+  cast_settings: Record<string, unknown>
   combat_round: number
   source_prepared_map_id: string | null
   created_by: string
@@ -1818,6 +1819,7 @@ export type Database = {
           group_movement_unlimited: boolean
           freeroam_movement_unlimited: boolean
           player_vision_radius_feet: number
+          cast_settings: Record<string, unknown>
           combat_round: number
           source_prepared_map_id: string | null
           created_by: string
@@ -1848,6 +1850,7 @@ export type Database = {
           group_movement_unlimited?: boolean
           freeroam_movement_unlimited?: boolean
           player_vision_radius_feet?: number
+          cast_settings?: Record<string, unknown>
           combat_round?: number
           source_prepared_map_id?: string | null
           created_by: string
@@ -1876,6 +1879,7 @@ export type Database = {
           group_movement_unlimited?: boolean
           freeroam_movement_unlimited?: boolean
           player_vision_radius_feet?: number
+          cast_settings?: Record<string, unknown>
           combat_round?: number
           source_prepared_map_id?: string | null
           updated_at?: string

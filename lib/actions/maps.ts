@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { tokenTypeColor, type Database, type TokenType, type TravelMode } from '@/lib/types/database'
+import { castSettingsToJson, normalizeCenterCastSettings, type CenterCastSettings } from '@/lib/utils/cast-settings'
 
 type MapUpdate = Database['public']['Tables']['maps']['Update']
 type TokenUpdate = Database['public']['Tables']['tokens']['Update']
@@ -27,9 +28,10 @@ function travelMigrationError(message: string) {
     lower.includes('function public.review_travel_party') ||
     lower.includes('relation "map_travel_parties"') ||
     lower.includes('column maps.travel_mode') ||
-    lower.includes('column maps.player_vision_radius_feet')
+    lower.includes('column maps.player_vision_radius_feet') ||
+    lower.includes('column maps.cast_settings')
   ) {
-    return 'Travel options are not ready on the database yet. Apply the latest Supabase travel/vision migrations to production, then try again.'
+    return 'Travel or cast options are not ready on the database yet. Apply the latest Supabase map migrations to production, then try again.'
   }
   return message
 }
@@ -127,6 +129,49 @@ export async function updateMapSettings(
   revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
   revalidatePath(`/campaigns/${campaignId}/live-map`)
   return { success: true }
+}
+
+export async function updateMapCastSettings(
+  campaignId: string,
+  mapId: string,
+  settings: Partial<CenterCastSettings>,
+) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: membership } = await supabase
+    .from('campaign_members')
+    .select('role')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .single()
+  if (membership?.role !== 'dm') return { error: 'Only the DM can change cast settings.' }
+
+  const { data: map, error: mapError } = await supabase
+    .from('maps')
+    .select('cast_settings')
+    .eq('id', mapId)
+    .eq('campaign_id', campaignId)
+    .single<Pick<Database['public']['Tables']['maps']['Row'], 'cast_settings'>>()
+  if (mapError) return { error: travelMigrationError(mapError.message) }
+
+  const next = normalizeCenterCastSettings({
+    ...normalizeCenterCastSettings(map?.cast_settings),
+    ...settings,
+  })
+  const { error } = await supabase
+    .from('maps')
+    .update({ cast_settings: castSettingsToJson(next) })
+    .eq('id', mapId)
+    .eq('campaign_id', campaignId)
+  if (error) return { error: travelMigrationError(error.message) }
+
+  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}/center-screen`)
+  return { success: true, settings: next }
 }
 
 export async function setActiveMap(campaignId: string, mapId: string) {

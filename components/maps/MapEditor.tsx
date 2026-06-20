@@ -45,6 +45,7 @@ import {
   setTokenMovementLock,
   setTokenOverride,
   updateMapSettings,
+  updateMapCastSettings,
   updateToken,
   updateTokenPosition,
   upsertTokenDmNote,
@@ -56,6 +57,7 @@ import { useActiveSession } from '@/lib/hooks/useActiveSession'
 import { useTokenRealtime } from '@/lib/hooks/useTokenRealtime'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import { actionsForToken } from '@/lib/utils/actions'
+import { normalizeCenterCastSettings, type CenterCastSettings } from '@/lib/utils/cast-settings'
 import { createClient } from '@/lib/supabase/client'
 
 // Action-intent statuses that keep a "!" alert badge on the target token.
@@ -184,6 +186,12 @@ export function MapEditor({
   const [freeroamMovementUnlimited, setFreeroamMovementUnlimited] = useState(map.freeroam_movement_unlimited ?? false)
   const [playerVisionRadiusFeet, setPlayerVisionRadiusFeet] = useState(map.player_vision_radius_feet ?? 7)
   const [partyMenuOpen, setPartyMenuOpen] = useState(false)
+  const [castSettingsOpen, setCastSettingsOpen] = useState(false)
+  const [castSettings, setCastSettings] = useState<CenterCastSettings>(() =>
+    normalizeCenterCastSettings(map.cast_settings),
+  )
+  const [castSettingsBusy, setCastSettingsBusy] = useState(false)
+  const [castSettingsFeedback, setCastSettingsFeedback] = useState<string | null>(null)
   const [partyBusy, setPartyBusy] = useState<string | null>(null)
   const [partyFeedback, setPartyFeedback] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -572,6 +580,21 @@ export function MapEditor({
     router.refresh()
   }
 
+  async function handleCastSettingsUpdate(patch: Partial<CenterCastSettings>) {
+    const next = normalizeCenterCastSettings({ ...castSettings, ...patch })
+    setCastSettings(next)
+    setCastSettingsBusy(true)
+    setCastSettingsFeedback(null)
+    const result = await updateMapCastSettings(campaignId, map.id, next)
+    if (result?.error) {
+      setCastSettingsFeedback(result.error)
+    } else {
+      setCastSettingsFeedback('Cast settings updated.')
+    }
+    setCastSettingsBusy(false)
+    router.refresh()
+  }
+
   async function handleReviewParty(partyId: string, approved: boolean) {
     setPartyBusy(partyId)
     setPartyFeedback(null)
@@ -748,6 +771,16 @@ export function MapEditor({
               Center screen
             </Button>
           </Link>
+          <Button
+            size="sm"
+            variant={castSettingsOpen ? 'primary' : 'secondary'}
+            onClick={() => {
+              setCastSettingsOpen((open) => !open)
+              setPartyMenuOpen(false)
+            }}
+          >
+            Cast Settings
+          </Button>
           <button
             type="button"
             onClick={handleToggleSession}
@@ -865,6 +898,14 @@ export function MapEditor({
             onToggleTokenLock={lockTokenById}
             onResetMovement={resetMovementById}
             onResetPosition={resetPositionById}
+          />
+          <CastSettingsPanel
+            open={castSettingsOpen}
+            settings={castSettings}
+            busy={castSettingsBusy}
+            feedback={castSettingsFeedback}
+            onToggle={() => setCastSettingsOpen((open) => !open)}
+            onChange={handleCastSettingsUpdate}
           />
           {selected && contextMenuOpen && tokenMenuPosition && (
             <TokenContextMenu
@@ -1413,6 +1454,148 @@ function SliderSetting({
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
         className="w-full accent-amber-500"
+      />
+    </label>
+  )
+}
+
+function CastSettingsPanel({
+  open,
+  settings,
+  busy,
+  feedback,
+  onToggle,
+  onChange,
+}: {
+  open: boolean
+  settings: CenterCastSettings
+  busy: boolean
+  feedback: string | null
+  onToggle: () => void
+  onChange: (patch: Partial<CenterCastSettings>) => void
+}) {
+  if (!open) return null
+
+  return (
+    <div className="absolute right-3 top-3 z-30 flex max-h-[calc(100%-6rem)] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-cyan-400/30 bg-zinc-950/95 shadow-2xl shadow-cyan-950/30 backdrop-blur">
+      <div className="border-b border-zinc-800 px-4 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-300">Cast Display</p>
+            <h2 className="mt-1 text-base font-semibold text-zinc-50">Cast Settings</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Controls how the center screen arranges party and split-player views.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onToggle}
+            className="rounded-md px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+            aria-label="Close cast settings"
+          >
+            x
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="grid gap-3">
+          <div className="rounded-lg border border-cyan-500/25 bg-cyan-500/10 p-3">
+            <Checkbox
+              label="Dynamic split views"
+              checked={settings.dynamicSplitEnabled}
+              disabled={busy}
+              onChange={(event) => onChange({ dynamicSplitEnabled: event.target.checked })}
+            />
+            <p className="mt-1 text-xs text-cyan-100/70">
+              Separated players get their own map card on the center display.
+            </p>
+          </div>
+
+          <Input
+            label="Split distance (ft)"
+            type="number"
+            min={0}
+            max={1000}
+            step={5}
+            value={settings.splitDistanceFeet}
+            disabled={busy || !settings.dynamicSplitEnabled}
+            onChange={(event) => onChange({ splitDistanceFeet: Number(event.target.value) })}
+            hint="Default is 120 ft. Players farther than this from the leader split into their own view."
+          />
+
+          <Select
+            label="Screen arrangement"
+            value={settings.layoutMode}
+            disabled={busy}
+            onChange={(event) => onChange({ layoutMode: event.target.value as CenterCastSettings['layoutMode'] })}
+          >
+            <option value="auto_grid">Auto grid</option>
+            <option value="main_side_rail">Main plus side rail</option>
+            <option value="rotating_focus">Rotating focus</option>
+          </Select>
+
+          <Select
+            label="Main focus"
+            value={settings.mainFocus}
+            disabled={busy}
+            onChange={(event) => onChange({ mainFocus: event.target.value as CenterCastSettings['mainFocus'] })}
+          >
+            <option value="party_leader">Party leader</option>
+            <option value="first_player">First player token</option>
+            <option value="manual">Manual fallback</option>
+          </Select>
+
+          <Select
+            label="View zoom"
+            value={settings.viewZoom}
+            disabled={busy}
+            onChange={(event) => onChange({ viewZoom: event.target.value as CenterCastSettings['viewZoom'] })}
+          >
+            <option value="close">Close</option>
+            <option value="balanced">Balanced</option>
+            <option value="wide">Wide</option>
+          </Select>
+
+          <div className="grid gap-2 rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
+            <ToggleSetting label="Show player names" checked={settings.showPlayerNames} disabled={busy} onChange={(value) => onChange({ showPlayerNames: value })} />
+            <ToggleSetting label="Show health bars" checked={settings.showHealthBars} disabled={busy} onChange={(value) => onChange({ showHealthBars: value })} />
+            <ToggleSetting label="Show undiscovered hints" checked={settings.showTokenHints} disabled={busy} onChange={(value) => onChange({ showTokenHints: value })} />
+            <ToggleSetting label="Show fog and reveals" checked={settings.showFog} disabled={busy} onChange={(value) => onChange({ showFog: value })} />
+            <ToggleSetting label="Hide cast chrome by default" checked={settings.hideChromeByDefault} disabled={busy} onChange={(value) => onChange({ hideChromeByDefault: value })} />
+          </div>
+
+          {feedback && (
+            <p className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-amber-200">
+              {feedback}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ToggleSetting({
+  label,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  disabled?: boolean
+  onChange: (value: boolean) => void
+}) {
+  return (
+    <label className="flex items-center justify-between gap-3 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300">
+      <span>{label}</span>
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+        className="h-4 w-4 accent-cyan-400"
       />
     </label>
   )

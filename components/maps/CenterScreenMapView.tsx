@@ -1,10 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Eye, Maximize2, RefreshCw } from 'lucide-react'
 import { MapCanvas, type RenderArea, type RenderToken } from './MapCanvas'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import type { GameMap } from '@/lib/types/database'
+import { normalizeCenterCastSettings, type CenterCastSettings } from '@/lib/utils/cast-settings'
+
+export interface CenterScreenViewGroup {
+  id: string
+  label: string
+  subtitle: string
+  focusTokenId: string | null
+  focus: { x: number; y: number } | null
+  tone: 'party' | 'solo'
+}
 
 interface CenterScreenMapViewProps {
   campaignId: string
@@ -12,8 +22,8 @@ interface CenterScreenMapViewProps {
   imageUrl: string
   tokens: RenderToken[]
   revealedAreas: RenderArea[]
-  leaderTokenId?: string | null
-  leaderLabel?: string | null
+  settings?: CenterCastSettings | Record<string, unknown> | null
+  viewGroups: CenterScreenViewGroup[]
 }
 
 export function CenterScreenMapView({
@@ -22,24 +32,63 @@ export function CenterScreenMapView({
   imageUrl,
   tokens,
   revealedAreas,
-  leaderTokenId,
-  leaderLabel,
+  settings: rawSettings,
+  viewGroups,
 }: CenterScreenMapViewProps) {
-  const [chromeHidden, setChromeHidden] = useState(false)
+  const settings = normalizeCenterCastSettings(rawSettings)
+  const [chromeHidden, setChromeHidden] = useState(settings.hideChromeByDefault)
   const [followLeader, setFollowLeader] = useState(true)
+  const [rotatingIndex, setRotatingIndex] = useState(0)
 
   useRealtimeRefresh(`center-screen-${campaignId}-${map.id}`, [
     { table: 'tokens', filter: `map_id=eq.${map.id}` },
     { table: 'map_revealed_areas', filter: `map_id=eq.${map.id}` },
     { table: 'maps', filter: `id=eq.${map.id}` },
     { table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
+    { table: 'map_travel_party_members', filter: `map_id=eq.${map.id}` },
   ], { debounceMs: 250 })
 
-  const leaderToken =
-    (leaderTokenId ? tokens.find((token) => token.id === leaderTokenId) : null) ??
-    tokens.find((token) => token.token_type === 'player' && token.visible_to_players) ??
-    null
-  const followTarget = followLeader && leaderToken ? { x: leaderToken.x, y: leaderToken.y } : null
+  const visibleGroups = useMemo(() => {
+    const groups = viewGroups.length > 0
+      ? viewGroups
+      : [{
+          id: 'map',
+          label: map.name,
+          subtitle: 'Full map',
+          focusTokenId: null,
+          focus: null,
+          tone: 'party' as const,
+        }]
+    if (settings.layoutMode !== 'rotating_focus' || groups.length <= 1) return groups
+    return [groups[rotatingIndex % groups.length]]
+  }, [map.name, rotatingIndex, settings.layoutMode, viewGroups])
+
+  useEffect(() => {
+    if (settings.layoutMode !== 'rotating_focus' || viewGroups.length <= 1) return
+    const interval = window.setInterval(() => {
+      setRotatingIndex((index) => (index + 1) % viewGroups.length)
+    }, 8000)
+    return () => window.clearInterval(interval)
+  }, [settings.layoutMode, viewGroups.length])
+
+  const firstGroup = visibleGroups[0] ?? null
+  const statusLabel =
+    firstGroup && visibleGroups.length === 1
+      ? settings.showPlayerNames
+        ? firstGroup.label
+        : firstGroup.tone === 'party'
+          ? 'party view'
+          : 'separated view'
+      : `${visibleGroups.length} views`
+  const followGridSquares =
+    settings.viewZoom === 'close' ? 12 : settings.viewZoom === 'wide' ? 30 : 20
+  const displayTokens = tokens
+    .filter((token) => settings.showTokenHints || !token.dimmed)
+    .map((token) => ({
+      ...token,
+      showHealth: settings.showHealthBars ? token.showHealth : false,
+    }))
+  const displayAreas = settings.showFog ? revealedAreas : []
 
   async function enterFullscreen() {
     if (!document.fullscreenElement) {
@@ -67,19 +116,21 @@ export function CenterScreenMapView({
                 {revealedAreas.length} revealed
               </span>
               <span className="rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300">
-                {tokens.length} tokens
+                {displayTokens.length} tokens
               </span>
-              <button
-                type="button"
-                onClick={() => setFollowLeader((value) => !value)}
-                className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition ${
-                  followLeader
-                    ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
-                    : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500'
-                }`}
-              >
-                {followLeader ? 'Following leader' : 'Follow leader'}
-              </button>
+              {firstGroup?.focus && (
+                <button
+                  type="button"
+                  onClick={() => setFollowLeader((value) => !value)}
+                  className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition ${
+                    followLeader
+                      ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500'
+                  }`}
+                >
+                  {followLeader ? 'Following focus' : 'Follow focus'}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => window.location.reload()}
@@ -118,33 +169,73 @@ export function CenterScreenMapView({
         </button>
       )}
 
-      <div className="min-h-0 flex-1 p-2">
-        <MapCanvas
-          imageUrl={imageUrl}
-          width={map.width}
-          height={map.height}
-          gridEnabled={map.grid_enabled}
-          gridSize={map.grid_size}
-          gridColor={map.grid_color}
-          gridOpacity={map.grid_opacity}
-          gridLineWidth={map.grid_line_width}
-          gridSubdivisions={map.grid_subdivisions}
-          gridOffsetX={map.grid_offset_x}
-          gridOffsetY={map.grid_offset_y}
-          tokens={tokens}
-          mode="player"
-          canDragToken={() => false}
-          revealedAreas={revealedAreas}
-          fogEnabled
-          followTarget={followTarget}
-          followGridSquares={20}
-        />
+      <div className={layoutClass(settings.layoutMode, visibleGroups.length)}>
+        {visibleGroups.map((group, index) => (
+          <div
+            key={group.id}
+            className={viewCardClass(settings.layoutMode, visibleGroups.length, index, group.tone)}
+          >
+            <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-[calc(100%-1.5rem)] rounded-lg border border-white/10 bg-zinc-950/82 px-3 py-2 shadow-xl shadow-black/40 backdrop-blur">
+              <p className={`truncate text-sm font-bold ${group.tone === 'party' ? 'text-cyan-100' : 'text-fuchsia-100'}`}>
+                {settings.showPlayerNames ? group.label : group.tone === 'party' ? 'Party View' : 'Separated View'}
+              </p>
+              <p className="mt-0.5 truncate text-[11px] text-zinc-400">
+                {settings.showPlayerNames ? group.subtitle : group.tone === 'party' ? 'Main cast focus' : 'Separate cast focus'}
+              </p>
+            </div>
+            <MapCanvas
+              imageUrl={imageUrl}
+              width={map.width}
+              height={map.height}
+              gridEnabled={map.grid_enabled}
+              gridSize={map.grid_size}
+              gridColor={map.grid_color}
+              gridOpacity={map.grid_opacity}
+              gridLineWidth={map.grid_line_width}
+              gridSubdivisions={map.grid_subdivisions}
+              gridOffsetX={map.grid_offset_x}
+              gridOffsetY={map.grid_offset_y}
+              tokens={displayTokens}
+              mode="player"
+              canDragToken={() => false}
+              revealedAreas={displayAreas}
+              fogEnabled={settings.showFog}
+              followTarget={followLeader ? group.focus : null}
+              followGridSquares={followGridSquares}
+            />
+          </div>
+        ))}
       </div>
-      {!chromeHidden && followLeader && leaderToken && (
+      {!chromeHidden && followLeader && firstGroup?.focus && (
         <div className="pointer-events-none absolute bottom-3 left-1/2 z-30 -translate-x-1/2 rounded-full border border-zinc-800 bg-zinc-950/85 px-3 py-1.5 text-xs text-zinc-300 shadow-xl shadow-black/40">
-          Following {leaderLabel ?? leaderToken.name ?? 'party leader'}
+          Following {statusLabel}
         </div>
       )}
     </div>
   )
+}
+
+function layoutClass(layoutMode: CenterCastSettings['layoutMode'], count: number) {
+  if (count <= 1 || layoutMode === 'rotating_focus') return 'min-h-0 flex-1 p-2'
+  if (layoutMode === 'main_side_rail') return 'grid min-h-0 flex-1 grid-cols-1 gap-2 p-2 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,30vw)]'
+  if (count === 2) return 'grid min-h-0 flex-1 grid-cols-1 gap-2 p-2 lg:grid-cols-2'
+  return 'grid min-h-0 flex-1 grid-cols-1 gap-2 p-2 md:grid-cols-2'
+}
+
+function viewCardClass(
+  layoutMode: CenterCastSettings['layoutMode'],
+  count: number,
+  index: number,
+  tone: CenterScreenViewGroup['tone'],
+) {
+  const toneClass = tone === 'party'
+    ? 'border-cyan-300/35 shadow-cyan-950/35'
+    : 'border-fuchsia-300/35 shadow-fuchsia-950/35'
+  const spanClass =
+    layoutMode === 'main_side_rail' && count > 1 && index === 0
+      ? 'lg:row-span-full'
+      : count === 3 && index === 0 && layoutMode === 'auto_grid'
+        ? 'md:col-span-2'
+        : ''
+  return `relative h-full min-h-0 overflow-hidden rounded-xl border bg-black shadow-2xl ${toneClass} ${spanClass}`
 }

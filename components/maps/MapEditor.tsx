@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MapCanvas, type AreaDrawTool, type RenderArea, type RenderToken } from './MapCanvas'
+import { MapCanvas, type AreaDrawTool, type RenderArea, type RenderRoomRegion, type RenderToken } from './MapCanvas'
 import { PartyPlayersPanel } from './PartyPlayersPanel'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -22,6 +22,7 @@ import {
   type ActionIntentStatus,
   type GameMap,
   type MapRevealedArea,
+  type MapRoomRegion,
   type MapTravelParty,
   type MapTravelPartyMember,
   type Token,
@@ -33,6 +34,7 @@ import {
   addToken,
   bulkUpdateTokenClassSettings,
   deleteRevealedArea,
+  deleteRoomRegion,
   deleteToken,
   hideEntireMap,
   resetTokenMovement,
@@ -46,6 +48,7 @@ import {
   setTokenOverride,
   updateMapSettings,
   updateMapCastSettings,
+  updateRoomRegion,
   updateToken,
   updateTokenPosition,
   upsertTokenDmNote,
@@ -280,6 +283,12 @@ function mergeAreaList(areas: MapRevealedArea[], area: MapRevealedArea) {
   return next
 }
 
+function mergeRoomList(rooms: MapRoomRegion[], room: MapRoomRegion) {
+  const next = rooms.filter((r) => r.id !== room.id)
+  next.push(room)
+  return next.sort((a, b) => a.created_at.localeCompare(b.created_at))
+}
+
 interface MapEditorProps {
   campaignId: string
   map: GameMap
@@ -287,6 +296,7 @@ interface MapEditorProps {
   initialTokens: Token[]
   initialDmNotes: Record<string, string>
   initialAreas: MapRevealedArea[]
+  initialRooms: MapRoomRegion[]
   characters: { id: string; name: string; speed: number }[]
   /** Target token ids with an active action request — seed for the "!" badge. */
   initialAlertTokenIds?: string[]
@@ -305,6 +315,7 @@ export function MapEditor({
   initialTokens,
   initialDmNotes,
   initialAreas,
+  initialRooms,
   characters,
   initialAlertTokenIds = [],
   codexDocs = [],
@@ -320,6 +331,7 @@ export function MapEditor({
   )
   const [dmNotes, setDmNotes] = useState<Record<string, string>>(initialDmNotes)
   const [areas, setAreas] = useState<MapRevealedArea[]>(initialAreas)
+  const [rooms, setRooms] = useState<MapRoomRegion[]>(initialRooms)
   const [drawTool, setDrawTool] = useState<AreaDrawTool>(null)
   const [areaBusy, setAreaBusy] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -493,6 +505,8 @@ export function MapEditor({
     },
     onAreaUpsert: (area) => setAreas((prev) => mergeAreaList(prev, area)),
     onAreaDelete: (id) => setAreas((prev) => prev.filter((a) => a.id !== id)),
+    onRoomUpsert: (room) => setRooms((prev) => mergeRoomList(prev, room)),
+    onRoomDelete: (id) => setRooms((prev) => prev.filter((room) => room.id !== id)),
     onStatus: setMapRealtimeStatus,
   })
 
@@ -546,6 +560,27 @@ export function MapEditor({
     [areas],
   )
 
+  const renderRooms: RenderRoomRegion[] = useMemo(
+    () =>
+      rooms.map((room) => ({
+        id: room.id,
+        name: room.name,
+        shape_type: room.shape_type,
+        x: room.x,
+        y: room.y,
+        width: room.width,
+        height: room.height,
+        points: room.points,
+        reveal_mode: room.reveal_mode,
+        mask_style: room.mask_style,
+        border_style: room.border_style,
+        player_label_visible: room.player_label_visible,
+        is_revealed: room.is_revealed,
+        visible_to_players: room.visible_to_players,
+      })),
+    [rooms],
+  )
+
   async function handleRevealAll() {
     setAreaBusy(true)
     await revealEntireMap(campaignId, map.id)
@@ -579,6 +614,23 @@ export function MapEditor({
   async function handleDeleteArea(area: MapRevealedArea) {
     setAreas((prev) => prev.filter((a) => a.id !== area.id))
     await deleteRevealedArea(campaignId, map.id, area.id)
+  }
+
+  async function handleToggleRoom(room: MapRoomRegion) {
+    const next = !room.is_revealed
+    setRooms((prev) => prev.map((r) => (r.id === room.id ? { ...r, is_revealed: next } : r)))
+    await updateRoomRegion(campaignId, map.id, room.id, { is_revealed: next })
+  }
+
+  async function handleToggleRoomPlayerLabel(room: MapRoomRegion) {
+    const next = !room.player_label_visible
+    setRooms((prev) => prev.map((r) => (r.id === room.id ? { ...r, player_label_visible: next } : r)))
+    await updateRoomRegion(campaignId, map.id, room.id, { player_label_visible: next })
+  }
+
+  async function handleDeleteRoom(room: MapRoomRegion) {
+    setRooms((prev) => prev.filter((r) => r.id !== room.id))
+    await deleteRoomRegion(campaignId, map.id, room.id)
   }
 
   const selectedSpeed =
@@ -1223,6 +1275,7 @@ export function MapEditor({
             onSelectToken={handleSelectToken}
             onMoveToken={handleMove}
             revealedAreas={renderAreas}
+            roomRegions={renderRooms}
             fogEnabled={false}
             drawTool={drawTool}
             onAreaDrawn={handleAreaDrawn}
@@ -1493,6 +1546,65 @@ export function MapEditor({
                 ))}
               </ul>
             )}
+            <div className="mt-2 rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/10 p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h4 className="text-sm font-semibold text-fuchsia-100">Dungeon Rooms</h4>
+                  <p className="mt-1 text-xs text-fuchsia-100/70">
+                    Room masks deployed from Adventure Maker. Revealed rooms show their interior to players and center screen.
+                  </p>
+                </div>
+                <span className="rounded-full border border-fuchsia-400/30 bg-black/25 px-2 py-0.5 text-xs text-fuchsia-100">
+                  {rooms.length}
+                </span>
+              </div>
+              {rooms.length === 0 ? (
+                <p className="mt-3 text-xs text-zinc-500">
+                  No room masks on this live map.
+                </p>
+              ) : (
+                <ul className="mt-3 flex max-h-56 flex-col gap-1.5 overflow-y-auto">
+                  {rooms.map((room) => (
+                    <li
+                      key={room.id}
+                      className="rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-xs"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-zinc-200">{room.name}</p>
+                          <p className="mt-0.5 capitalize text-zinc-500">
+                            {room.shape_type} - {room.reveal_mode.replace('_', ' ')} - {room.border_style.replace('_', ' ')}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleRoom(room)}
+                          className={room.is_revealed ? 'shrink-0 text-emerald-400 hover:text-emerald-300' : 'shrink-0 text-amber-300 hover:text-amber-200'}
+                        >
+                          {room.is_revealed ? 'Revealed' : 'Reveal'}
+                        </button>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleRoomPlayerLabel(room)}
+                          className={room.player_label_visible ? 'text-sky-300 hover:text-sky-200' : 'text-zinc-500 hover:text-zinc-300'}
+                        >
+                          {room.player_label_visible ? 'Label on' : 'Label off'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteRoom(room)}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
           )}
 

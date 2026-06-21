@@ -4,9 +4,10 @@
 // (service-role admin client). Server-only logic — never imported by the client.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { AdventureStatus, PreparedMap, PreparedMapToken } from '@/lib/types/adventure'
+import type { AdventureStatus, PreparedMap, PreparedMapRoomRegion, PreparedMapToken } from '@/lib/types/adventure'
 import type { Database } from '@/lib/types/database'
 import {
+  normalizePreparedRoomRegion,
   normalizePrepLinks,
   normalizePrepNotes,
   normalizeTags,
@@ -21,6 +22,7 @@ import {
 const STATUSES: AdventureStatus[] = ['draft', 'ready', 'active', 'archived']
 const MAX_TOKENS = 200
 const MAX_TOKEN_LINKS = 20
+const MAX_ROOM_REGIONS = 100
 
 function sourceTrackingMigrationMessage(message: string) {
   const lower = message.toLowerCase()
@@ -57,6 +59,26 @@ export function sanitizeTokens(tokens: PreparedMapToken[]): PreparedMapToken[] {
       tags: normalizeTags(token.tags),
       links: normalizePrepLinks(token.links, 'token', token.id).slice(0, MAX_TOKEN_LINKS),
       resource: normalizeTokenResource(token.resource),
+    }
+  })
+}
+
+export function sanitizeRoomRegions(roomRegions: PreparedMapRoomRegion[]): PreparedMapRoomRegion[] {
+  return roomRegions.slice(0, MAX_ROOM_REGIONS).map((raw) => {
+    const room = normalizePreparedRoomRegion(raw)
+    return {
+      ...room,
+      name: room.name.slice(0, 80),
+      linked_campaign_doc_id: room.linked_campaign_doc_id || null,
+      x: Math.round(room.x),
+      y: Math.round(room.y),
+      width: room.width === null || room.width === undefined ? null : Math.max(8, Math.round(room.width)),
+      height: room.height === null || room.height === undefined ? null : Math.max(8, Math.round(room.height)),
+      points: room.points
+        .map((point) => ({ x: Math.round(point.x), y: Math.round(point.y) }))
+        .slice(0, 32),
+      auto_reveal_distance_feet: Math.max(0, Math.round(room.auto_reveal_distance_feet)),
+      dm_notes: (room.dm_notes ?? '').slice(0, 2000),
     }
   })
 }
@@ -156,6 +178,38 @@ export async function instantiatePreparedMap(
     if (tokenError) {
       return {
         error: `Live map "${prepared.title}" was created, but tokens failed to copy: ${sourceTrackingMigrationMessage(tokenError.message)}`,
+      }
+    }
+  }
+
+  const roomRegions = sanitizeRoomRegions(prepared.room_regions ?? [])
+  if (roomRegions.length > 0) {
+    const { error: roomError } = await client.from('map_room_regions').insert(
+      roomRegions.map((room) => ({
+        campaign_id: campaignId,
+        map_id: liveMap.id,
+        source_prepared_room_id: room.id,
+        linked_campaign_doc_id: room.linked_campaign_doc_id || null,
+        name: room.name,
+        shape_type: room.shape_type,
+        x: room.x,
+        y: room.y,
+        width: room.width ?? null,
+        height: room.height ?? null,
+        points: room.points,
+        reveal_mode: room.reveal_mode,
+        mask_style: room.mask_style,
+        border_style: room.border_style,
+        player_label_visible: room.player_label_visible,
+        auto_reveal_distance_feet: room.auto_reveal_distance_feet,
+        is_revealed: room.is_revealed_by_default,
+        visible_to_players: room.visible_to_players,
+        created_by: createdBy,
+      })),
+    )
+    if (roomError) {
+      return {
+        error: `Live map "${prepared.title}" was created, but room regions failed to copy: ${roomError.message}`,
       }
     }
   }

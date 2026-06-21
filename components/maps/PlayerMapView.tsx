@@ -30,7 +30,7 @@ import {
   WandSparkles,
   X,
 } from 'lucide-react'
-import { MapCanvas, type RenderArea, type RenderToken } from './MapCanvas'
+import { MapCanvas, type RenderArea, type RenderRoomRegion, type RenderToken } from './MapCanvas'
 import { useTokenRealtime } from '@/lib/hooks/useTokenRealtime'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import {
@@ -71,6 +71,7 @@ import {
   type GameMap,
   type InventoryItem,
   type MapRevealedArea,
+  type MapRoomRegion,
   type MapTransportConfirmation,
   type MapTravelParty,
   type MapTravelPartyMember,
@@ -121,6 +122,12 @@ function mergeAreaList(areas: MapRevealedArea[], area: MapRevealedArea) {
   return next
 }
 
+function mergeRoomList(rooms: MapRoomRegion[], room: MapRoomRegion) {
+  const next = rooms.filter((r) => r.id !== room.id)
+  next.push(room)
+  return next.sort((a, b) => a.created_at.localeCompare(b.created_at))
+}
+
 function removeDuplicateAreas(areas: MapRevealedArea[]) {
   const byId = new Map<string, MapRevealedArea>()
   areas.forEach((area) => byId.set(area.id, area))
@@ -133,6 +140,7 @@ interface PlayerMapViewProps {
   imageUrl: string
   initialTokens: Token[]
   initialAreas: MapRevealedArea[]
+  initialRooms: MapRoomRegion[]
   currentUserId: string
   // speed by character id, for tokens this player controls
   characterSpeeds: Record<string, number>
@@ -374,6 +382,7 @@ export function PlayerMapView({
   imageUrl,
   initialTokens,
   initialAreas,
+  initialRooms,
   currentUserId,
   characterSpeeds,
   myCharacters,
@@ -392,6 +401,7 @@ export function PlayerMapView({
   const [areas, setAreas] = useState<MapRevealedArea[]>(() =>
     removeDuplicateAreas(initialAreas),
   )
+  const [rooms, setRooms] = useState<MapRoomRegion[]>(initialRooms)
   const [mapState, setMapState] = useState(map)
   const [mapLocked, setMapLocked] = useState(map.player_movement_locked)
   const travelParties = initialTravelParties
@@ -513,6 +523,8 @@ export function PlayerMapView({
     },
     onAreaUpsert: (area) => setAreas((prev) => mergeAreaList(prev, area)),
     onAreaDelete: (id) => setAreas((prev) => prev.filter((a) => a.id !== id)),
+    onRoomUpsert: (room) => setRooms((prev) => mergeRoomList(prev, room)),
+    onRoomDelete: (id) => setRooms((prev) => prev.filter((room) => room.id !== id)),
   })
 
   const loadMyRequests = useCallback(async () => {
@@ -554,6 +566,23 @@ export function PlayerMapView({
     width: a.width,
     height: a.height,
     radius: a.radius,
+  }))
+
+  const renderRooms: RenderRoomRegion[] = rooms.map((room) => ({
+    id: room.id,
+    name: room.name,
+    shape_type: room.shape_type,
+    x: room.x,
+    y: room.y,
+    width: room.width,
+    height: room.height,
+    points: room.points,
+    reveal_mode: room.reveal_mode,
+    mask_style: room.mask_style,
+    border_style: room.border_style,
+    player_label_visible: room.player_label_visible,
+    is_revealed: room.is_revealed,
+    visible_to_players: room.visible_to_players,
   }))
 
   const controls = (t: Token) => t.controlled_by_user_id === currentUserId
@@ -1552,6 +1581,7 @@ export function PlayerMapView({
           pendingTokenPosition={combatMovementActive ? pendingMove : null}
           onTokenMovePreview={combatMovementActive ? handleTokenMovePreview : undefined}
           revealedAreas={renderAreas}
+          roomRegions={renderRooms}
           fogEnabled
         />
 

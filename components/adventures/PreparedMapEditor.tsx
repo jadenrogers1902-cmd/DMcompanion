@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MapCanvas, type RenderToken } from '@/components/maps/MapCanvas'
+import { MapCanvas, type RenderRoomRegion, type RenderToken, type RoomDrawTool } from '@/components/maps/MapCanvas'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -19,6 +19,7 @@ import type {
   PreparedMap,
   PreparedMapLink,
   PreparedMapNote,
+  PreparedMapRoomRegion,
   PreparedMapToken,
 } from '@/lib/types/adventure'
 import type { CampaignDoc, CampaignDocLink } from '@/lib/types/database'
@@ -30,6 +31,8 @@ import {
 import {
   createPrepLink,
   createPrepNote,
+  createPreparedRoomRegion,
+  normalizePreparedRoomRegions,
   normalizePrepLinks,
   normalizePrepNotes,
   normalizeTags,
@@ -108,6 +111,9 @@ export function PreparedMapEditor({
   const [tokens, setTokens] = useState<PreparedMapToken[]>(() =>
     (map.tokens ?? []).map(normalizePreparedToken),
   )
+  const [roomRegions, setRoomRegions] = useState<PreparedMapRoomRegion[]>(() =>
+    normalizePreparedRoomRegions(map.room_regions ?? []),
+  )
   const [notes, setNotes] = useState<PreparedMapNote[]>(() =>
     normalizePrepNotes(map.notes, 'map', map.id),
   )
@@ -118,6 +124,10 @@ export function PreparedMapEditor({
   const [dirty, setDirty] = useState(false)
 
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
+  const [subLocationsOpen, setSubLocationsOpen] = useState(false)
+  const [roomDrawTool, setRoomDrawTool] = useState<RoomDrawTool>(null)
+  const [draftRoomPolygonPoints, setDraftRoomPolygonPoints] = useState<{ x: number; y: number }[]>([])
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -126,6 +136,8 @@ export function PreparedMapEditor({
 
   const hasImage = Boolean(map.storage_path && imageUrl && map.width > 0 && map.height > 0)
   const selectedToken = tokens.find((token) => token.id === selectedTokenId) ?? null
+  const selectedRoom = roomRegions.find((room) => room.id === selectedRoomId) ?? null
+  const subLocationDocs = codexDocs.filter((doc) => doc.doc_type === 'sub_location')
 
   const renderTokens: RenderToken[] = useMemo(
     () =>
@@ -147,6 +159,26 @@ export function PreparedMapEditor({
     () => renderTokens.filter((token) => token.visible_to_players),
     [renderTokens],
   )
+  const renderRooms: RenderRoomRegion[] = useMemo(
+    () =>
+      roomRegions.map((room) => ({
+        id: room.id,
+        name: room.name,
+        shape_type: room.shape_type,
+        x: room.x,
+        y: room.y,
+        width: room.width ?? null,
+        height: room.height ?? null,
+        points: room.points,
+        reveal_mode: room.reveal_mode,
+        mask_style: room.mask_style,
+        border_style: room.border_style,
+        player_label_visible: room.player_label_visible,
+        is_revealed: room.is_revealed_by_default,
+        visible_to_players: room.visible_to_players,
+      })),
+    [roomRegions],
+  )
 
   function touch() {
     setDirty(true)
@@ -155,6 +187,11 @@ export function PreparedMapEditor({
 
   function updateToken(id: string, patch: Partial<PreparedMapToken>) {
     setTokens((prev) => prev.map((token) => (token.id === id ? { ...token, ...patch } : token)))
+    touch()
+  }
+
+  function updateRoom(id: string, patch: Partial<PreparedMapRoomRegion>) {
+    setRoomRegions((prev) => prev.map((room) => (room.id === id ? { ...room, ...patch } : room)))
     touch()
   }
 
@@ -293,6 +330,43 @@ export function PreparedMapEditor({
     touch()
   }
 
+  function addRoomRegion(shape:
+    | { shape_type: 'rectangle'; x: number; y: number; width: number; height: number }
+    | { shape_type: 'polygon'; points: { x: number; y: number }[] },
+  ) {
+    const id = crypto.randomUUID()
+    const room = createPreparedRoomRegion({
+      id,
+      name: `Room ${roomRegions.length + 1}`,
+      shape_type: shape.shape_type,
+      x: shape.shape_type === 'rectangle' ? shape.x : shape.points[0]?.x ?? Math.round(map.width / 2),
+      y: shape.shape_type === 'rectangle' ? shape.y : shape.points[0]?.y ?? Math.round(map.height / 2),
+      width: shape.shape_type === 'rectangle' ? shape.width : null,
+      height: shape.shape_type === 'rectangle' ? shape.height : null,
+      points: shape.shape_type === 'polygon' ? shape.points : [],
+    })
+    setRoomRegions((prev) => [...prev, room])
+    setSelectedRoomId(id)
+    setSelectedTokenId(null)
+    setRoomDrawTool(null)
+    setDraftRoomPolygonPoints([])
+    touch()
+  }
+
+  function finishPolygonRoom() {
+    if (draftRoomPolygonPoints.length < 3) {
+      setError('Add at least three points to finish a polygon room.')
+      return
+    }
+    addRoomRegion({ shape_type: 'polygon', points: draftRoomPolygonPoints })
+  }
+
+  function removeRoom(id: string) {
+    setRoomRegions((prev) => prev.filter((room) => room.id !== id))
+    if (selectedRoomId === id) setSelectedRoomId(null)
+    touch()
+  }
+
   function removeToken(id: string) {
     setTokens((prev) => prev.filter((token) => token.id !== id))
     if (selectedTokenId === id) setSelectedTokenId(null)
@@ -324,6 +398,7 @@ export function PreparedMapEditor({
         grid_enabled: gridEnabled,
         grid_size: gridSize,
         tokens,
+        room_regions: roomRegions,
         notes,
         links,
         tags,
@@ -471,21 +546,71 @@ export function PreparedMapEditor({
         />
 
         {/* Canvas / image area */}
-        <div className="h-[60vh] min-h-[360px] min-w-0 sm:h-[72vh] lg:h-[80vh]">
+        <div className="relative h-[60vh] min-h-[360px] min-w-0 sm:h-[72vh] lg:h-[80vh]">
           {hasImage ? (
-            <MapCanvas
-              imageUrl={imageUrl!}
-              width={map.width}
-              height={map.height}
-              gridEnabled={gridEnabled}
-              gridSize={gridSize}
-              tokens={renderTokens}
-              mode="dm"
-              selectedTokenId={selectedTokenId}
-              onSelectToken={setSelectedTokenId}
-              onMoveToken={(id, x, y) => updateToken(id, { x, y })}
-              canDragToken={() => true}
-            />
+            <>
+              <MapCanvas
+                imageUrl={imageUrl!}
+                width={map.width}
+                height={map.height}
+                gridEnabled={gridEnabled}
+                gridSize={gridSize}
+                tokens={renderTokens}
+                mode="dm"
+                selectedTokenId={selectedTokenId}
+                onSelectToken={(id) => {
+                  setSelectedTokenId(id)
+                  if (id) setSelectedRoomId(null)
+                }}
+                onMoveToken={(id, x, y) => updateToken(id, { x, y })}
+                canDragToken={() => true}
+                roomRegions={renderRooms}
+                selectedRoomRegionId={selectedRoomId}
+                onSelectRoomRegion={(id) => {
+                  setSelectedRoomId(id)
+                  if (id) setSelectedTokenId(null)
+                }}
+                roomDrawTool={roomDrawTool}
+                draftRoomPolygonPoints={draftRoomPolygonPoints}
+                onRoomPolygonPoint={(point) => {
+                  setDraftRoomPolygonPoints((prev) => [...prev, point])
+                  setError(null)
+                }}
+                onRoomRegionDrawn={addRoomRegion}
+              />
+              <SubLocationsPanel
+                open={subLocationsOpen}
+                roomDrawTool={roomDrawTool}
+                rooms={roomRegions}
+                selectedRoom={selectedRoom}
+                subLocationDocs={subLocationDocs}
+                draftPointCount={draftRoomPolygonPoints.length}
+                onToggle={() => {
+                  setSubLocationsOpen((open) => !open)
+                  setSelectedTokenId(null)
+                }}
+                onAddPortal={addTransportToken}
+                onStartRectangle={() => {
+                  setSubLocationsOpen(true)
+                  setRoomDrawTool((tool) => (tool === 'rectangle' ? null : 'rectangle'))
+                  setDraftRoomPolygonPoints([])
+                }}
+                onStartPolygon={() => {
+                  setSubLocationsOpen(true)
+                  setRoomDrawTool((tool) => (tool === 'polygon' ? null : 'polygon'))
+                  setDraftRoomPolygonPoints([])
+                }}
+                onFinishPolygon={finishPolygonRoom}
+                onUndoPolygonPoint={() => setDraftRoomPolygonPoints((prev) => prev.slice(0, -1))}
+                onCancelDraw={() => {
+                  setRoomDrawTool(null)
+                  setDraftRoomPolygonPoints([])
+                }}
+                onSelectRoom={setSelectedRoomId}
+                onUpdateRoom={updateRoom}
+                onRemoveRoom={removeRoom}
+              />
+            </>
           ) : (
             <button
               type="button"
@@ -752,8 +877,270 @@ export function PreparedMapEditor({
               gridEnabled={gridEnabled}
               gridSize={gridSize}
               tokens={previewTokens}
+              roomRegions={renderRooms}
               mode="player"
             />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SubLocationsPanel({
+  open,
+  roomDrawTool,
+  rooms,
+  selectedRoom,
+  subLocationDocs,
+  draftPointCount,
+  onToggle,
+  onAddPortal,
+  onStartRectangle,
+  onStartPolygon,
+  onFinishPolygon,
+  onUndoPolygonPoint,
+  onCancelDraw,
+  onSelectRoom,
+  onUpdateRoom,
+  onRemoveRoom,
+}: {
+  open: boolean
+  roomDrawTool: RoomDrawTool
+  rooms: PreparedMapRoomRegion[]
+  selectedRoom: PreparedMapRoomRegion | null
+  subLocationDocs: CampaignDoc[]
+  draftPointCount: number
+  onToggle: () => void
+  onAddPortal: () => void
+  onStartRectangle: () => void
+  onStartPolygon: () => void
+  onFinishPolygon: () => void
+  onUndoPolygonPoint: () => void
+  onCancelDraw: () => void
+  onSelectRoom: (id: string | null) => void
+  onUpdateRoom: (id: string, patch: Partial<PreparedMapRoomRegion>) => void
+  onRemoveRoom: (id: string) => void
+}) {
+  return (
+    <div className="absolute bottom-3 left-3 z-30 flex items-end gap-3">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`flex h-14 w-14 items-center justify-center rounded-full border text-zinc-50 shadow-2xl backdrop-blur transition ${
+          open
+            ? 'border-fuchsia-300 bg-fuchsia-500/25 shadow-fuchsia-950/50'
+            : 'border-zinc-700 bg-zinc-950/90 hover:border-fuchsia-300/70 hover:bg-zinc-900'
+        }`}
+        aria-label="Sub-locations"
+        title="Sub-locations"
+      >
+        <svg className="h-8 w-8" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <rect x="18" y="8" width="36" height="36" rx="7" stroke="currentColor" strokeWidth="5" strokeDasharray="8 7" />
+          <path d="M13 50L31 32M18 32l13 13" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+          <circle cx="11" cy="52" r="6" stroke="currentColor" strokeWidth="5" />
+          <circle cx="24" cy="51" r="6" stroke="currentColor" strokeWidth="5" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="max-h-[min(42rem,calc(100vh-9rem))] w-[min(24rem,calc(100vw-6rem))] overflow-hidden rounded-xl border border-fuchsia-300/30 bg-zinc-950/96 shadow-2xl shadow-fuchsia-950/35 backdrop-blur">
+          <div className="border-b border-zinc-800 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-fuchsia-300">Dungeon Map</p>
+            <h2 className="mt-1 text-base font-semibold text-zinc-50">Sub-Locations</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Add travel portals or draw blacked-out room regions.
+            </p>
+          </div>
+
+          <div className="max-h-[calc(100vh-16rem)] overflow-y-auto p-4">
+            <div className="grid gap-3">
+              <div className="rounded-lg border border-violet-500/25 bg-violet-500/10 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-violet-100">Portal Sub-Location</p>
+                    <p className="mt-1 text-xs text-violet-100/70">
+                      Place a transport token for big-map travel.
+                    </p>
+                  </div>
+                  <Button size="sm" variant="secondary" onClick={onAddPortal}>
+                    Add Portal
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-fuchsia-500/25 bg-fuchsia-500/10 p-3">
+                <p className="text-sm font-semibold text-fuchsia-100">Room Sub-Location</p>
+                <p className="mt-1 text-xs text-fuchsia-100/70">
+                  Draw a room mask. Players see the border and door cue, not the room interior.
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Button
+                    size="sm"
+                    variant={roomDrawTool === 'rectangle' ? 'primary' : 'secondary'}
+                    onClick={onStartRectangle}
+                  >
+                    {roomDrawTool === 'rectangle' ? 'Drawing...' : 'Rectangle'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={roomDrawTool === 'polygon' ? 'primary' : 'secondary'}
+                    onClick={onStartPolygon}
+                  >
+                    {roomDrawTool === 'polygon' ? `${draftPointCount} points` : 'Polygon'}
+                  </Button>
+                </div>
+                {roomDrawTool === 'polygon' && (
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    <Button size="sm" variant="secondary" onClick={onUndoPolygonPoint} disabled={draftPointCount === 0}>
+                      Undo
+                    </Button>
+                    <Button size="sm" onClick={onFinishPolygon} disabled={draftPointCount < 3} className="col-span-2">
+                      Finish
+                    </Button>
+                  </div>
+                )}
+                {roomDrawTool && (
+                  <button
+                    type="button"
+                    onClick={onCancelDraw}
+                    className="mt-2 text-xs font-medium text-zinc-400 hover:text-zinc-100"
+                  >
+                    Cancel drawing
+                  </button>
+                )}
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                    Rooms ({rooms.length})
+                  </p>
+                </div>
+                {rooms.length === 0 ? (
+                  <p className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-3 text-xs text-zinc-500">
+                    Draw a room to configure fog, labels, and reveal behavior.
+                  </p>
+                ) : (
+                  <div className="grid gap-1.5">
+                    {rooms.map((room) => (
+                      <button
+                        key={room.id}
+                        type="button"
+                        onClick={() => onSelectRoom(room.id)}
+                        className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
+                          selectedRoom?.id === room.id
+                            ? 'border-fuchsia-300/70 bg-fuchsia-500/15 text-zinc-50'
+                            : 'border-zinc-800 bg-zinc-900/80 text-zinc-300 hover:border-zinc-600'
+                        }`}
+                      >
+                        <span className="block truncate font-semibold">{room.name}</span>
+                        <span className="mt-0.5 block text-[11px] capitalize text-zinc-500">
+                          {room.shape_type} - {room.reveal_mode.replace('_', ' ')} - {room.is_revealed_by_default ? 'revealed' : 'masked'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {selectedRoom && (
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-zinc-100">Room Settings</p>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveRoom(selectedRoom.id)}
+                      className="text-xs font-semibold text-red-400 hover:text-red-300"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  <div className="grid gap-3">
+                    <Input
+                      label="Room name"
+                      value={selectedRoom.name}
+                      maxLength={80}
+                      onChange={(event) => onUpdateRoom(selectedRoom.id, { name: event.target.value })}
+                    />
+                    <Select
+                      label="Linked sub-location"
+                      value={selectedRoom.linked_campaign_doc_id ?? ''}
+                      onChange={(event) => onUpdateRoom(selectedRoom.id, { linked_campaign_doc_id: event.target.value || null })}
+                    >
+                      <option value="">None</option>
+                      {subLocationDocs.map((doc) => (
+                        <option key={doc.id} value={doc.id}>{doc.title}</option>
+                      ))}
+                    </Select>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select
+                        label="Reveal"
+                        value={selectedRoom.reveal_mode}
+                        onChange={(event) => onUpdateRoom(selectedRoom.id, { reveal_mode: event.target.value as PreparedMapRoomRegion['reveal_mode'] })}
+                      >
+                        <option value="manual">Manual</option>
+                        <option value="auto">Auto</option>
+                        <option value="manual_auto">Manual + auto</option>
+                      </Select>
+                      <Input
+                        label="Auto ft"
+                        type="number"
+                        min={0}
+                        step={5}
+                        value={selectedRoom.auto_reveal_distance_feet}
+                        onChange={(event) => onUpdateRoom(selectedRoom.id, { auto_reveal_distance_feet: Math.max(0, Number(event.target.value) || 0) })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select
+                        label="Mask"
+                        value={selectedRoom.mask_style}
+                        onChange={(event) => onUpdateRoom(selectedRoom.id, { mask_style: event.target.value as PreparedMapRoomRegion['mask_style'] })}
+                      >
+                        <option value="blackout">Blackout</option>
+                        <option value="dim">Dim</option>
+                        <option value="outline_only">Outline only</option>
+                      </Select>
+                      <Select
+                        label="Border"
+                        value={selectedRoom.border_style}
+                        onChange={(event) => onUpdateRoom(selectedRoom.id, { border_style: event.target.value as PreparedMapRoomRegion['border_style'] })}
+                      >
+                        <option value="door">Door cue</option>
+                        <option value="dashed">Dashed</option>
+                        <option value="solid">Solid</option>
+                        <option value="glow">Glow</option>
+                      </Select>
+                    </div>
+                    <label className="flex items-center gap-2 text-xs text-zinc-300">
+                      <input
+                        type="checkbox"
+                        checked={selectedRoom.player_label_visible}
+                        onChange={(event) => onUpdateRoom(selectedRoom.id, { player_label_visible: event.target.checked })}
+                        className="h-4 w-4 accent-fuchsia-400"
+                      />
+                      Show room label to players before reveal
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-zinc-300">
+                      <input
+                        type="checkbox"
+                        checked={selectedRoom.is_revealed_by_default}
+                        onChange={(event) => onUpdateRoom(selectedRoom.id, { is_revealed_by_default: event.target.checked })}
+                        className="h-4 w-4 accent-emerald-400"
+                      />
+                      Start revealed when deployed
+                    </label>
+                    <Textarea
+                      label="DM note"
+                      rows={2}
+                      value={selectedRoom.dm_notes ?? ''}
+                      onChange={(event) => onUpdateRoom(selectedRoom.id, { dm_notes: event.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -37,6 +37,24 @@ export interface RenderArea {
 }
 
 export type AreaDrawTool = 'rectangle' | 'circle' | null
+export type RoomDrawTool = 'rectangle' | 'polygon' | null
+
+export interface RenderRoomRegion {
+  id: string
+  name: string
+  shape_type: 'rectangle' | 'polygon'
+  x: number
+  y: number
+  width?: number | null
+  height?: number | null
+  points?: { x: number; y: number }[] | null
+  reveal_mode: 'manual' | 'auto' | 'manual_auto'
+  mask_style: 'blackout' | 'dim' | 'outline_only'
+  border_style: 'door' | 'dashed' | 'solid' | 'glow'
+  player_label_visible: boolean
+  is_revealed: boolean
+  visible_to_players: boolean
+}
 
 interface MapCanvasProps {
   imageUrl: string
@@ -62,6 +80,9 @@ interface MapCanvasProps {
   canDragToken?: (id: string) => boolean
   // Revealed-area fog layer (first-version reveal system)
   revealedAreas?: RenderArea[]
+  roomRegions?: RenderRoomRegion[]
+  selectedRoomRegionId?: string | null
+  onSelectRoomRegion?: (id: string | null) => void
   // Player mode: render a dark fog over everything not covered by a
   // visible-to-players area. DM mode: just outline areas for reference.
   fogEnabled?: boolean
@@ -70,6 +91,12 @@ interface MapCanvasProps {
   onAreaDrawn?: (shape:
     | { shape_type: 'rectangle'; x: number; y: number; width: number; height: number }
     | { shape_type: 'circle'; x: number; y: number; radius: number }) => void
+  roomDrawTool?: RoomDrawTool
+  draftRoomPolygonPoints?: { x: number; y: number }[]
+  onRoomPolygonPoint?: (point: { x: number; y: number }) => void
+  onRoomRegionDrawn?: (shape:
+    | { shape_type: 'rectangle'; x: number; y: number; width: number; height: number }
+    | { shape_type: 'polygon'; points: { x: number; y: number }[] }) => void
   // Presentation mode: keep a world coordinate centered in the viewport when it changes.
   followTarget?: { x: number; y: number } | null
   followGridSquares?: number
@@ -149,9 +176,16 @@ export function MapCanvas({
   onMoveToken,
   canDragToken,
   revealedAreas = [],
+  roomRegions = [],
+  selectedRoomRegionId = null,
+  onSelectRoomRegion,
   fogEnabled = false,
   drawTool = null,
   onAreaDrawn,
+  roomDrawTool = null,
+  draftRoomPolygonPoints = [],
+  onRoomPolygonPoint,
+  onRoomRegionDrawn,
   followTarget = null,
   followGridSquares = 18,
   viewportCommand,
@@ -179,6 +213,7 @@ export function MapCanvas({
   const followTargetX = followTarget?.x ?? null
   const followTargetY = followTarget?.y ?? null
   const viewportCommandNonce = viewportCommand && 'nonce' in viewportCommand ? viewportCommand.nonce : null
+  const drawingToolActive = Boolean(drawTool || roomDrawTool)
 
   function clientToWorld(clientX: number, clientY: number) {
     const vp = viewportRef.current
@@ -262,6 +297,56 @@ export function MapCanvas({
       squares.push(rect)
     }
     return squares
+  }
+
+  function roomPath(room: RenderRoomRegion) {
+    if (room.shape_type === 'rectangle') {
+      const w = room.width ?? 0
+      const h = room.height ?? 0
+      return `M ${room.x} ${room.y} H ${room.x + w} V ${room.y + h} H ${room.x} Z`
+    }
+    const points = room.points ?? []
+    if (points.length < 2) return ''
+    return `${points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')} Z`
+  }
+
+  function roomLabelPosition(room: RenderRoomRegion) {
+    if (room.shape_type === 'rectangle') {
+      return {
+        x: room.x + ((room.width ?? 0) / 2),
+        y: room.y + ((room.height ?? 0) / 2),
+      }
+    }
+    const points = room.points ?? []
+    if (points.length === 0) return { x: room.x, y: room.y }
+    return {
+      x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+      y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+    }
+  }
+
+  function roomStroke(room: RenderRoomRegion, selected: boolean) {
+    if (selected) return '#f472b6'
+    if (room.is_revealed) return 'rgba(34,197,94,0.78)'
+    if (room.border_style === 'glow') return 'rgba(96,165,250,0.95)'
+    if (room.border_style === 'door') return 'rgba(251,191,36,0.92)'
+    return 'rgba(228,228,231,0.86)'
+  }
+
+  function roomStrokeDash(room: RenderRoomRegion) {
+    if (room.border_style === 'solid' || room.is_revealed) return undefined
+    if (room.border_style === 'door') return '18 8 4 8'
+    return '10 8'
+  }
+
+  function roomFill(room: RenderRoomRegion) {
+    if (mode === 'dm') {
+      if (room.is_revealed) return 'rgba(34,197,94,0.09)'
+      return room.mask_style === 'outline_only' ? 'rgba(0,0,0,0.02)' : 'rgba(15,23,42,0.24)'
+    }
+    if (room.is_revealed || room.mask_style === 'outline_only') return 'rgba(0,0,0,0)'
+    if (room.mask_style === 'dim') return 'rgba(0,0,0,0.62)'
+    return 'rgba(0,0,0,0.94)'
   }
 
   // Interaction tracking (refs avoid re-render churn during a gesture)
@@ -469,7 +554,7 @@ export function MapCanvas({
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     vp.setPointerCapture(e.pointerId)
 
-    if (!drawTool && activePointers.current.size === 2) {
+    if (!drawingToolActive && activePointers.current.size === 2) {
       beginPinch()
       return
     }
@@ -480,13 +565,20 @@ export function MapCanvas({
     i.startClientY = e.clientY
     i.moved = false
 
-    if (drawTool && !tokenEl) {
+    if ((drawTool || roomDrawTool === 'rectangle') && !tokenEl) {
       const w = clientToWorld(e.clientX, e.clientY)
       i.kind = 'draw'
       i.drawStartX = w.x
       i.drawStartY = w.y
-      if (drawTool === 'rectangle') setDrawRect({ x: w.x, y: w.y, w: 0, h: 0 })
+      if (drawTool === 'rectangle' || roomDrawTool === 'rectangle') setDrawRect({ x: w.x, y: w.y, w: 0, h: 0 })
       else setDrawCircle({ cx: w.x, cy: w.y, r: 0 })
+      return
+    }
+
+    if (roomDrawTool === 'polygon' && !tokenEl) {
+      i.kind = 'pan'
+      i.startOffsetX = offset.x
+      i.startOffsetY = offset.y
       return
     }
 
@@ -545,7 +637,7 @@ export function MapCanvas({
       onTokenDragPreview?.(preview)
     } else if (i.kind === 'draw') {
       const w = clientToWorld(e.clientX, e.clientY)
-      if (drawTool === 'rectangle') {
+      if (drawTool === 'rectangle' || roomDrawTool === 'rectangle') {
         setDrawRect({
           x: Math.min(i.drawStartX, w.x),
           y: Math.min(i.drawStartY, w.y),
@@ -591,7 +683,15 @@ export function MapCanvas({
       setDragPos(null)
       onTokenDragPreview?.(null)
     } else if (i.kind === 'draw') {
-      if (drawTool === 'rectangle' && drawRect && drawRect.w > 4 && drawRect.h > 4) {
+      if (roomDrawTool === 'rectangle' && drawRect && drawRect.w > 4 && drawRect.h > 4) {
+        onRoomRegionDrawn?.({
+          shape_type: 'rectangle',
+          x: Math.round(drawRect.x),
+          y: Math.round(drawRect.y),
+          width: Math.round(drawRect.w),
+          height: Math.round(drawRect.h),
+        })
+      } else if (drawTool === 'rectangle' && drawRect && drawRect.w > 4 && drawRect.h > 4) {
         onAreaDrawn?.({
           shape_type: 'rectangle',
           x: Math.round(drawRect.x),
@@ -610,7 +710,13 @@ export function MapCanvas({
       setDrawRect(null)
       setDrawCircle(null)
     } else if (i.kind === 'pan' && !i.moved) {
-      if (deferTokenMove && movementSourceTokenId && !i.tokenId) {
+      if (roomDrawTool === 'polygon' && !i.tokenId) {
+        const tappedWorld = clientToWorld(e.clientX, e.clientY)
+        onRoomPolygonPoint?.({
+          x: Math.round(clampWorld(tappedWorld.x, width)),
+          y: Math.round(clampWorld(tappedWorld.y, height)),
+        })
+      } else if (deferTokenMove && movementSourceTokenId && !i.tokenId) {
         const tappedWorld = clientToWorld(e.clientX, e.clientY)
         const destination = snapWorldToGrid(tappedWorld.x, tappedWorld.y)
         onTokenMovePreview?.({
@@ -637,7 +743,7 @@ export function MapCanvas({
     <div className="relative w-full h-full overflow-hidden rounded-lg bg-zinc-950 select-none">
       <div
         ref={viewportRef}
-        className={`absolute inset-0 touch-none ${drawTool ? 'cursor-crosshair' : 'cursor-grab active:cursor-grabbing'}`}
+        className={`absolute inset-0 touch-none ${drawingToolActive ? 'cursor-crosshair' : 'cursor-grab active:cursor-grabbing'}`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -799,6 +905,102 @@ export function MapCanvas({
               )}
             </svg>
           )}
+
+          {roomRegions.length > 0 || draftRoomPolygonPoints.length > 0 ? (
+            <svg
+              width={width}
+              height={height}
+              style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+            >
+              <defs>
+                <filter id="room-glow">
+                  <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {roomRegions.filter((room) => mode === 'dm' || room.visible_to_players).map((room) => {
+                const selected = selectedRoomRegionId === room.id
+                const path = roomPath(room)
+                const label = roomLabelPosition(room)
+                if (!path) return null
+                const showLabel = mode === 'dm' || room.player_label_visible || room.is_revealed
+                return (
+                  <g key={room.id}>
+                    <path
+                      d={path}
+                      fill={roomFill(room)}
+                      stroke={roomStroke(room, selected)}
+                      strokeWidth={selected ? 3 : 2}
+                      strokeDasharray={roomStrokeDash(room)}
+                      vectorEffect="non-scaling-stroke"
+                      filter={selected || room.border_style === 'glow' ? 'url(#room-glow)' : undefined}
+                      style={{ pointerEvents: mode === 'dm' ? 'auto' : 'none', cursor: mode === 'dm' ? 'pointer' : 'default' }}
+                      onPointerDown={(event) => {
+                        if (mode !== 'dm') return
+                        event.stopPropagation()
+                        onSelectRoomRegion?.(room.id)
+                      }}
+                    />
+                    {!room.is_revealed && room.border_style === 'door' && (
+                      <circle
+                        cx={room.shape_type === 'rectangle' ? room.x + ((room.width ?? 0) / 2) : label.x}
+                        cy={room.shape_type === 'rectangle' ? room.y : label.y}
+                        r={Math.max(5, safeGridSize * 0.12)}
+                        fill="#fbbf24"
+                        stroke="rgba(0,0,0,0.75)"
+                        strokeWidth={1.5}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    )}
+                    {showLabel && (
+                      <text
+                        x={label.x}
+                        y={label.y}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill={mode === 'dm' ? '#fde68a' : '#e4e4e7'}
+                        stroke="rgba(0,0,0,0.84)"
+                        strokeWidth={4}
+                        paintOrder="stroke"
+                        fontSize={Math.max(12, Math.min(24, safeGridSize * 0.32))}
+                        fontWeight={700}
+                        style={{ pointerEvents: 'none' }}
+                      >
+                        {room.name}
+                      </text>
+                    )}
+                  </g>
+                )
+              })}
+              {draftRoomPolygonPoints.length > 0 && (
+                <g>
+                  <polyline
+                    points={draftRoomPolygonPoints.map((point) => `${point.x},${point.y}`).join(' ')}
+                    fill="none"
+                    stroke="#f472b6"
+                    strokeWidth={3}
+                    strokeDasharray="8 6"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  {draftRoomPolygonPoints.map((point, index) => (
+                    <circle
+                      key={`${point.x}-${point.y}-${index}`}
+                      cx={point.x}
+                      cy={point.y}
+                      r={Math.max(5, safeGridSize * 0.11)}
+                      fill="#f472b6"
+                      stroke="#111827"
+                      strokeWidth={2}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  ))}
+                </g>
+              )}
+            </svg>
+          ) : null}
 
           {movementPathSquares.length > 0 && (
             <div

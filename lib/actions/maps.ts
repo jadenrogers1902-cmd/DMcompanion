@@ -8,6 +8,7 @@ import { castSettingsToJson, normalizeCenterCastSettings, type CenterCastSetting
 
 type MapUpdate = Database['public']['Tables']['maps']['Update']
 type TokenUpdate = Database['public']['Tables']['tokens']['Update']
+type MapRoomRegionUpdate = Database['public']['Tables']['map_room_regions']['Update']
 
 type TravelOptionsInput = {
   travelMode?: TravelMode
@@ -831,6 +832,45 @@ export async function setRevealedAreaVisibility(
 export async function deleteRevealedArea(campaignId: string, mapId: string, areaId: string) {
   const supabase = await createClient()
   const { error } = await supabase.from('map_revealed_areas').delete().eq('id', areaId)
+  if (error) return { error: error.message }
+
+  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  return { success: true }
+}
+
+export async function updateRoomRegion(
+  campaignId: string,
+  mapId: string,
+  roomId: string,
+  patch: Pick<MapRoomRegionUpdate, 'is_revealed' | 'visible_to_players' | 'reveal_mode' | 'player_label_visible'>,
+) {
+  const supabase = await createClient()
+  const update: MapRoomRegionUpdate = {}
+  if (patch.is_revealed !== undefined) update.is_revealed = patch.is_revealed
+  if (patch.visible_to_players !== undefined) update.visible_to_players = patch.visible_to_players
+  if (patch.reveal_mode !== undefined) update.reveal_mode = patch.reveal_mode
+  if (patch.player_label_visible !== undefined) update.player_label_visible = patch.player_label_visible
+
+  const { error } = await supabase
+    .from('map_room_regions')
+    .update(update)
+    .eq('id', roomId)
+    .eq('map_id', mapId)
+    .eq('campaign_id', campaignId)
+  if (error) return { error: error.message }
+
+  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  return { success: true }
+}
+
+export async function deleteRoomRegion(campaignId: string, mapId: string, roomId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('map_room_regions')
+    .delete()
+    .eq('id', roomId)
+    .eq('map_id', mapId)
+    .eq('campaign_id', campaignId)
   if (error) return { error: error.message }
 
   revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)

@@ -15,6 +15,7 @@ import type {
   GameMap,
   InventoryItem,
   MapRevealedArea,
+  MapRoomRegion,
   MapTransportConfirmation,
   MapTravelParty,
   MapTravelPartyMember,
@@ -100,6 +101,7 @@ export default async function MapsPage({ params }: PageProps) {
       { data: tokens, error: tokensError },
       { data: characters },
       { data: areas },
+      { data: rooms },
       { data: members },
       { data: playerCodexDocs },
       { data: playerCodexLinks },
@@ -112,6 +114,7 @@ export default async function MapsPage({ params }: PageProps) {
       supabase.from('characters').select('*').eq('campaign_id', id).eq('user_id', user.id),
       // RLS returns only player-visible areas on the active map.
       supabase.from('map_revealed_areas').select('*').eq('map_id', activeMap.id),
+      supabase.from('map_room_regions').select('*').eq('map_id', activeMap.id),
       supabase
         .from('campaign_members')
         .select('user_id, role, profiles ( id, display_name, avatar_url, created_at )')
@@ -195,6 +198,7 @@ export default async function MapsPage({ params }: PageProps) {
             imageUrl={signed.signedUrl}
             initialTokens={playerTokens as PlayerToken[]}
             initialAreas={(areas ?? []) as MapRevealedArea[]}
+            initialRooms={(rooms ?? []) as MapRoomRegion[]}
             currentUserId={user.id}
             characterSpeeds={characterSpeeds}
             myCharacters={ownedCharacters.map((c) => ({ id: c.id, name: c.name }))}

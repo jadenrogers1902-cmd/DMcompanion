@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Eye, Maximize2, RefreshCw } from 'lucide-react'
-import { MapCanvas, type RenderArea, type RenderToken } from './MapCanvas'
+import { MapCanvas, type RenderArea, type RenderRoomRegion, type RenderToken } from './MapCanvas'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
-import type { GameMap } from '@/lib/types/database'
+import type { GameMap, MapRoomRegion } from '@/lib/types/database'
 import { normalizeCenterCastSettings, type CenterCastSettings } from '@/lib/utils/cast-settings'
 import { createClient } from '@/lib/supabase/client'
 
@@ -23,6 +23,7 @@ interface CenterScreenMapViewProps {
   imageUrl: string
   tokens: RenderToken[]
   revealedAreas: RenderArea[]
+  roomRegions: MapRoomRegion[]
   settings?: CenterCastSettings | Record<string, unknown> | null
   viewGroups: CenterScreenViewGroup[]
 }
@@ -33,6 +34,7 @@ export function CenterScreenMapView({
   imageUrl,
   tokens,
   revealedAreas,
+  roomRegions,
   settings: rawSettings,
   viewGroups,
 }: CenterScreenMapViewProps) {
@@ -44,6 +46,7 @@ export function CenterScreenMapView({
   useRealtimeRefresh(`center-screen-${campaignId}-${map.id}`, [
     { table: 'tokens', filter: `map_id=eq.${map.id}` },
     { table: 'map_revealed_areas', filter: `map_id=eq.${map.id}` },
+    { table: 'map_room_regions', filter: `map_id=eq.${map.id}` },
     { table: 'maps', filter: `id=eq.${map.id}` },
     { table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
     { table: 'map_travel_party_members', filter: `map_id=eq.${map.id}` },
@@ -110,6 +113,24 @@ export function CenterScreenMapView({
       showHealth: settings.showHealthBars ? token.showHealth : false,
     }))
   const displayAreas = settings.showFog ? revealedAreas : []
+  const displayRooms: RenderRoomRegion[] = settings.showFog
+    ? roomRegions.map((room) => ({
+        id: room.id,
+        name: room.name,
+        shape_type: room.shape_type,
+        x: room.x,
+        y: room.y,
+        width: room.width,
+        height: room.height,
+        points: room.points,
+        reveal_mode: room.reveal_mode,
+        mask_style: room.mask_style,
+        border_style: room.border_style,
+        player_label_visible: room.player_label_visible,
+        is_revealed: room.is_revealed,
+        visible_to_players: room.visible_to_players,
+      }))
+    : []
 
   async function enterFullscreen() {
     if (!document.fullscreenElement) {
@@ -220,6 +241,7 @@ export function CenterScreenMapView({
               mode="player"
               canDragToken={() => false}
               revealedAreas={displayAreas}
+              roomRegions={displayRooms}
               fogEnabled={settings.showFog}
               followTarget={followLeader ? group.focus : null}
               followGridSquares={followGridSquares}

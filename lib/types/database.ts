@@ -250,6 +250,41 @@ export interface MapRevealedArea {
   updated_at: string
 }
 
+export type RoomRegionShapeType = 'rectangle' | 'polygon'
+export type RoomRevealMode = 'manual' | 'auto' | 'manual_auto'
+export type RoomMaskStyle = 'blackout' | 'dim' | 'outline_only'
+export type RoomBorderStyle = 'door' | 'dashed' | 'solid' | 'glow'
+
+export interface RoomRegionPoint {
+  x: number
+  y: number
+}
+
+export interface MapRoomRegion {
+  id: string
+  campaign_id: string
+  map_id: string
+  source_prepared_room_id: string | null
+  linked_campaign_doc_id: string | null
+  name: string
+  shape_type: RoomRegionShapeType
+  x: number
+  y: number
+  width: number | null
+  height: number | null
+  points: RoomRegionPoint[]
+  reveal_mode: RoomRevealMode
+  mask_style: RoomMaskStyle
+  border_style: RoomBorderStyle
+  player_label_visible: boolean
+  auto_reveal_distance_feet: number
+  is_revealed: boolean
+  visible_to_players: boolean
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
 export interface MapTravelParty {
   id: string
   campaign_id: string
@@ -1285,6 +1320,7 @@ export type Database = {
           grid_enabled: boolean
           grid_size: number
           tokens: Record<string, unknown>[]
+          room_regions: Record<string, unknown>[]
           notes: Record<string, unknown>[]
           links: Record<string, unknown>[]
           tags: string[]
@@ -1306,6 +1342,7 @@ export type Database = {
           grid_enabled?: boolean
           grid_size?: number
           tokens?: Record<string, unknown>[]
+          room_regions?: Record<string, unknown>[]
           notes?: Record<string, unknown>[]
           links?: Record<string, unknown>[]
           tags?: string[]
@@ -1327,6 +1364,7 @@ export type Database = {
           grid_enabled?: boolean
           grid_size?: number
           tokens?: Record<string, unknown>[]
+          room_regions?: Record<string, unknown>[]
           notes?: Record<string, unknown>[]
           links?: Record<string, unknown>[]
           tags?: string[]
@@ -2091,6 +2129,53 @@ export type Database = {
           width?: number | null
           height?: number | null
           radius?: number | null
+          visible_to_players?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      map_room_regions: {
+        Row: MapRoomRegion & Record<string, unknown>
+        Insert: {
+          id?: string
+          campaign_id: string
+          map_id: string
+          source_prepared_room_id?: string | null
+          linked_campaign_doc_id?: string | null
+          name?: string
+          shape_type?: RoomRegionShapeType
+          x?: number
+          y?: number
+          width?: number | null
+          height?: number | null
+          points?: RoomRegionPoint[]
+          reveal_mode?: RoomRevealMode
+          mask_style?: RoomMaskStyle
+          border_style?: RoomBorderStyle
+          player_label_visible?: boolean
+          auto_reveal_distance_feet?: number
+          is_revealed?: boolean
+          visible_to_players?: boolean
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          source_prepared_room_id?: string | null
+          linked_campaign_doc_id?: string | null
+          name?: string
+          shape_type?: RoomRegionShapeType
+          x?: number
+          y?: number
+          width?: number | null
+          height?: number | null
+          points?: RoomRegionPoint[]
+          reveal_mode?: RoomRevealMode
+          mask_style?: RoomMaskStyle
+          border_style?: RoomBorderStyle
+          player_label_visible?: boolean
+          auto_reveal_distance_feet?: number
+          is_revealed?: boolean
           visible_to_players?: boolean
           updated_at?: string
         }

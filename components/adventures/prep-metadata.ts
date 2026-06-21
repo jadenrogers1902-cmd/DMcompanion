@@ -1,11 +1,20 @@
 import type {
   PrepImportantLink,
   PrepLinkType,
+  PreparedMapRoomRegion,
   PrepNote,
   PrepNoteVisibility,
+  RoomBorderStyle,
+  RoomMaskStyle,
+  RoomRegionShapeType,
+  RoomRevealMode,
 } from '@/lib/types/adventure'
 
 const LINK_TYPES: PrepLinkType[] = ['wiki', 'dnd_beyond', 'srd', 'roll20', 'custom']
+const ROOM_SHAPES: RoomRegionShapeType[] = ['rectangle', 'polygon']
+const ROOM_REVEAL_MODES: RoomRevealMode[] = ['manual', 'auto', 'manual_auto']
+const ROOM_MASK_STYLES: RoomMaskStyle[] = ['blackout', 'dim', 'outline_only']
+const ROOM_BORDER_STYLES: RoomBorderStyle[] = ['door', 'dashed', 'solid', 'glow']
 
 export function nowIso() {
   return new Date().toISOString()
@@ -18,6 +27,23 @@ function asRecord(value: unknown): Record<string, unknown> {
 function stringList(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value.map((item) => String(item).trim()).filter(Boolean).slice(0, 12)
+}
+
+function finiteNumber(value: unknown, fallback = 0) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : fallback
+}
+
+function normalizeRoomPoints(value: unknown): PreparedMapRoomRegion['points'] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((point) => asRecord(point))
+    .map((point) => ({
+      x: Math.round(finiteNumber(point.x)),
+      y: Math.round(finiteNumber(point.y)),
+    }))
+    .filter((point) => point.x >= 0 && point.y >= 0)
+    .slice(0, 32)
 }
 
 export function normalizeTags(tags: unknown): string[] {
@@ -138,4 +164,66 @@ export function normalizePrepLinks(
 ): PrepImportantLink[] {
   if (!Array.isArray(values)) return []
   return values.slice(0, 50).map((value) => normalizePrepLink(value, parentType, parentId))
+}
+
+export function createPreparedRoomRegion(input?: Partial<PreparedMapRoomRegion>): PreparedMapRoomRegion {
+  return normalizePreparedRoomRegion({
+    id: crypto.randomUUID(),
+    name: 'New room',
+    shape_type: 'rectangle',
+    x: 0,
+    y: 0,
+    width: 120,
+    height: 120,
+    points: [],
+    reveal_mode: 'manual',
+    mask_style: 'blackout',
+    border_style: 'door',
+    player_label_visible: false,
+    auto_reveal_distance_feet: 0,
+    is_revealed_by_default: false,
+    visible_to_players: true,
+    ...input,
+  })
+}
+
+export function normalizePreparedRoomRegion(value: unknown): PreparedMapRoomRegion {
+  const raw = asRecord(value)
+  const shape = ROOM_SHAPES.includes(raw.shape_type as RoomRegionShapeType)
+    ? (raw.shape_type as RoomRegionShapeType)
+    : 'rectangle'
+  const revealMode = ROOM_REVEAL_MODES.includes(raw.reveal_mode as RoomRevealMode)
+    ? (raw.reveal_mode as RoomRevealMode)
+    : 'manual'
+  const maskStyle = ROOM_MASK_STYLES.includes(raw.mask_style as RoomMaskStyle)
+    ? (raw.mask_style as RoomMaskStyle)
+    : 'blackout'
+  const borderStyle = ROOM_BORDER_STYLES.includes(raw.border_style as RoomBorderStyle)
+    ? (raw.border_style as RoomBorderStyle)
+    : 'door'
+  const points = normalizeRoomPoints(raw.points)
+  return {
+    id: String(raw.id ?? crypto.randomUUID()),
+    name: String(raw.name ?? raw.title ?? 'Room').trim().slice(0, 80) || 'Room',
+    linked_campaign_doc_id: raw.linked_campaign_doc_id ? String(raw.linked_campaign_doc_id) : null,
+    shape_type: shape,
+    x: Math.max(0, Math.round(finiteNumber(raw.x))),
+    y: Math.max(0, Math.round(finiteNumber(raw.y))),
+    width: shape === 'rectangle' ? Math.max(8, Math.round(finiteNumber(raw.width, 120))) : null,
+    height: shape === 'rectangle' ? Math.max(8, Math.round(finiteNumber(raw.height, 120))) : null,
+    points,
+    reveal_mode: revealMode,
+    mask_style: maskStyle,
+    border_style: borderStyle,
+    player_label_visible: Boolean(raw.player_label_visible),
+    auto_reveal_distance_feet: Math.max(0, Math.round(finiteNumber(raw.auto_reveal_distance_feet, 0))),
+    is_revealed_by_default: Boolean(raw.is_revealed_by_default),
+    visible_to_players: raw.visible_to_players !== false,
+    dm_notes: String(raw.dm_notes ?? '').slice(0, 2000),
+  }
+}
+
+export function normalizePreparedRoomRegions(values: unknown): PreparedMapRoomRegion[] {
+  if (!Array.isArray(values)) return []
+  return values.slice(0, 100).map(normalizePreparedRoomRegion)
 }

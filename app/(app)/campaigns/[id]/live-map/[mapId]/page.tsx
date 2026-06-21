@@ -10,6 +10,7 @@ import type {
   Character,
   GameMap,
   MapRevealedArea,
+  MapRoomRegion,
   MapTravelParty,
   MapTravelPartyMember,
   Token,
@@ -52,6 +53,7 @@ export default async function MapEditorPage({ params }: PageProps) {
     { data: characters },
     { data: dmNoteRows },
     { data: areas },
+    { data: rooms },
     { data: codexDocs },
     { data: codexLinks },
     { data: travelParties },
@@ -75,6 +77,11 @@ export default async function MapEditorPage({ params }: PageProps) {
         .eq('campaign_id', id),
       supabase
         .from('map_revealed_areas')
+        .select('*')
+        .eq('map_id', mapId)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('map_room_regions')
         .select('*')
         .eq('map_id', mapId)
         .order('created_at', { ascending: true }),
@@ -179,6 +186,7 @@ export default async function MapEditorPage({ params }: PageProps) {
           initialTokens={(tokens ?? []) as Token[]}
           initialDmNotes={initialDmNotes}
           initialAreas={(areas ?? []) as MapRevealedArea[]}
+          initialRooms={(rooms ?? []) as MapRoomRegion[]}
           characters={(characters ?? []) as Pick<Character, 'id' | 'name' | 'speed'>[]}
           initialAlertTokenIds={initialAlertTokenIds}
           codexDocs={(codexDocs ?? []) as CampaignDoc[]}

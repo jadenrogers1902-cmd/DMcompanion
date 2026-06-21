@@ -9,20 +9,23 @@ import type {
   PreparedMap,
   PreparedMapLink,
   PreparedMapNote,
+  PreparedMapRoomRegion,
   PreparedMapToken,
 } from '@/lib/types/adventure'
 import {
+  normalizePreparedRoomRegions,
   normalizePrepLinks,
   normalizePrepNotes,
   normalizeTags,
 } from '@/components/adventures/prep-metadata'
-import { instantiatePreparedMap, sanitizeTokens } from '@/lib/maps/deploy'
+import { instantiatePreparedMap, sanitizeRoomRegions, sanitizeTokens } from '@/lib/maps/deploy'
 
 type PreparedMapUpdate = Database['public']['Tables']['prepared_maps']['Update']
 
 const STATUSES: AdventureStatus[] = ['draft', 'ready', 'active', 'archived']
 const MAX_NOTES = 100
 const MAX_LINKS = 50
+const MAX_ROOM_REGIONS = 100
 
 function revalidatePrepPaths(campaignId: string, adventureId: string, chapterId: string, mapId?: string) {
   revalidatePath(`/campaigns/${campaignId}/adventures/${adventureId}`)
@@ -40,6 +43,10 @@ function sanitizeNotes(notes: PreparedMapNote[]): PreparedMapNote[] {
 
 function sanitizeLinks(links: PreparedMapLink[]): PreparedMapLink[] {
   return normalizePrepLinks(links, 'map').slice(0, MAX_LINKS)
+}
+
+function sanitizePreparedRoomRegions(roomRegions: PreparedMapRoomRegion[]): PreparedMapRoomRegion[] {
+  return sanitizeRoomRegions(normalizePreparedRoomRegions(roomRegions)).slice(0, MAX_ROOM_REGIONS)
 }
 
 export async function createPreparedMap(
@@ -89,6 +96,7 @@ export async function savePreparedMap(
     grid_enabled?: boolean
     grid_size?: number
     tokens?: PreparedMapToken[]
+    room_regions?: PreparedMapRoomRegion[]
     notes?: PreparedMapNote[]
     links?: PreparedMapLink[]
     tags?: string[]
@@ -114,6 +122,7 @@ export async function savePreparedMap(
     update.grid_size = Math.max(5, Math.round(input.grid_size))
   }
   if (input.tokens !== undefined) update.tokens = sanitizeTokens(input.tokens)
+  if (input.room_regions !== undefined) update.room_regions = sanitizePreparedRoomRegions(input.room_regions)
   if (input.notes !== undefined) update.notes = sanitizeNotes(input.notes)
   if (input.links !== undefined) update.links = sanitizeLinks(input.links)
   if (input.tags !== undefined) update.tags = normalizeTags(input.tags)

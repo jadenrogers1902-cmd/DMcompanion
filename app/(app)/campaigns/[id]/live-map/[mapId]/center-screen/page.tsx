@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { CenterScreenMapView, type CenterScreenViewGroup } from '@/components/maps/CenterScreenMapView'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { RenderArea, RenderToken } from '@/components/maps/MapCanvas'
-import type { GameMap, MapRevealedArea, MapTravelParty, MapTravelPartyMember, Token } from '@/lib/types/database'
+import type { GameMap, MapRevealedArea, MapRoomRegion, MapTravelParty, MapTravelPartyMember, Token } from '@/lib/types/database'
 import { normalizeCenterCastSettings } from '@/lib/utils/cast-settings'
 
 interface PageProps {
@@ -166,7 +166,14 @@ export default async function CenterScreenPage({ params }: PageProps) {
     .single<GameMap>()
   if (!map) notFound()
 
-  const [{ data: signed }, { data: tokens }, { data: areas }, { data: parties }, { data: partyMembers }] = await Promise.all([
+  const [
+    { data: signed },
+    { data: tokens },
+    { data: areas },
+    { data: rooms },
+    { data: parties },
+    { data: partyMembers },
+  ] = await Promise.all([
     supabase.storage.from('maps').createSignedUrl(map.storage_path, 3600),
     supabase
       .from('tokens')
@@ -178,6 +185,11 @@ export default async function CenterScreenPage({ params }: PageProps) {
       .select('*')
       .eq('map_id', mapId)
       .eq('visible_to_players', true)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('map_room_regions')
+      .select('*')
+      .eq('map_id', mapId)
       .order('created_at', { ascending: true }),
     supabase
       .from('map_travel_parties')
@@ -209,6 +221,7 @@ export default async function CenterScreenPage({ params }: PageProps) {
     .filter((token): token is RenderToken => Boolean(token))
 
   const renderAreas = ((areas ?? []) as MapRevealedArea[]).map(areaToRenderArea)
+  const renderRooms = (rooms ?? []) as MapRoomRegion[]
   const settings = normalizeCenterCastSettings(map.cast_settings)
   const viewGroups = buildViewGroups({
     map,
@@ -231,6 +244,7 @@ export default async function CenterScreenPage({ params }: PageProps) {
         imageUrl={signed.signedUrl}
         tokens={renderTokens}
         revealedAreas={renderAreas}
+        roomRegions={renderRooms}
         settings={settings}
         viewGroups={viewGroups}
       />

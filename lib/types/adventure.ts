@@ -116,6 +116,7 @@ export type PreparedMap = {
   grid_enabled: boolean
   grid_size: number
   tokens: PreparedMapToken[]
+  room_regions: PreparedMapRoomRegion[]
   notes: PreparedMapNote[]
   links: PreparedMapLink[]
   tags: string[]
@@ -124,6 +125,36 @@ export type PreparedMap = {
   is_hub?: boolean
   created_at: string
   updated_at: string
+}
+
+export type RoomRegionPoint = {
+  x: number
+  y: number
+}
+
+export type RoomRegionShapeType = 'rectangle' | 'polygon'
+export type RoomRevealMode = 'manual' | 'auto' | 'manual_auto'
+export type RoomMaskStyle = 'blackout' | 'dim' | 'outline_only'
+export type RoomBorderStyle = 'door' | 'dashed' | 'solid' | 'glow'
+
+export type PreparedMapRoomRegion = {
+  id: string
+  name: string
+  linked_campaign_doc_id?: string | null
+  shape_type: RoomRegionShapeType
+  x: number
+  y: number
+  width?: number | null
+  height?: number | null
+  points: RoomRegionPoint[]
+  reveal_mode: RoomRevealMode
+  mask_style: RoomMaskStyle
+  border_style: RoomBorderStyle
+  player_label_visible: boolean
+  auto_reveal_distance_feet: number
+  is_revealed_by_default: boolean
+  visible_to_players: boolean
+  dm_notes?: string
 }
 
 /** Prep-side token vocabulary (distinct from the live `TokenType` set). */

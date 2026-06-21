@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { GameMap, MapRevealedArea, Token } from '@/lib/types/database'
+import type { GameMap, MapRevealedArea, MapRoomRegion, Token } from '@/lib/types/database'
 
 type TokenRow = Token & { dm_notes?: string | null }
 
@@ -12,6 +12,8 @@ interface Handlers {
   onMapChange?: (map: GameMap) => void
   onAreaUpsert?: (area: MapRevealedArea) => void
   onAreaDelete?: (id: string) => void
+  onRoomUpsert?: (room: MapRoomRegion) => void
+  onRoomDelete?: (id: string) => void
   onStatus?: (status: string) => void
 }
 
@@ -78,6 +80,23 @@ export function useTokenRealtime(
             if (oldRow?.id) ref.current.onAreaDelete?.(oldRow.id)
           } else {
             ref.current.onAreaUpsert?.(payload.new as MapRevealedArea)
+          }
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'map_room_regions',
+          filter: `map_id=eq.${mapId}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const oldRow = payload.old as { id?: string }
+            if (oldRow?.id) ref.current.onRoomDelete?.(oldRow.id)
+          } else {
+            ref.current.onRoomUpsert?.(payload.new as MapRoomRegion)
           }
         },
       )

@@ -1491,7 +1491,9 @@ export function PlayerMapView({
         ) : myControlled.length > 0 ? (
           <span className="text-xs text-zinc-500">
             {effectiveMapInteractionMode === 'move'
-              ? 'Move mode: drag your token.'
+              ? combatMovementActive
+                ? 'Move mode: tap a square, then confirm.'
+                : 'Move mode: drag your token.'
               : effectiveMapInteractionMode === 'target'
                 ? 'Target mode: tap tokens to interact.'
                 : 'Hand mode: pan and pinch the map.'}
@@ -1546,6 +1548,7 @@ export function PlayerMapView({
           onTokenDragPreview={handleTokenDragPreview}
           snapToGrid={combatMovementActive}
           deferTokenMove={combatMovementActive}
+          movementSourceTokenId={combatMovementActive ? primaryControlledToken?.id ?? null : null}
           pendingTokenPosition={combatMovementActive ? pendingMove : null}
           onTokenMovePreview={combatMovementActive ? handleTokenMovePreview : undefined}
           revealedAreas={renderAreas}

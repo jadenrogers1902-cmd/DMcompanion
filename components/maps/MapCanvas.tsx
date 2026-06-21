@@ -77,6 +77,7 @@ interface MapCanvasProps {
   onTokenDragPreview?: (preview: { id: string; x: number; y: number } | null) => void
   snapToGrid?: boolean
   deferTokenMove?: boolean
+  movementSourceTokenId?: string | null
   pendingTokenPosition?: { id: string; x: number; y: number } | null
   onTokenMovePreview?: (preview: { id: string; x: number; y: number } | null) => void
 }
@@ -157,6 +158,7 @@ export function MapCanvas({
   onTokenDragPreview,
   snapToGrid = false,
   deferTokenMove = false,
+  movementSourceTokenId = null,
   pendingTokenPosition = null,
   onTokenMovePreview,
 }: MapCanvasProps) {
@@ -608,8 +610,18 @@ export function MapCanvas({
       setDrawRect(null)
       setDrawCircle(null)
     } else if (i.kind === 'pan' && !i.moved) {
-      // Background click deselects; token tap selects.
-      onSelectToken?.(i.tokenId ?? null)
+      if (deferTokenMove && movementSourceTokenId && !i.tokenId) {
+        const tappedWorld = clientToWorld(e.clientX, e.clientY)
+        const destination = snapWorldToGrid(tappedWorld.x, tappedWorld.y)
+        onTokenMovePreview?.({
+          id: movementSourceTokenId,
+          x: Math.round(destination.x),
+          y: Math.round(destination.y),
+        })
+      } else {
+        // Background click deselects; token tap selects.
+        onSelectToken?.(i.tokenId ?? null)
+      }
     }
     i.kind = 'none'
     i.tokenId = null

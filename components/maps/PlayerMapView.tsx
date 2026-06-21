@@ -585,6 +585,29 @@ export function PlayerMapView({
     visible_to_players: room.visible_to_players,
   }))
 
+  // ─── Fog × room-mask interaction ──────────────────────────────────────────
+  // Two independent reveal systems can apply to a player's map:
+  //   • map_revealed_areas (legacy) drives the GLOBAL blackout fog — the whole
+  //     map is dark except where the DM drew revealed rectangles/circles.
+  //   • map_room_regions (newer dungeon room masks) paint their own blackout/dim
+  //     overlay per unrevealed room; the rest of the base map stays visible.
+  // These must not double-fog (which is why a room-mask-only map used to render
+  // entirely black). Rule:
+  //   - Revealed areas present (with or without rooms) → global fog ON. Room
+  //     masks still layer on top, so a room can stay hidden even inside a
+  //     revealed area.
+  //   - Rooms only, no revealed areas → global fog OFF so the map isn't fully
+  //     black; unrevealed rooms remain covered by their own room mask.
+  //   - Neither → global fog ON (classic "nothing revealed yet" dark map).
+  // This only changes how already-permitted data is painted. Server-side
+  // visibility is unchanged: RLS only sends rooms with visible_to_players=TRUE
+  // on the active map, and hidden tokens stay redacted by
+  // get_player_live_map_tokens regardless of fog.
+  const hasRevealedAreas = areas.length > 0
+  const hasRoomRegions = rooms.length > 0
+  const hasHiddenRooms = rooms.some((room) => !room.is_revealed)
+  const globalFogEnabled = hasRevealedAreas || !hasRoomRegions
+
   const controls = (t: Token) => t.controlled_by_user_id === currentUserId
 
   function canDrag(id: string) {
@@ -1582,7 +1605,7 @@ export function PlayerMapView({
           onTokenMovePreview={combatMovementActive ? handleTokenMovePreview : undefined}
           revealedAreas={renderAreas}
           roomRegions={renderRooms}
-          fogEnabled
+          fogEnabled={globalFogEnabled}
         />
 
         <MobileMapControls
@@ -1606,9 +1629,16 @@ export function PlayerMapView({
           />
         )}
 
-        {areas.length === 0 && (
+        {/* Reveal-state messaging. Keyed on BOTH reveal systems so a room-mask
+            map isn't mislabeled as "not revealed". */}
+        {!hasRevealedAreas && !hasRoomRegions && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-zinc-900/95 border border-zinc-700 rounded-lg px-3.5 py-2 text-xs text-zinc-400 shadow-lg">
             The DM has not revealed this map yet.
+          </div>
+        )}
+        {!hasRevealedAreas && hasRoomRegions && hasHiddenRooms && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-zinc-900/95 border border-zinc-700 rounded-lg px-3.5 py-2 text-xs text-zinc-400 shadow-lg">
+            Some areas are hidden until you explore or the DM reveals them.
           </div>
         )}
 

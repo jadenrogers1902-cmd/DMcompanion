@@ -160,15 +160,41 @@ export default async function ActionsPage({ params }: PageProps) {
   // migration-016 columns the deployed schema has.
   let nudgedIntentIds: string[] = []
   if (isDM) {
-    const { data: nudgeRows } = await supabase
+    type NudgeRow = {
+      sender_user_id: string | null
+      message_type: string | null
+      message: string | null
+      handled_at?: string | null
+    }
+    // Prefer the handled_at-aware query so DM-acknowledged nudges stop
+    // re-highlighting after a refresh (QA Phase 5). Fall back to the base
+    // columns if the column isn't there yet (migration not applied), treating
+    // every nudge as unhandled so highlights still work pre-migration.
+    const withHandled = await supabase
       .from('party_messages')
-      .select('sender_user_id, message_type, message')
+      .select('sender_user_id, message_type, message, handled_at')
       .eq('campaign_id', id)
       .order('created_at', { ascending: false })
       .limit(100)
+    let nudgeRows: NudgeRow[]
+    if (withHandled.error) {
+      const base = await supabase
+        .from('party_messages')
+        .select('sender_user_id, message_type, message')
+        .eq('campaign_id', id)
+        .order('created_at', { ascending: false })
+        .limit(100)
+      nudgeRows = ((base.data ?? []) as NudgeRow[]).map((row) => ({ ...row, handled_at: null }))
+    } else {
+      nudgeRows = (withHandled.data ?? []) as NudgeRow[]
+    }
     const nudgingUserIds = new Set(
-      ((nudgeRows ?? []) as { sender_user_id: string | null; message_type: string | null; message: string | null }[])
-        .filter((row) => row.message_type === 'nudge' || row.message?.startsWith('Action nudge:'))
+      nudgeRows
+        .filter(
+          (row) =>
+            !row.handled_at &&
+            (row.message_type === 'nudge' || row.message?.startsWith('Action nudge:')),
+        )
         .map((row) => row.sender_user_id)
         .filter((value): value is string => Boolean(value)),
     )

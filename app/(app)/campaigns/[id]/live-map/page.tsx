@@ -140,6 +140,22 @@ export default async function MapsPage({ params }: PageProps) {
         .eq('map_id', activeMap.id),
     ])
 
+    // The player token RPC redacts hidden/discoverable tokens server-side and
+    // emits player-safe hint markers. If it's unavailable (e.g. migration 051
+    // not applied, or a transient error), we fall back to a direct RLS-guarded
+    // select so the map still loads — RLS still hides non-visible tokens, so no
+    // hidden data leaks — but discoverable hint markers are lost. That's a
+    // DEGRADED state, so surface it loudly in the server logs instead of failing
+    // silently. See QA Phase 4.
+    if (tokensError) {
+      console.error(
+        '[live-map] get_player_live_map_tokens RPC failed — falling back to a ' +
+          'direct token select (RLS still enforced, but discoverable-token hint ' +
+          `markers are unavailable). Apply migration 051 / check the RPC. Cause: ${
+            tokensError.message ?? tokensError
+          }`,
+      )
+    }
     const fallbackTokens =
       tokensError
         ? await supabase.from('tokens').select('*').eq('map_id', activeMap.id)

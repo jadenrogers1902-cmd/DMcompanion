@@ -702,6 +702,8 @@ export interface PartyMessage {
   delivery_status: PartyMessageDeliveryStatus
   delivery_log: Record<string, unknown>
   created_at: string
+  /** When the DM acknowledged this message (nudges). Null = unhandled. */
+  handled_at?: string | null
 }
 
 export type QuestStatus = 'hidden' | 'active' | 'completed' | 'failed'
@@ -2567,8 +2569,13 @@ export type Database = {
           delivery_status?: string
           delivery_log?: Record<string, unknown>
           created_at?: string
+          handled_at?: string | null
         }
-        Update: Record<string, never>
+        Update: {
+          // DM acknowledgement of nudges (migration 20260621220000). The table
+          // is otherwise insert-only.
+          handled_at?: string | null
+        }
         Relationships: []
       }
       character_attacks: {

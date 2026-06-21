@@ -11,6 +11,7 @@ import { ClearActionBoardButton } from './ClearActionBoardButton'
 import { RollOutcomeBadge, RollOutcomeEffects, usePrefersReducedMotion } from './RollOutcomeEffects'
 import { revealAttackResult } from '@/lib/actions/roll-requests'
 import { applyPendingStateUpdate, rejectPendingStateUpdate } from '@/lib/actions/state-updates'
+import { acknowledgePlayerNudges } from '@/lib/actions/party-messages'
 import type {
   ActionAttackResult,
   ActionAttackResultDmDetail,
@@ -591,8 +592,18 @@ function DMActionQueue({
   // nudges re-derive server-side via the party_messages realtime subscription.
   const [dismissedNudges, setDismissedNudges] = useState<Record<string, true>>({})
   const nudgedSet = useMemo(() => new Set(nudgedIntentIds), [nudgedIntentIds])
-  const dismissNudge = (intentId: string) =>
+  const dismissNudge = (intentId: string) => {
     setDismissedNudges((prev) => (prev[intentId] ? prev : { ...prev, [intentId]: true }))
+    // Durably acknowledge so the red highlight doesn't resurrect after a
+    // refresh. Only fire for genuinely-nudged cards, and clear by sender (the
+    // highlight is sender-scoped). Fire-and-forget; degrades quietly if the
+    // handled_at migration isn't applied yet.
+    if (!nudgedSet.has(intentId)) return
+    const intent = intents.find((i) => i.id === intentId)
+    if (intent?.actor_user_id) {
+      void acknowledgePlayerNudges(campaignId, intent.actor_user_id)
+    }
+  }
   const isNudged = (intent: IntentDetails) =>
     nudgedSet.has(intent.id) && !dismissedNudges[intent.id] && !isFinalStatus(intent.status)
   const openCard = (intentId: string | null) => {

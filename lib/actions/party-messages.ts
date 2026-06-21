@@ -314,3 +314,33 @@ export async function sendPartyMessage(
   })
   return sendWhisper(campaignId, input.recipientUserId ?? null, input.message)
 }
+
+/**
+ * Durably acknowledge a player's outstanding "Nudge DM" pokes (QA Phase 5).
+ *
+ * Called when the DM opens or acts on a nudged card. Stamps handled_at on that
+ * player's unhandled nudge rows so the server-side red-highlight derivation
+ * stops re-surfacing them after a refresh. RLS scopes the UPDATE to the
+ * campaign DM. Degrades quietly (no throw) if migration
+ * 20260621220000 (handled_at column + DM UPDATE policy) isn't applied yet — the
+ * in-session client-side dismiss still works; only cross-refresh persistence is
+ * unavailable until the migration lands.
+ */
+export async function acknowledgePlayerNudges(campaignId: string, actorUserId: string) {
+  if (!campaignId || !actorUserId) return { ok: false as const }
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('party_messages')
+    .update({ handled_at: new Date().toISOString() })
+    .eq('campaign_id', campaignId)
+    .eq('sender_user_id', actorUserId)
+    .eq('message_type', 'nudge')
+    .is('handled_at', null)
+  if (error) {
+    if (/handled_at|column|permission|policy|row-level/i.test(error.message)) {
+      return { ok: false as const, degraded: true as const }
+    }
+    return { error: error.message }
+  }
+  return { ok: true as const }
+}

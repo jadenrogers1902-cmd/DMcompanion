@@ -300,7 +300,15 @@ export async function submitActionIntent(
     resolver_status: 'idle',
   }).select('id').single()
 
-  if (error) return { error: error.message }
+  if (error) {
+    // Unique-violation from the one-pending-per-actor/target/action index
+    // (migration 20260621220100): a duplicate in-flight request. Surface a
+    // friendly message instead of a raw constraint error.
+    if (error.code === '23505') {
+      return { error: 'You already have a pending request for that target. Wait for the DM to respond.' }
+    }
+    return { error: error.message }
+  }
 
   revalidatePath(ACTIONS_PATH(campaignId))
   return { success: true, intentId: intent.id as string }

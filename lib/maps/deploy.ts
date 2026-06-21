@@ -120,6 +120,8 @@ export async function instantiatePreparedMap(
       // Always insert inactive; the caller activates if needed.
       is_active: false,
       source_prepared_map_id: prepared.id,
+      fog_mode: prepared.fog_mode ?? 'rooms',
+      fog_style: prepared.fog_style ?? 'blackout',
       created_by: createdBy,
     })
     .select()
@@ -182,7 +184,13 @@ export async function instantiatePreparedMap(
     }
   }
 
-  const roomRegions = sanitizeRoomRegions(prepared.room_regions ?? [])
+  // Room masks and painted fog regions both deploy into map_room_regions —
+  // fog regions are just unlabeled masks, so they reuse the live room rendering,
+  // reveal, and realtime path.
+  const roomRegions = [
+    ...sanitizeRoomRegions(prepared.room_regions ?? []),
+    ...sanitizeRoomRegions(prepared.fog_regions ?? []),
+  ]
   if (roomRegions.length > 0) {
     const { error: roomError } = await client.from('map_room_regions').insert(
       roomRegions.map((room) => ({

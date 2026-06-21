@@ -101,6 +101,10 @@ export interface Condition {
   created_at: string
 }
 
+/** Base (whole-map) fog applied to players. See migration 20260621230000. */
+export type FogMode = 'none' | 'rooms' | 'hidden'
+export type FogStyle = 'blackout' | 'dim'
+
 export interface GameMap {
   id: string
   campaign_id: string
@@ -128,6 +132,8 @@ export interface GameMap {
   cast_settings: Record<string, unknown>
   combat_round: number
   source_prepared_map_id: string | null
+  fog_mode: FogMode
+  fog_style: FogStyle
   created_by: string
   created_at: string
   updated_at: string
@@ -1328,6 +1334,9 @@ export type Database = {
           tags: string[]
           status: string
           is_hub: boolean
+          fog_mode: FogMode
+          fog_style: FogStyle
+          fog_regions: Record<string, unknown>[]
           created_at: string
           updated_at: string
         }
@@ -1350,6 +1359,9 @@ export type Database = {
           tags?: string[]
           status?: string
           is_hub?: boolean
+          fog_mode?: FogMode
+          fog_style?: FogStyle
+          fog_regions?: Record<string, unknown>[]
           created_at?: string
           updated_at?: string
         }
@@ -1372,6 +1384,9 @@ export type Database = {
           tags?: string[]
           status?: string
           is_hub?: boolean
+          fog_mode?: FogMode
+          fog_style?: FogStyle
+          fog_regions?: Record<string, unknown>[]
           created_at?: string
           updated_at?: string
         }
@@ -1862,6 +1877,8 @@ export type Database = {
           cast_settings: Record<string, unknown>
           combat_round: number
           source_prepared_map_id: string | null
+          fog_mode: FogMode
+          fog_style: FogStyle
           created_by: string
           created_at: string
           updated_at: string
@@ -1893,6 +1910,8 @@ export type Database = {
           cast_settings?: Record<string, unknown>
           combat_round?: number
           source_prepared_map_id?: string | null
+          fog_mode?: FogMode
+          fog_style?: FogStyle
           created_by: string
           created_at?: string
           updated_at?: string
@@ -1922,6 +1941,8 @@ export type Database = {
           cast_settings?: Record<string, unknown>
           combat_round?: number
           source_prepared_map_id?: string | null
+          fog_mode?: FogMode
+          fog_style?: FogStyle
           updated_at?: string
         }
         Relationships: []

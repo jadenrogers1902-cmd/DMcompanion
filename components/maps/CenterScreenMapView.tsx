@@ -131,13 +131,17 @@ export function CenterScreenMapView({
         visible_to_players: room.visible_to_players,
       }))
     : []
-  // Mirror the player view's fog × room-mask rule (QA Phase 2/7): when the map
-  // relies on room masks only (no legacy revealed areas), don't blanket the
-  // whole cast screen in near-black global fog — the per-room masks already
-  // hide unrevealed rooms. Global fog still applies when revealed areas exist
-  // or when there are no rooms at all. Respects the DM's showFog cast setting.
-  const globalFogEnabled =
-    settings.showFog && (revealedAreas.length > 0 || roomRegions.length === 0)
+  // Mirror the player view's fog rules. The map's base fog mode decides the
+  // global blackout ('none' off / 'hidden' on / 'rooms' = legacy room-aware),
+  // gated by the DM's showFog cast setting. Painted/room masks render regardless.
+  const fogMode = map.fog_mode ?? 'rooms'
+  const baseFog =
+    fogMode === 'none'
+      ? false
+      : fogMode === 'hidden'
+        ? true
+        : revealedAreas.length > 0 || roomRegions.length === 0
+  const globalFogEnabled = settings.showFog && baseFog
 
   async function enterFullscreen() {
     if (!document.fullscreenElement) {
@@ -250,6 +254,7 @@ export function CenterScreenMapView({
               revealedAreas={displayAreas}
               roomRegions={displayRooms}
               fogEnabled={globalFogEnabled}
+              fogStyle={map.fog_style ?? 'blackout'}
               followTarget={followLeader ? group.focus : null}
               followGridSquares={followGridSquares}
             />

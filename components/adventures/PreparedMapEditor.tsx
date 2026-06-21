@@ -22,7 +22,7 @@ import type {
   PreparedMapRoomRegion,
   PreparedMapToken,
 } from '@/lib/types/adventure'
-import type { CampaignDoc, CampaignDocLink } from '@/lib/types/database'
+import type { CampaignDoc, CampaignDocLink, FogMode, FogStyle } from '@/lib/types/database'
 import {
   ADVENTURE_STATUS_OPTIONS,
   adventureStatusBadgeVariant,
@@ -129,6 +129,16 @@ export function PreparedMapEditor({
   const [roomDrawTool, setRoomDrawTool] = useState<RoomDrawTool>(null)
   const [draftRoomPolygonPoints, setDraftRoomPolygonPoints] = useState<{ x: number; y: number }[]>([])
   const [roomEditMode, setRoomEditMode] = useState(false)
+  // Whether the current draw / selection targets a sub-location room or a fog mask.
+  const [drawTarget, setDrawTarget] = useState<'room' | 'fog'>('room')
+  // ─── Fog controls (base fog + painted fog masks) ───
+  const [fogRegions, setFogRegions] = useState<PreparedMapRoomRegion[]>(() =>
+    normalizePreparedRoomRegions(map.fog_regions ?? []),
+  )
+  const [fogMode, setFogMode] = useState<FogMode>(map.fog_mode ?? 'rooms')
+  const [fogStyle, setFogStyle] = useState<FogStyle>(map.fog_style ?? 'blackout')
+  const [fogOpen, setFogOpen] = useState(false)
+  const [selectedFogId, setSelectedFogId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -138,6 +148,7 @@ export function PreparedMapEditor({
   const hasImage = Boolean(map.storage_path && imageUrl && map.width > 0 && map.height > 0)
   const selectedToken = tokens.find((token) => token.id === selectedTokenId) ?? null
   const selectedRoom = roomRegions.find((room) => room.id === selectedRoomId) ?? null
+  const selectedFog = fogRegions.find((region) => region.id === selectedFogId) ?? null
   const subLocationDocs = codexDocs.filter((doc) => doc.doc_type === 'sub_location')
 
   const renderTokens: RenderToken[] = useMemo(
@@ -160,9 +171,11 @@ export function PreparedMapEditor({
     () => renderTokens.filter((token) => token.visible_to_players),
     [renderTokens],
   )
+  // Rooms and fog masks both render through MapCanvas's room layer (fog masks
+  // are just unlabeled masks), so they share one selection + border-edit path.
   const renderRooms: RenderRoomRegion[] = useMemo(
     () =>
-      roomRegions.map((room) => ({
+      [...roomRegions, ...fogRegions].map((room) => ({
         id: room.id,
         name: room.name,
         shape_type: room.shape_type,
@@ -178,7 +191,7 @@ export function PreparedMapEditor({
         is_revealed: room.is_revealed_by_default,
         visible_to_players: room.visible_to_players,
       })),
-    [roomRegions],
+    [roomRegions, fogRegions],
   )
 
   function touch() {
@@ -191,8 +204,10 @@ export function PreparedMapEditor({
     touch()
   }
 
+  // Update a region in whichever array holds it (room or fog).
   function updateRoom(id: string, patch: Partial<PreparedMapRoomRegion>) {
     setRoomRegions((prev) => prev.map((room) => (room.id === id ? { ...room, ...patch } : room)))
+    setFogRegions((prev) => prev.map((region) => (region.id === id ? { ...region, ...patch } : region)))
     touch()
   }
 
@@ -331,23 +346,37 @@ export function PreparedMapEditor({
     touch()
   }
 
-  function addRoomRegion(shape:
+  // Create a region in the array named by `drawTarget` (rooms vs fog masks).
+  // Fog masks default to a plain solid border, no player label, and the
+  // currently-selected fog style — a "dumb" mask, distinct from a labelled room.
+  function addRegion(shape:
     | { shape_type: 'rectangle'; x: number; y: number; width: number; height: number }
     | { shape_type: 'polygon'; points: { x: number; y: number }[] },
   ) {
     const id = crypto.randomUUID()
-    const room = createPreparedRoomRegion({
+    const isFog = drawTarget === 'fog'
+    const region = createPreparedRoomRegion({
       id,
-      name: `Room ${roomRegions.length + 1}`,
+      name: isFog ? `Fog ${fogRegions.length + 1}` : `Room ${roomRegions.length + 1}`,
       shape_type: shape.shape_type,
       x: shape.shape_type === 'rectangle' ? shape.x : shape.points[0]?.x ?? Math.round(map.width / 2),
       y: shape.shape_type === 'rectangle' ? shape.y : shape.points[0]?.y ?? Math.round(map.height / 2),
       width: shape.shape_type === 'rectangle' ? shape.width : null,
       height: shape.shape_type === 'rectangle' ? shape.height : null,
       points: shape.shape_type === 'polygon' ? shape.points : [],
+      ...(isFog
+        ? { mask_style: fogStyle, border_style: 'solid' as const, player_label_visible: false }
+        : {}),
     })
-    setRoomRegions((prev) => [...prev, room])
-    setSelectedRoomId(id)
+    if (isFog) {
+      setFogRegions((prev) => [...prev, region])
+      setSelectedFogId(id)
+      setSelectedRoomId(null)
+    } else {
+      setRoomRegions((prev) => [...prev, region])
+      setSelectedRoomId(id)
+      setSelectedFogId(null)
+    }
     setSelectedTokenId(null)
     setRoomDrawTool(null)
     setDraftRoomPolygonPoints([])
@@ -356,16 +385,21 @@ export function PreparedMapEditor({
 
   function finishPolygonRoom() {
     if (draftRoomPolygonPoints.length < 3) {
-      setError('Add at least three points to finish a polygon room.')
+      setError('Add at least three points to finish this region.')
       return
     }
-    addRoomRegion({ shape_type: 'polygon', points: draftRoomPolygonPoints })
+    addRegion({ shape_type: 'polygon', points: draftRoomPolygonPoints })
   }
 
   function removeRoom(id: string) {
     setRoomRegions((prev) => prev.filter((room) => room.id !== id))
+    setFogRegions((prev) => prev.filter((region) => region.id !== id))
     if (selectedRoomId === id) {
       setSelectedRoomId(null)
+      setRoomEditMode(false)
+    }
+    if (selectedFogId === id) {
+      setSelectedFogId(null)
       setRoomEditMode(false)
     }
     touch()
@@ -433,6 +467,9 @@ export function PreparedMapEditor({
         grid_size: gridSize,
         tokens,
         room_regions: roomRegions,
+        fog_regions: fogRegions,
+        fog_mode: fogMode,
+        fog_style: fogStyle,
         notes,
         links,
         tags,
@@ -594,15 +631,30 @@ export function PreparedMapEditor({
                 selectedTokenId={selectedTokenId}
                 onSelectToken={(id) => {
                   setSelectedTokenId(id)
-                  if (id) setSelectedRoomId(null)
+                  if (id) {
+                    setSelectedRoomId(null)
+                    setSelectedFogId(null)
+                  }
                 }}
                 onMoveToken={(id, x, y) => updateToken(id, { x, y })}
                 canDragToken={() => true}
                 roomRegions={renderRooms}
-                selectedRoomRegionId={selectedRoomId}
+                selectedRoomRegionId={selectedRoomId ?? selectedFogId}
                 onSelectRoomRegion={(id) => {
-                  setSelectedRoomId(id)
-                  if (id) setSelectedTokenId(null)
+                  if (!id) {
+                    setSelectedRoomId(null)
+                    setSelectedFogId(null)
+                    return
+                  }
+                  setSelectedTokenId(null)
+                  // Route the selection to whichever array owns the region.
+                  if (fogRegions.some((region) => region.id === id)) {
+                    setSelectedFogId(id)
+                    setSelectedRoomId(null)
+                  } else {
+                    setSelectedRoomId(id)
+                    setSelectedFogId(null)
+                  }
                 }}
                 roomDrawTool={roomDrawTool}
                 draftRoomPolygonPoints={draftRoomPolygonPoints}
@@ -610,8 +662,8 @@ export function PreparedMapEditor({
                   setDraftRoomPolygonPoints((prev) => [...prev, point])
                   setError(null)
                 }}
-                onRoomRegionDrawn={addRoomRegion}
-                roomEditEnabled={roomEditMode && !!selectedRoomId && !roomDrawTool}
+                onRoomRegionDrawn={addRegion}
+                roomEditEnabled={roomEditMode && !!(selectedRoomId || selectedFogId) && !roomDrawTool}
                 onRoomGeometryChange={handleRoomGeometryChange}
               />
               <SubLocationsPanel
@@ -623,26 +675,31 @@ export function PreparedMapEditor({
                 draftPointCount={draftRoomPolygonPoints.length}
                 onToggle={() => {
                   setSubLocationsOpen((open) => !open)
+                  setFogOpen(false)
                   setSelectedTokenId(null)
                 }}
                 onAddPortal={addTransportToken}
                 onStartRectangle={() => {
                   setSubLocationsOpen(true)
                   setRoomEditMode(false)
+                  setDrawTarget('room')
                   setRoomDrawTool((tool) => (tool === 'rectangle' ? null : 'rectangle'))
                   setDraftRoomPolygonPoints([])
                 }}
                 onStartPolygon={() => {
                   setSubLocationsOpen(true)
                   setRoomEditMode(false)
+                  setDrawTarget('room')
                   setRoomDrawTool((tool) => (tool === 'polygon' ? null : 'polygon'))
                   setDraftRoomPolygonPoints([])
                 }}
-                editBordersActive={roomEditMode}
+                editBordersActive={roomEditMode && drawTarget === 'room' && !!selectedRoomId}
                 onToggleEditBorders={() => {
+                  const wasEditingThis = roomEditMode && drawTarget === 'room'
                   setRoomDrawTool(null)
                   setDraftRoomPolygonPoints([])
-                  setRoomEditMode((on) => !on)
+                  setDrawTarget('room')
+                  setRoomEditMode(!wasEditingThis)
                 }}
                 onFinishPolygon={finishPolygonRoom}
                 onUndoPolygonPoint={() => setDraftRoomPolygonPoints((prev) => prev.slice(0, -1))}
@@ -650,9 +707,68 @@ export function PreparedMapEditor({
                   setRoomDrawTool(null)
                   setDraftRoomPolygonPoints([])
                 }}
-                onSelectRoom={setSelectedRoomId}
+                onSelectRoom={(id) => {
+                  setSelectedRoomId(id)
+                  if (id) setSelectedFogId(null)
+                }}
                 onUpdateRoom={updateRoom}
                 onRemoveRoom={removeRoom}
+              />
+              <FogControlsPanel
+                open={fogOpen}
+                fogMode={fogMode}
+                fogStyle={fogStyle}
+                fogRegions={fogRegions}
+                selectedFog={selectedFog}
+                roomDrawTool={drawTarget === 'fog' ? roomDrawTool : null}
+                draftPointCount={draftRoomPolygonPoints.length}
+                editBordersActive={roomEditMode && drawTarget === 'fog' && !!selectedFogId}
+                onToggle={() => {
+                  setFogOpen((open) => !open)
+                  setSubLocationsOpen(false)
+                  setSelectedTokenId(null)
+                }}
+                onChangeMode={(mode) => {
+                  setFogMode(mode)
+                  touch()
+                }}
+                onChangeStyle={(style) => {
+                  setFogStyle(style)
+                  touch()
+                }}
+                onStartRectangle={() => {
+                  setFogOpen(true)
+                  setRoomEditMode(false)
+                  setDrawTarget('fog')
+                  setRoomDrawTool((tool) => (tool === 'rectangle' && drawTarget === 'fog' ? null : 'rectangle'))
+                  setDraftRoomPolygonPoints([])
+                }}
+                onStartPolygon={() => {
+                  setFogOpen(true)
+                  setRoomEditMode(false)
+                  setDrawTarget('fog')
+                  setRoomDrawTool((tool) => (tool === 'polygon' && drawTarget === 'fog' ? null : 'polygon'))
+                  setDraftRoomPolygonPoints([])
+                }}
+                onToggleEditBorders={() => {
+                  const wasEditingThis = roomEditMode && drawTarget === 'fog'
+                  setRoomDrawTool(null)
+                  setDraftRoomPolygonPoints([])
+                  setDrawTarget('fog')
+                  setRoomEditMode(!wasEditingThis)
+                }}
+                onFinishPolygon={finishPolygonRoom}
+                onUndoPolygonPoint={() => setDraftRoomPolygonPoints((prev) => prev.slice(0, -1))}
+                onCancelDraw={() => {
+                  setRoomDrawTool(null)
+                  setDraftRoomPolygonPoints([])
+                }}
+                onSelectFog={(id) => {
+                  setSelectedFogId(id)
+                  if (id) setSelectedRoomId(null)
+                }}
+                onUpdateFog={updateRoom}
+                onRemoveFog={removeRoom}
               />
             </>
           ) : (
@@ -1210,6 +1326,257 @@ function SubLocationsPanel({
                       value={selectedRoom.dm_notes ?? ''}
                       onChange={(event) => onUpdateRoom(selectedRoom.id, { dm_notes: event.target.value })}
                     />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FogControlsPanel({
+  open,
+  fogMode,
+  fogStyle,
+  fogRegions,
+  selectedFog,
+  roomDrawTool,
+  draftPointCount,
+  editBordersActive,
+  onToggle,
+  onChangeMode,
+  onChangeStyle,
+  onStartRectangle,
+  onStartPolygon,
+  onToggleEditBorders,
+  onFinishPolygon,
+  onUndoPolygonPoint,
+  onCancelDraw,
+  onSelectFog,
+  onUpdateFog,
+  onRemoveFog,
+}: {
+  open: boolean
+  fogMode: FogMode
+  fogStyle: FogStyle
+  fogRegions: PreparedMapRoomRegion[]
+  selectedFog: PreparedMapRoomRegion | null
+  roomDrawTool: RoomDrawTool
+  draftPointCount: number
+  editBordersActive: boolean
+  onToggle: () => void
+  onChangeMode: (mode: FogMode) => void
+  onChangeStyle: (style: FogStyle) => void
+  onStartRectangle: () => void
+  onStartPolygon: () => void
+  onToggleEditBorders: () => void
+  onFinishPolygon: () => void
+  onUndoPolygonPoint: () => void
+  onCancelDraw: () => void
+  onSelectFog: (id: string | null) => void
+  onUpdateFog: (id: string, patch: Partial<PreparedMapRoomRegion>) => void
+  onRemoveFog: (id: string) => void
+}) {
+  return (
+    <div className="absolute bottom-3 left-[5.25rem] z-30 flex items-end gap-3">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`flex h-14 w-14 items-center justify-center rounded-full border text-zinc-50 shadow-2xl backdrop-blur transition ${
+          open
+            ? 'border-sky-300 bg-sky-500/25 shadow-sky-950/50'
+            : 'border-zinc-700 bg-zinc-950/90 hover:border-sky-300/70 hover:bg-zinc-900'
+        }`}
+        aria-label="Fog controls"
+        title="Fog controls"
+      >
+        <svg className="h-8 w-8" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <path
+            d="M20 34a10 10 0 0 1 .6-19.98A14 14 0 0 1 47 18a9 9 0 0 1 1 17.94"
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+          <path d="M14 44h36M20 52h28" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          className="flex max-h-[min(42rem,calc(100dvh-6rem))] w-[min(24rem,calc(100vw-6rem))] flex-col overflow-hidden rounded-xl border border-sky-300/30 bg-zinc-950/96 shadow-2xl shadow-sky-950/35 backdrop-blur"
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerMove={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
+          onWheel={(event) => event.stopPropagation()}
+          onTouchMove={(event) => event.stopPropagation()}
+        >
+          <div className="border-b border-zinc-800 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-300">Visibility</p>
+            <h2 className="mt-1 text-base font-semibold text-zinc-50">Fog</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Set how the whole map starts for players, and paint extra fog anywhere.
+            </p>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 [touch-action:pan-y]">
+            <div className="grid gap-3">
+              <div className="rounded-lg border border-sky-500/25 bg-sky-500/10 p-3">
+                <p className="text-sm font-semibold text-sky-100">Base fog</p>
+                <p className="mt-1 text-xs text-sky-100/70">
+                  Applies to the whole map for players when deployed.
+                </p>
+                <div className="mt-3 grid gap-3">
+                  <Select
+                    label="Fog mode"
+                    value={fogMode}
+                    onChange={(event) => onChangeMode(event.target.value as FogMode)}
+                  >
+                    <option value="none">No fog — map fully visible</option>
+                    <option value="rooms">Room &amp; fog masks only</option>
+                    <option value="hidden">Hide entire map until revealed</option>
+                  </Select>
+                  <Select
+                    label="Fog style"
+                    value={fogStyle}
+                    onChange={(event) => onChangeStyle(event.target.value as FogStyle)}
+                  >
+                    <option value="blackout">Blackout</option>
+                    <option value="dim">Dim</option>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-sky-500/25 bg-sky-500/10 p-3">
+                <p className="text-sm font-semibold text-sky-100">Paint fog</p>
+                <p className="mt-1 text-xs text-sky-100/70">
+                  Draw a fog mask over any area. Players can&apos;t see through it until you reveal it live.
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Button
+                    size="sm"
+                    variant={roomDrawTool === 'rectangle' ? 'primary' : 'secondary'}
+                    onClick={onStartRectangle}
+                  >
+                    {roomDrawTool === 'rectangle' ? 'Drawing...' : 'Rectangle'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={roomDrawTool === 'polygon' ? 'primary' : 'secondary'}
+                    onClick={onStartPolygon}
+                  >
+                    {roomDrawTool === 'polygon' ? `${draftPointCount} points` : 'Polygon'}
+                  </Button>
+                </div>
+                {roomDrawTool === 'polygon' && (
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    <Button size="sm" variant="secondary" onClick={onUndoPolygonPoint} disabled={draftPointCount === 0}>
+                      Undo
+                    </Button>
+                    <Button size="sm" onClick={onFinishPolygon} disabled={draftPointCount < 3} className="col-span-2">
+                      Finish
+                    </Button>
+                  </div>
+                )}
+                {roomDrawTool && (
+                  <button
+                    type="button"
+                    onClick={onCancelDraw}
+                    className="mt-2 text-xs font-medium text-zinc-400 hover:text-zinc-100"
+                  >
+                    Cancel drawing
+                  </button>
+                )}
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                  Fog areas ({fogRegions.length})
+                </p>
+                {fogRegions.length === 0 ? (
+                  <p className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-3 text-xs text-zinc-500">
+                    No painted fog yet. The base fog mode above still applies.
+                  </p>
+                ) : (
+                  <div className="grid gap-1.5">
+                    {fogRegions.map((region) => (
+                      <button
+                        key={region.id}
+                        type="button"
+                        onClick={() => onSelectFog(region.id)}
+                        className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
+                          selectedFog?.id === region.id
+                            ? 'border-sky-300/70 bg-sky-500/15 text-zinc-50'
+                            : 'border-zinc-800 bg-zinc-900/80 text-zinc-300 hover:border-zinc-600'
+                        }`}
+                      >
+                        <span className="block truncate font-semibold">{region.name}</span>
+                        <span className="mt-0.5 block text-[11px] capitalize text-zinc-500">
+                          {region.shape_type} - {region.mask_style}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {selectedFog && (
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-zinc-100">Fog area settings</p>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveFog(selectedFog.id)}
+                      className="text-xs font-semibold text-red-400 hover:text-red-300"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onToggleEditBorders}
+                    className={`mb-3 w-full rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                      editBordersActive
+                        ? 'border-sky-300/70 bg-sky-500/20 text-sky-100'
+                        : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-sky-300/60'
+                    }`}
+                  >
+                    {editBordersActive ? 'Done editing borders' : 'Edit borders'}
+                  </button>
+                  {editBordersActive && (
+                    <p className="mb-3 -mt-1 text-[11px] leading-relaxed text-sky-200/70">
+                      {selectedFog.shape_type === 'polygon'
+                        ? 'Drag the pink points to reshape the fog. Your placed points are kept.'
+                        : 'Drag the pink corners or amber edges to resize the fog.'}
+                    </p>
+                  )}
+                  <div className="grid gap-3">
+                    <Input
+                      label="Label"
+                      value={selectedFog.name}
+                      maxLength={80}
+                      onChange={(event) => onUpdateFog(selectedFog.id, { name: event.target.value })}
+                    />
+                    <Select
+                      label="Style"
+                      value={selectedFog.mask_style}
+                      onChange={(event) => onUpdateFog(selectedFog.id, { mask_style: event.target.value as PreparedMapRoomRegion['mask_style'] })}
+                    >
+                      <option value="blackout">Blackout</option>
+                      <option value="dim">Dim</option>
+                      <option value="outline_only">Outline only</option>
+                    </Select>
+                    <label className="flex items-center gap-2 text-xs text-zinc-300">
+                      <input
+                        type="checkbox"
+                        checked={selectedFog.is_revealed_by_default}
+                        onChange={(event) => onUpdateFog(selectedFog.id, { is_revealed_by_default: event.target.checked })}
+                        className="h-4 w-4 accent-emerald-400"
+                      />
+                      Start revealed when deployed
+                    </label>
                   </div>
                 </div>
               )}

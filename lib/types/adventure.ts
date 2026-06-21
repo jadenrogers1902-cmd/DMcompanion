@@ -20,6 +20,10 @@
 // instantiated into live rows on deploy, never edited in place during play.
 // ============================================================
 
+import type { FogMode, FogStyle } from './database'
+
+export type { FogMode, FogStyle }
+
 /** Lifecycle of a prepared adventure in the Adventure Maker workspace. */
 export type AdventureStatus = 'draft' | 'ready' | 'active' | 'archived'
 
@@ -117,6 +121,11 @@ export type PreparedMap = {
   grid_size: number
   tokens: PreparedMapToken[]
   room_regions: PreparedMapRoomRegion[]
+  /** Author-painted fog masks; deploy into map_room_regions like room masks. */
+  fog_regions: PreparedMapRoomRegion[]
+  /** Base (whole-map) fog applied to players when deployed. */
+  fog_mode: FogMode
+  fog_style: FogStyle
   notes: PreparedMapNote[]
   links: PreparedMapLink[]
   tags: string[]

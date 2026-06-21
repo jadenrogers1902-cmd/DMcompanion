@@ -606,7 +606,18 @@ export function PlayerMapView({
   const hasRevealedAreas = areas.length > 0
   const hasRoomRegions = rooms.length > 0
   const hasHiddenRooms = rooms.some((room) => !room.is_revealed)
-  const globalFogEnabled = hasRevealedAreas || !hasRoomRegions
+  // The map's base fog mode (Adventure Maker fog controls) decides the global
+  // blackout. 'none' = never fog the whole map (painted/room masks still apply);
+  // 'hidden' = fog the whole map until revealed live; 'rooms' (default, and the
+  // value for every pre-fog-controls map) keeps the legacy behaviour.
+  const fogMode = mapState.fog_mode ?? 'rooms'
+  const fogStyle = mapState.fog_style ?? 'blackout'
+  const globalFogEnabled =
+    fogMode === 'none'
+      ? false
+      : fogMode === 'hidden'
+        ? true
+        : hasRevealedAreas || !hasRoomRegions
 
   const controls = (t: Token) => t.controlled_by_user_id === currentUserId
 
@@ -1606,6 +1617,7 @@ export function PlayerMapView({
           revealedAreas={renderAreas}
           roomRegions={renderRooms}
           fogEnabled={globalFogEnabled}
+          fogStyle={fogStyle}
         />
 
         <MobileMapControls
@@ -1629,14 +1641,15 @@ export function PlayerMapView({
           />
         )}
 
-        {/* Reveal-state messaging. Keyed on BOTH reveal systems so a room-mask
-            map isn't mislabeled as "not revealed". */}
-        {!hasRevealedAreas && !hasRoomRegions && (
+        {/* Reveal-state messaging. Keyed on the effective global fog + room
+            masks so a room-mask or no-fog map isn't mislabeled as "not
+            revealed". */}
+        {globalFogEnabled && !hasRevealedAreas && !hasRoomRegions && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-zinc-900/95 border border-zinc-700 rounded-lg px-3.5 py-2 text-xs text-zinc-400 shadow-lg">
             The DM has not revealed this map yet.
           </div>
         )}
-        {!hasRevealedAreas && hasRoomRegions && hasHiddenRooms && (
+        {!globalFogEnabled && hasHiddenRooms && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-zinc-900/95 border border-zinc-700 rounded-lg px-3.5 py-2 text-xs text-zinc-400 shadow-lg">
             Some areas are hidden until you explore or the DM reveals them.
           </div>

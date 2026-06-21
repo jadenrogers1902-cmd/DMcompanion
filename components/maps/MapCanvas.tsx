@@ -91,6 +91,8 @@ interface MapCanvasProps {
   // Player mode: render a dark fog over everything not covered by a
   // visible-to-players area. DM mode: just outline areas for reference.
   fogEnabled?: boolean
+  // Density of the global fog rect: 'blackout' (near-opaque) or 'dim'.
+  fogStyle?: 'blackout' | 'dim'
   // DM drawing tool: when set, drag on the map draws a new reveal shape.
   drawTool?: AreaDrawTool
   onAreaDrawn?: (shape:
@@ -192,6 +194,7 @@ export function MapCanvas({
   selectedRoomRegionId = null,
   onSelectRoomRegion,
   fogEnabled = false,
+  fogStyle = 'blackout',
   drawTool = null,
   onAreaDrawn,
   roomDrawTool = null,
@@ -962,7 +965,12 @@ export function MapCanvas({
                       )}
                     </mask>
                   </defs>
-                  <rect width={width} height={height} fill="rgba(9,9,11,0.92)" mask="url(#fog-mask)" />
+                  <rect
+                    width={width}
+                    height={height}
+                    fill={fogStyle === 'dim' ? 'rgba(9,9,11,0.6)' : 'rgba(9,9,11,0.92)'}
+                    mask="url(#fog-mask)"
+                  />
                 </>
               )}
 

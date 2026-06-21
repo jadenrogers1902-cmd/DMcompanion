@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import type { Database } from '@/lib/types/database'
+import type { Database, FogMode, FogStyle } from '@/lib/types/database'
 import type {
   AdventureStatus,
   PreparedMap,
@@ -97,6 +97,9 @@ export async function savePreparedMap(
     grid_size?: number
     tokens?: PreparedMapToken[]
     room_regions?: PreparedMapRoomRegion[]
+    fog_regions?: PreparedMapRoomRegion[]
+    fog_mode?: FogMode
+    fog_style?: FogStyle
     notes?: PreparedMapNote[]
     links?: PreparedMapLink[]
     tags?: string[]
@@ -123,6 +126,17 @@ export async function savePreparedMap(
   }
   if (input.tokens !== undefined) update.tokens = sanitizeTokens(input.tokens)
   if (input.room_regions !== undefined) update.room_regions = sanitizePreparedRoomRegions(input.room_regions)
+  if (input.fog_regions !== undefined) update.fog_regions = sanitizePreparedRoomRegions(input.fog_regions)
+  if (input.fog_mode !== undefined) {
+    update.fog_mode = (['none', 'rooms', 'hidden'] as FogMode[]).includes(input.fog_mode)
+      ? input.fog_mode
+      : 'rooms'
+  }
+  if (input.fog_style !== undefined) {
+    update.fog_style = (['blackout', 'dim'] as FogStyle[]).includes(input.fog_style)
+      ? input.fog_style
+      : 'blackout'
+  }
   if (input.notes !== undefined) update.notes = sanitizeNotes(input.notes)
   if (input.links !== undefined) update.links = sanitizeLinks(input.links)
   if (input.tags !== undefined) update.tags = normalizeTags(input.tags)

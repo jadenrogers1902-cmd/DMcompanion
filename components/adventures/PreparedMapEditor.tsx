@@ -149,6 +149,7 @@ export function PreparedMapEditor({
   const selectedToken = tokens.find((token) => token.id === selectedTokenId) ?? null
   const selectedRoom = roomRegions.find((room) => room.id === selectedRoomId) ?? null
   const selectedFog = fogRegions.find((region) => region.id === selectedFogId) ?? null
+  const doorTokens = tokens.filter((token) => token.token_type === 'door')
   const subLocationDocs = codexDocs.filter((doc) => doc.doc_type === 'sub_location')
 
   const renderTokens: RenderToken[] = useMemo(
@@ -343,6 +344,50 @@ export function PreparedMapEditor({
       },
     ])
     setSelectedTokenId(id)
+    touch()
+  }
+
+  // Doors are ordinary door-type tokens, but authored from the area menu. Each
+  // call adds one (the DM can add several), slightly offset so they don't stack.
+  function addDoorToken() {
+    const meta = preparedTokenTypeMeta('door')
+    const id = crypto.randomUUID()
+    const doorCount = tokens.filter((token) => token.token_type === 'door').length
+    const step = Math.max(20, gridSize)
+    const offset = (doorCount % 6) * step
+    setTokens((prev) => [
+      ...prev,
+      {
+        id,
+        token_type: 'door',
+        linked_campaign_doc_id: null,
+        source: 'manual',
+        is_dynamic: false,
+        can_move: false,
+        can_participate_in_combat: false,
+        interactable: true,
+        object_state: null,
+        name: `Door ${doorCount + 1}`,
+        icon: meta.icon,
+        x: (Math.round(map.width / 2) || 200) + offset,
+        y: (Math.round(map.height / 2) || 200) + offset,
+        size: 1,
+        color: meta.color,
+        reveal_state: 'visible',
+        visible_to_players: true,
+        status: 'draft',
+        tags: ['door'],
+        description: 'A door.',
+        dm_notes: '',
+        prep_notes: [],
+        player_notes: '',
+        links: [],
+        resource: null,
+      },
+    ])
+    setSelectedTokenId(id)
+    setSelectedRoomId(null)
+    setSelectedFogId(null)
     touch()
   }
 
@@ -671,6 +716,8 @@ export function PreparedMapEditor({
                 roomDrawTool={roomDrawTool}
                 rooms={roomRegions}
                 selectedRoom={selectedRoom}
+                doors={doorTokens}
+                selectedTokenId={selectedTokenId}
                 subLocationDocs={subLocationDocs}
                 draftPointCount={draftRoomPolygonPoints.length}
                 onToggle={() => {
@@ -679,6 +726,13 @@ export function PreparedMapEditor({
                   setSelectedTokenId(null)
                 }}
                 onAddPortal={addTransportToken}
+                onAddDoor={addDoorToken}
+                onSelectDoor={(id) => {
+                  setSelectedTokenId(id)
+                  setSelectedRoomId(null)
+                  setSelectedFogId(null)
+                }}
+                onRemoveDoor={removeToken}
                 onStartRectangle={() => {
                   setSubLocationsOpen(true)
                   setRoomEditMode(false)
@@ -1052,10 +1106,15 @@ function SubLocationsPanel({
   roomDrawTool,
   rooms,
   selectedRoom,
+  doors,
+  selectedTokenId,
   subLocationDocs,
   draftPointCount,
   onToggle,
   onAddPortal,
+  onAddDoor,
+  onSelectDoor,
+  onRemoveDoor,
   onStartRectangle,
   onStartPolygon,
   onFinishPolygon,
@@ -1071,10 +1130,15 @@ function SubLocationsPanel({
   roomDrawTool: RoomDrawTool
   rooms: PreparedMapRoomRegion[]
   selectedRoom: PreparedMapRoomRegion | null
+  doors: PreparedMapToken[]
+  selectedTokenId: string | null
   subLocationDocs: CampaignDoc[]
   draftPointCount: number
   onToggle: () => void
   onAddPortal: () => void
+  onAddDoor: () => void
+  onSelectDoor: (id: string) => void
+  onRemoveDoor: (id: string) => void
   onStartRectangle: () => void
   onStartPolygon: () => void
   onFinishPolygon: () => void
@@ -1138,6 +1202,51 @@ function SubLocationsPanel({
                     Add Portal
                   </Button>
                 </div>
+              </div>
+
+              <div className="rounded-lg border border-stone-500/30 bg-stone-500/10 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-stone-100">Doors</p>
+                    <p className="mt-1 text-xs text-stone-100/70">
+                      Add door tokens to mark room entrances. Click to add several, then drag each into place.
+                    </p>
+                  </div>
+                  <Button size="sm" variant="secondary" onClick={onAddDoor}>
+                    Add Door
+                  </Button>
+                </div>
+                {doors.length > 0 && (
+                  <div className="mt-3 grid gap-1.5">
+                    {doors.map((door) => (
+                      <div
+                        key={door.id}
+                        className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition ${
+                          selectedTokenId === door.id
+                            ? 'border-stone-300/70 bg-stone-500/20 text-zinc-50'
+                            : 'border-zinc-800 bg-zinc-900/80 text-zinc-300'
+                        }`}
+                      >
+                        <span aria-hidden="true">{door.icon || '🚪'}</span>
+                        <button
+                          type="button"
+                          onClick={() => onSelectDoor(door.id)}
+                          className="min-w-0 flex-1 truncate text-left font-medium hover:text-zinc-50"
+                        >
+                          {door.name || 'Door'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onRemoveDoor(door.id)}
+                          className="shrink-0 text-xs font-semibold text-red-400 hover:text-red-300"
+                          aria-label={`Remove ${door.name || 'door'}`}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-lg border border-fuchsia-500/25 bg-fuchsia-500/10 p-3">

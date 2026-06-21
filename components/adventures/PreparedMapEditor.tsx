@@ -944,7 +944,14 @@ function SubLocationsPanel({
       </button>
 
       {open && (
-        <div className="max-h-[min(42rem,calc(100vh-9rem))] w-[min(24rem,calc(100vw-6rem))] overflow-hidden rounded-xl border border-fuchsia-300/30 bg-zinc-950/96 shadow-2xl shadow-fuchsia-950/35 backdrop-blur">
+        <div
+          className="flex max-h-[min(42rem,calc(100dvh-6rem))] w-[min(24rem,calc(100vw-6rem))] flex-col overflow-hidden rounded-xl border border-fuchsia-300/30 bg-zinc-950/96 shadow-2xl shadow-fuchsia-950/35 backdrop-blur"
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerMove={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
+          onWheel={(event) => event.stopPropagation()}
+          onTouchMove={(event) => event.stopPropagation()}
+        >
           <div className="border-b border-zinc-800 px-4 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-fuchsia-300">Dungeon Map</p>
             <h2 className="mt-1 text-base font-semibold text-zinc-50">Sub-Locations</h2>
@@ -953,7 +960,7 @@ function SubLocationsPanel({
             </p>
           </div>
 
-          <div className="max-h-[calc(100vh-16rem)] overflow-y-auto p-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 [touch-action:pan-y]">
             <div className="grid gap-3">
               <div className="rounded-lg border border-violet-500/25 bg-violet-500/10 p-3">
                 <div className="flex items-start justify-between gap-3">

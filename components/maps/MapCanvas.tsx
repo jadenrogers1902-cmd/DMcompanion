@@ -39,6 +39,11 @@ export interface RenderArea {
 export type AreaDrawTool = 'rectangle' | 'circle' | null
 export type RoomDrawTool = 'rectangle' | 'polygon' | null
 
+/** Geometry emitted when a room's borders are dragged in edit mode. */
+export type RoomGeometryEdit =
+  | { shape_type: 'rectangle'; x: number; y: number; width: number; height: number }
+  | { shape_type: 'polygon'; points: { x: number; y: number }[] }
+
 export interface RenderRoomRegion {
   id: string
   name: string
@@ -97,6 +102,13 @@ interface MapCanvasProps {
   onRoomRegionDrawn?: (shape:
     | { shape_type: 'rectangle'; x: number; y: number; width: number; height: number }
     | { shape_type: 'polygon'; points: { x: number; y: number }[] }) => void
+  // Room border editing: when enabled and a room is selected, drag handles
+  // appear on its corners/edges (rectangle) or vertices (polygon). Dragging a
+  // handle reshapes the room and commits the new geometry via
+  // onRoomGeometryChange. Polygon vertices are preserved — they're moved, not
+  // rebuilt.
+  roomEditEnabled?: boolean
+  onRoomGeometryChange?: (id: string, geometry: RoomGeometryEdit) => void
   // Presentation mode: keep a world coordinate centered in the viewport when it changes.
   followTarget?: { x: number; y: number } | null
   followGridSquares?: number
@@ -186,6 +198,8 @@ export function MapCanvas({
   draftRoomPolygonPoints = [],
   onRoomPolygonPoint,
   onRoomRegionDrawn,
+  roomEditEnabled = false,
+  onRoomGeometryChange,
   followTarget = null,
   followGridSquares = 18,
   viewportCommand,
@@ -204,6 +218,15 @@ export function MapCanvas({
   const [dragPos, setDragPos] = useState<{ id: string; x: number; y: number } | null>(null)
   const [drawRect, setDrawRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   const [drawCircle, setDrawCircle] = useState<{ cx: number; cy: number; r: number } | null>(null)
+  // Live preview of the room being reshaped via border handles (committed on
+  // pointer-up). Null when no handle is being dragged.
+  const [roomGeomPreview, setRoomGeomPreview] = useState<{ id: string; geometry: RoomGeometryEdit } | null>(null)
+  const roomHandleDrag = useRef<{
+    id: string
+    kind: 'vertex' | 'corner' | 'edge'
+    index: number
+    start: RoomGeometryEdit
+  } | null>(null)
   const safeGridSize = Math.max(1, gridSize)
   const safeSubdivisions = Math.max(1, Math.round(gridSubdivisions ?? DEFAULT_GRID_SUBDIVISIONS))
   const minorGridSize = safeGridSize / safeSubdivisions
@@ -349,9 +372,65 @@ export function MapCanvas({
     return 'rgba(0,0,0,0.94)'
   }
 
+  // ─── Room border editing geometry ──────────────────────────────────────────
+  const ROOM_HANDLE_MIN = 8 // smallest allowed rectangle side, in image px
+  function roomToGeometry(room: RenderRoomRegion): RoomGeometryEdit {
+    if (room.shape_type === 'polygon') {
+      return { shape_type: 'polygon', points: (room.points ?? []).map((p) => ({ x: p.x, y: p.y })) }
+    }
+    return { shape_type: 'rectangle', x: room.x, y: room.y, width: room.width ?? 0, height: room.height ?? 0 }
+  }
+  // Recompute geometry from the drag start + the current pointer (world coords).
+  // Using the original snapshot keeps every fixed side stable across the drag.
+  function computeRoomGeometry(
+    drag: { kind: 'vertex' | 'corner' | 'edge'; index: number; start: RoomGeometryEdit },
+    px: number,
+    py: number,
+  ): RoomGeometryEdit {
+    if (drag.start.shape_type === 'polygon') {
+      const points = drag.start.points.map((p, idx) => (idx === drag.index ? { x: px, y: py } : p))
+      return { shape_type: 'polygon', points }
+    }
+    const s = drag.start
+    const right = s.x + s.width
+    const bottom = s.y + s.height
+    let { x, y, width, height } = s
+    const m = ROOM_HANDLE_MIN
+    if (drag.kind === 'corner') {
+      if (drag.index === 0) { x = Math.min(px, right - m); y = Math.min(py, bottom - m); width = right - x; height = bottom - y }
+      else if (drag.index === 1) { y = Math.min(py, bottom - m); width = Math.max(m, px - s.x); height = bottom - y }
+      else if (drag.index === 2) { width = Math.max(m, px - s.x); height = Math.max(m, py - s.y) }
+      else { x = Math.min(px, right - m); width = right - x; height = Math.max(m, py - s.y) }
+    } else {
+      if (drag.index === 0) { y = Math.min(py, bottom - m); height = bottom - y } // top edge
+      else if (drag.index === 1) { width = Math.max(m, px - s.x) }                // right edge
+      else if (drag.index === 2) { height = Math.max(m, py - s.y) }               // bottom edge
+      else { x = Math.min(px, right - m); width = right - x }                     // left edge
+    }
+    return { shape_type: 'rectangle', x, y, width, height }
+  }
+  function roomWithGeometry(room: RenderRoomRegion, g: RoomGeometryEdit): RenderRoomRegion {
+    if (g.shape_type === 'polygon') {
+      return { ...room, shape_type: 'polygon', points: g.points }
+    }
+    return { ...room, shape_type: 'rectangle', x: g.x, y: g.y, width: g.width, height: g.height, points: [] }
+  }
+  function roundRoomGeometry(g: RoomGeometryEdit): RoomGeometryEdit {
+    if (g.shape_type === 'polygon') {
+      return { shape_type: 'polygon', points: g.points.map((p) => ({ x: Math.round(p.x), y: Math.round(p.y) })) }
+    }
+    return {
+      shape_type: 'rectangle',
+      x: Math.round(g.x),
+      y: Math.round(g.y),
+      width: Math.round(g.width),
+      height: Math.round(g.height),
+    }
+  }
+
   // Interaction tracking (refs avoid re-render churn during a gesture)
   const interaction = useRef<{
-    kind: 'none' | 'pan' | 'token' | 'draw' | 'pinch'
+    kind: 'none' | 'pan' | 'token' | 'draw' | 'pinch' | 'roomHandle'
     pointerId: number
     startClientX: number
     startClientY: number
@@ -549,6 +628,7 @@ export function MapCanvas({
   function handlePointerDown(e: React.PointerEvent) {
     const target = e.target as HTMLElement
     const tokenEl = target.closest('[data-token-id]') as HTMLElement | null
+    const roomHandleEl = target.closest('[data-room-handle]') as HTMLElement | null
     const vp = viewportRef.current
     if (!vp) return
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
@@ -564,6 +644,22 @@ export function MapCanvas({
     i.startClientX = e.clientX
     i.startClientY = e.clientY
     i.moved = false
+
+    // Room border editing takes priority: grabbing a handle reshapes the room.
+    if (roomEditEnabled && roomHandleEl && onRoomGeometryChange) {
+      const id = roomHandleEl.dataset.roomId!
+      const room = roomRegions.find((r) => r.id === id)
+      if (room) {
+        roomHandleDrag.current = {
+          id,
+          kind: roomHandleEl.dataset.handleKind as 'vertex' | 'corner' | 'edge',
+          index: Number(roomHandleEl.dataset.handleIndex ?? 0),
+          start: roomToGeometry(room),
+        }
+        i.kind = 'roomHandle'
+        return
+      }
+    }
 
     if ((drawTool || roomDrawTool === 'rectangle') && !tokenEl) {
       const w = clientToWorld(e.clientX, e.clientY)
@@ -621,6 +717,14 @@ export function MapCanvas({
     const dy = e.clientY - i.startClientY
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) i.moved = true
 
+    if (i.kind === 'roomHandle' && roomHandleDrag.current) {
+      const drag = roomHandleDrag.current
+      const w = clientToWorld(e.clientX, e.clientY)
+      const geometry = computeRoomGeometry(drag, clampWorld(w.x, width), clampWorld(w.y, height))
+      setRoomGeomPreview({ id: drag.id, geometry })
+      return
+    }
+
     if (i.kind === 'pan') {
       setOffset({ x: i.startOffsetX + dx, y: i.startOffsetY + dy })
     } else if (i.kind === 'token' && i.tokenId) {
@@ -662,6 +766,18 @@ export function MapCanvas({
       activePointers.current.clear()
       i.kind = 'none'
       i.tokenId = null
+      return
+    }
+
+    if (i.kind === 'roomHandle') {
+      const drag = roomHandleDrag.current
+      const preview = roomGeomPreview
+      roomHandleDrag.current = null
+      setRoomGeomPreview(null)
+      i.kind = 'none'
+      if (drag && preview && i.moved) {
+        onRoomGeometryChange?.(drag.id, roundRoomGeometry(preview.geometry))
+      }
       return
     }
 
@@ -921,7 +1037,13 @@ export function MapCanvas({
                   </feMerge>
                 </filter>
               </defs>
-              {roomRegions.filter((room) => mode === 'dm' || room.visible_to_players).map((room) => {
+              {roomRegions.filter((room) => mode === 'dm' || room.visible_to_players).map((rawRoom) => {
+                // While a handle is being dragged, render this room with its
+                // live previewed geometry so the border follows the pointer.
+                const room =
+                  roomGeomPreview && roomGeomPreview.id === rawRoom.id
+                    ? roomWithGeometry(rawRoom, roomGeomPreview.geometry)
+                    : rawRoom
                 const selected = selectedRoomRegionId === room.id
                 const path = roomPath(room)
                 const label = roomLabelPosition(room)
@@ -975,6 +1097,54 @@ export function MapCanvas({
                   </g>
                 )
               })}
+              {roomEditEnabled && selectedRoomRegionId && (() => {
+                const sel = roomRegions.find((r) => r.id === selectedRoomRegionId)
+                if (!sel) return null
+                const g =
+                  roomGeomPreview && roomGeomPreview.id === sel.id
+                    ? roomGeomPreview.geometry
+                    : roomToGeometry(sel)
+                const handles: { x: number; y: number; kind: 'vertex' | 'corner' | 'edge'; index: number }[] = []
+                if (g.shape_type === 'polygon') {
+                  g.points.forEach((p, index) => handles.push({ x: p.x, y: p.y, kind: 'vertex', index }))
+                } else {
+                  const { x, y, width, height } = g
+                  const r = x + width
+                  const b = y + height
+                  handles.push(
+                    { x, y, kind: 'corner', index: 0 },
+                    { x: r, y, kind: 'corner', index: 1 },
+                    { x: r, y: b, kind: 'corner', index: 2 },
+                    { x, y: b, kind: 'corner', index: 3 },
+                    { x: x + width / 2, y, kind: 'edge', index: 0 },
+                    { x: r, y: y + height / 2, kind: 'edge', index: 1 },
+                    { x: x + width / 2, y: b, kind: 'edge', index: 2 },
+                    { x, y: y + height / 2, kind: 'edge', index: 3 },
+                  )
+                }
+                const hr = Math.max(7, safeGridSize * 0.16)
+                return (
+                  <g>
+                    {handles.map((h) => (
+                      <circle
+                        key={`${h.kind}-${h.index}`}
+                        data-room-handle="1"
+                        data-room-id={sel.id}
+                        data-handle-kind={h.kind}
+                        data-handle-index={h.index}
+                        cx={h.x}
+                        cy={h.y}
+                        r={hr}
+                        fill={h.kind === 'edge' ? '#fbbf24' : '#f472b6'}
+                        stroke="#0a0a0a"
+                        strokeWidth={2}
+                        vectorEffect="non-scaling-stroke"
+                        style={{ pointerEvents: 'auto', cursor: 'grab', touchAction: 'none' }}
+                      />
+                    ))}
+                  </g>
+                )
+              })()}
               {draftRoomPolygonPoints.length > 0 && (
                 <g>
                   <polyline

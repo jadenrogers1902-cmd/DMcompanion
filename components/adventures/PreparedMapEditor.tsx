@@ -128,6 +128,7 @@ export function PreparedMapEditor({
   const [subLocationsOpen, setSubLocationsOpen] = useState(false)
   const [roomDrawTool, setRoomDrawTool] = useState<RoomDrawTool>(null)
   const [draftRoomPolygonPoints, setDraftRoomPolygonPoints] = useState<{ x: number; y: number }[]>([])
+  const [roomEditMode, setRoomEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -363,8 +364,41 @@ export function PreparedMapEditor({
 
   function removeRoom(id: string) {
     setRoomRegions((prev) => prev.filter((room) => room.id !== id))
-    if (selectedRoomId === id) setSelectedRoomId(null)
+    if (selectedRoomId === id) {
+      setSelectedRoomId(null)
+      setRoomEditMode(false)
+    }
     touch()
+  }
+
+  // Commit a border-handle drag from the canvas. Keeps the shape kind in sync
+  // (a reshaped polygon keeps its points; a rectangle keeps x/y/w/h) so the
+  // stored geometry round-trips through save/deploy unchanged.
+  function handleRoomGeometryChange(
+    id: string,
+    geometry:
+      | { shape_type: 'rectangle'; x: number; y: number; width: number; height: number }
+      | { shape_type: 'polygon'; points: { x: number; y: number }[] },
+  ) {
+    if (geometry.shape_type === 'polygon') {
+      updateRoom(id, {
+        shape_type: 'polygon',
+        points: geometry.points,
+        x: geometry.points[0]?.x ?? 0,
+        y: geometry.points[0]?.y ?? 0,
+        width: null,
+        height: null,
+      })
+    } else {
+      updateRoom(id, {
+        shape_type: 'rectangle',
+        x: geometry.x,
+        y: geometry.y,
+        width: geometry.width,
+        height: geometry.height,
+        points: [],
+      })
+    }
   }
 
   function removeToken(id: string) {
@@ -577,6 +611,8 @@ export function PreparedMapEditor({
                   setError(null)
                 }}
                 onRoomRegionDrawn={addRoomRegion}
+                roomEditEnabled={roomEditMode && !!selectedRoomId && !roomDrawTool}
+                onRoomGeometryChange={handleRoomGeometryChange}
               />
               <SubLocationsPanel
                 open={subLocationsOpen}
@@ -592,13 +628,21 @@ export function PreparedMapEditor({
                 onAddPortal={addTransportToken}
                 onStartRectangle={() => {
                   setSubLocationsOpen(true)
+                  setRoomEditMode(false)
                   setRoomDrawTool((tool) => (tool === 'rectangle' ? null : 'rectangle'))
                   setDraftRoomPolygonPoints([])
                 }}
                 onStartPolygon={() => {
                   setSubLocationsOpen(true)
+                  setRoomEditMode(false)
                   setRoomDrawTool((tool) => (tool === 'polygon' ? null : 'polygon'))
                   setDraftRoomPolygonPoints([])
+                }}
+                editBordersActive={roomEditMode}
+                onToggleEditBorders={() => {
+                  setRoomDrawTool(null)
+                  setDraftRoomPolygonPoints([])
+                  setRoomEditMode((on) => !on)
                 }}
                 onFinishPolygon={finishPolygonRoom}
                 onUndoPolygonPoint={() => setDraftRoomPolygonPoints((prev) => prev.slice(0, -1))}
@@ -904,6 +948,8 @@ function SubLocationsPanel({
   onSelectRoom,
   onUpdateRoom,
   onRemoveRoom,
+  editBordersActive,
+  onToggleEditBorders,
 }: {
   open: boolean
   roomDrawTool: RoomDrawTool
@@ -921,6 +967,8 @@ function SubLocationsPanel({
   onSelectRoom: (id: string | null) => void
   onUpdateRoom: (id: string, patch: Partial<PreparedMapRoomRegion>) => void
   onRemoveRoom: (id: string) => void
+  editBordersActive: boolean
+  onToggleEditBorders: () => void
 }) {
   return (
     <div className="absolute bottom-3 left-3 z-30 flex items-end gap-3">
@@ -1063,6 +1111,24 @@ function SubLocationsPanel({
                       Delete
                     </button>
                   </div>
+                  <button
+                    type="button"
+                    onClick={onToggleEditBorders}
+                    className={`mb-3 w-full rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                      editBordersActive
+                        ? 'border-fuchsia-300/70 bg-fuchsia-500/20 text-fuchsia-100'
+                        : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-fuchsia-300/60'
+                    }`}
+                  >
+                    {editBordersActive ? 'Done editing borders' : 'Edit borders'}
+                  </button>
+                  {editBordersActive && (
+                    <p className="mb-3 -mt-1 text-[11px] leading-relaxed text-fuchsia-200/70">
+                      {selectedRoom.shape_type === 'polygon'
+                        ? 'Drag the pink points to reshape the room. Your placed points are kept.'
+                        : 'Drag the pink corners or amber edges to resize the room.'}
+                    </p>
+                  )}
                   <div className="grid gap-3">
                     <Input
                       label="Room name"

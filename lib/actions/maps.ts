@@ -447,6 +447,71 @@ export async function updateToken(
   return { success: true }
 }
 
+export async function bulkUpdateTokenClassSettings(
+  campaignId: string,
+  mapId: string,
+  input: {
+    tokenTypes: TokenType[]
+    settings: {
+      visible_to_players?: boolean
+      discoverable?: boolean
+      visible_on_cast?: boolean
+      interactable?: boolean
+      requires_approval?: boolean
+      movement_locked?: boolean
+      movement_override_allowed?: boolean
+      interaction_range_feet?: number
+      available_actions?: string[] | null
+      hidden_dm_actions?: string[] | null
+      object_state?: string | null
+      resolver_type?: 'manual' | 'attack' | 'object_state'
+    }
+  },
+) {
+  const tokenTypes = Array.from(new Set(input.tokenTypes)).filter(Boolean)
+  if (tokenTypes.length === 0) return { error: 'Choose at least one token type.' }
+
+  const update: TokenUpdate = {}
+  const { settings } = input
+  if (settings.visible_to_players !== undefined) update.visible_to_players = settings.visible_to_players
+  if (settings.discoverable !== undefined) update.discoverable = settings.discoverable
+  if (settings.visible_on_cast !== undefined) update.visible_on_cast = settings.visible_on_cast
+  if (settings.interactable !== undefined) update.interactable = settings.interactable
+  if (settings.requires_approval !== undefined) update.requires_approval = settings.requires_approval
+  if (settings.movement_locked !== undefined) update.movement_locked = settings.movement_locked
+  if (settings.movement_override_allowed !== undefined) {
+    update.movement_override_allowed = settings.movement_override_allowed
+  }
+  if (settings.interaction_range_feet !== undefined) {
+    update.interaction_range_feet = Math.max(0, Math.round(settings.interaction_range_feet))
+  }
+  if (settings.available_actions !== undefined) {
+    update.available_actions = settings.available_actions?.map((action) => action.trim()).filter(Boolean) ?? null
+  }
+  if (settings.hidden_dm_actions !== undefined) {
+    update.hidden_dm_actions = settings.hidden_dm_actions?.map((action) => action.trim()).filter(Boolean) ?? null
+  }
+  if (settings.object_state !== undefined) {
+    update.object_state = settings.object_state?.trim() || null
+  }
+  if (settings.resolver_type !== undefined) update.resolver_type = settings.resolver_type
+
+  if (Object.keys(update).length === 0) return { error: 'No settings were selected.' }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('tokens')
+    .update(update)
+    .eq('campaign_id', campaignId)
+    .eq('map_id', mapId)
+    .in('token_type', tokenTypes)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  return { success: true }
+}
+
 // DM-only token note, stored in a separate table so it is never broadcast
 // to players over realtime.
 export async function upsertTokenDmNote(

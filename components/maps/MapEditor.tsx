@@ -31,6 +31,7 @@ import {
 import {
   addRevealedArea,
   addToken,
+  bulkUpdateTokenClassSettings,
   deleteMap,
   deleteRevealedArea,
   deleteToken,
@@ -75,8 +76,33 @@ type TokenEditTab = 'basic' | 'actions' | 'visibility' | 'combat' | 'notes' | 'a
 type SaveStatus = 'idle' | 'saving' | 'saved'
 type MapToolTab = 'overview' | 'reveal' | 'grid'
 type TokenVisibilityFilter = 'all' | 'visible' | 'hidden' | 'discoverable' | 'cast'
+type TokenClassId = 'enemy' | 'npc' | 'portal' | 'item' | 'object'
+type TokenClassSettings = Pick<
+  Token,
+  | 'visible_to_players'
+  | 'discoverable'
+  | 'visible_on_cast'
+  | 'interactable'
+  | 'requires_approval'
+  | 'movement_locked'
+  | 'movement_override_allowed'
+  | 'interaction_range_feet'
+  | 'available_actions'
+  | 'hidden_dm_actions'
+  | 'object_state'
+  | 'resolver_type'
+>
 
-const LATEST_LOCAL_MIGRATION = '053_allow_confirmed_combat_player_movement.sql'
+type TokenClassDefinition = {
+  id: TokenClassId
+  label: string
+  description: string
+  tokenTypes: TokenType[]
+  accent: string
+  settings: TokenClassSettings
+}
+
+const LATEST_LOCAL_MIGRATION = '054_token_class_behavior_defaults.sql'
 
 const TOKEN_EDIT_TABS: { value: TokenEditTab; label: string }[] = [
   { value: 'basic', label: 'Basic' },
@@ -102,6 +128,135 @@ const OBJECT_TOKEN_TYPES = new Set<TokenType>([
   'container',
   'custom',
 ])
+
+const TOKEN_CLASS_DEFINITIONS: TokenClassDefinition[] = [
+  {
+    id: 'enemy',
+    label: 'Enemies',
+    description: 'Hostile creatures with combat-first behavior and health resolution.',
+    tokenTypes: ['enemy'],
+    accent: 'border-red-500/35 bg-red-500/10 text-red-100',
+    settings: {
+      visible_to_players: false,
+      discoverable: true,
+      visible_on_cast: true,
+      interactable: true,
+      requires_approval: true,
+      movement_locked: false,
+      movement_override_allowed: false,
+      interaction_range_feet: 5,
+      available_actions: ['Attack', 'Inspect'],
+      hidden_dm_actions: [],
+      object_state: 'visible',
+      resolver_type: 'attack',
+    },
+  },
+  {
+    id: 'npc',
+    label: 'NPC',
+    description: 'Characters players can talk to, inspect, and request details from.',
+    tokenTypes: ['npc'],
+    accent: 'border-sky-500/35 bg-sky-500/10 text-sky-100',
+    settings: {
+      visible_to_players: true,
+      discoverable: true,
+      visible_on_cast: true,
+      interactable: true,
+      requires_approval: true,
+      movement_locked: true,
+      movement_override_allowed: false,
+      interaction_range_feet: 10,
+      available_actions: ['Talk', 'Inspect'],
+      hidden_dm_actions: [],
+      object_state: 'visible',
+      resolver_type: 'manual',
+    },
+  },
+  {
+    id: 'portal',
+    label: 'Portal',
+    description: 'Dim discoverable travel markers that keep transport approval intact.',
+    tokenTypes: ['portal'],
+    accent: 'border-violet-500/35 bg-violet-500/10 text-violet-100',
+    settings: {
+      visible_to_players: false,
+      discoverable: true,
+      visible_on_cast: true,
+      interactable: true,
+      requires_approval: true,
+      movement_locked: true,
+      movement_override_allowed: false,
+      interaction_range_feet: 5,
+      available_actions: ['Enter', 'Inspect'],
+      hidden_dm_actions: [],
+      object_state: 'visible',
+      resolver_type: 'manual',
+    },
+  },
+  {
+    id: 'item',
+    label: 'Items',
+    description: 'Lootable map rewards, containers, and keys players can discover.',
+    tokenTypes: ['loot', 'chest', 'key', 'container'],
+    accent: 'border-amber-500/35 bg-amber-500/10 text-amber-100',
+    settings: {
+      visible_to_players: false,
+      discoverable: true,
+      visible_on_cast: true,
+      interactable: true,
+      requires_approval: true,
+      movement_locked: true,
+      movement_override_allowed: false,
+      interaction_range_feet: 5,
+      available_actions: ['Inspect', 'Search', 'Take', 'Use Item'],
+      hidden_dm_actions: [],
+      object_state: 'visible',
+      resolver_type: 'object_state',
+    },
+  },
+  {
+    id: 'object',
+    label: 'Objects',
+    description: 'Doors, traps, switches, notes, and other interactable map pieces.',
+    tokenTypes: ['object', 'trap', 'door', 'book', 'note', 'lever', 'switch', 'custom'],
+    accent: 'border-emerald-500/35 bg-emerald-500/10 text-emerald-100',
+    settings: {
+      visible_to_players: false,
+      discoverable: true,
+      visible_on_cast: true,
+      interactable: true,
+      requires_approval: true,
+      movement_locked: true,
+      movement_override_allowed: false,
+      interaction_range_feet: 5,
+      available_actions: ['Inspect', 'Open', 'Close', 'Use Item', 'Lockpick', 'Disarm', 'Read'],
+      hidden_dm_actions: [],
+      object_state: 'visible',
+      resolver_type: 'object_state',
+    },
+  },
+]
+
+function tokenClassForType(tokenType: TokenType) {
+  return TOKEN_CLASS_DEFINITIONS.find((definition) => definition.tokenTypes.includes(tokenType)) ?? null
+}
+
+function tokenClassPatch(settings: TokenClassSettings): Partial<Token> {
+  return {
+    visible_to_players: settings.visible_to_players,
+    discoverable: settings.discoverable,
+    visible_on_cast: settings.visible_on_cast,
+    interactable: settings.interactable,
+    requires_approval: settings.requires_approval,
+    movement_locked: settings.movement_locked,
+    movement_override_allowed: settings.movement_override_allowed,
+    interaction_range_feet: settings.interaction_range_feet,
+    available_actions: settings.available_actions,
+    hidden_dm_actions: settings.hidden_dm_actions,
+    object_state: settings.object_state,
+    resolver_type: settings.resolver_type,
+  }
+}
 
 function codexObjectTypeForToken(token: Token): CampaignDocLiveObjectType {
   return OBJECT_TOKEN_TYPES.has(token.token_type) ? 'object' : 'token'
@@ -190,6 +345,8 @@ export function MapEditor({
   const [playerVisionRadiusFeet, setPlayerVisionRadiusFeet] = useState(map.player_vision_radius_feet ?? 7)
   const [partyMenuOpen, setPartyMenuOpen] = useState(false)
   const [castSettingsOpen, setCastSettingsOpen] = useState(false)
+  const [tokenClassPanelOpen, setTokenClassPanelOpen] = useState(false)
+  const [tokenClassBusy, setTokenClassBusy] = useState<TokenClassId | 'all' | null>(null)
   const [castSettings, setCastSettings] = useState<CenterCastSettings>(() =>
     normalizeCenterCastSettings(map.cast_settings),
   )
@@ -285,6 +442,7 @@ export function MapEditor({
       setAddMenuOpen(false)
       setContextMenuOpen(false)
       setEditorOpen(false)
+      setTokenClassPanelOpen(false)
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -477,11 +635,64 @@ export function MapEditor({
     setBusy(false)
     if ('token' in result && result.token) {
       const token = result.token as Token
-      setTokens((prev) => mergeTokenList(prev, token))
+      const tokenClass = tokenClassForType(token.token_type)
+      const nextToken = tokenClass ? { ...token, ...tokenClassPatch(tokenClass.settings) } : token
+      setTokens((prev) => mergeTokenList(prev, nextToken))
       setSelectedId(token.id)
       setContextMenuOpen(true)
       setAddMenuOpen(false)
+      if (tokenClass) {
+        const updateResult = await updateToken(campaignId, map.id, token.id, tokenClassPatch(tokenClass.settings))
+        if ('error' in updateResult && updateResult.error) {
+          showToast(`Token created, but ${tokenClass.label} defaults were not applied: ${updateResult.error}`, 'error')
+        }
+      }
     }
+  }
+
+  async function applyTokenClassSettings(definition: TokenClassDefinition) {
+    const patch = tokenClassPatch(definition.settings)
+    const matchingCount = tokens.filter((token) => definition.tokenTypes.includes(token.token_type)).length
+    setTokenClassBusy(definition.id)
+    setTokens((prev) =>
+      prev.map((token) => (definition.tokenTypes.includes(token.token_type) ? { ...token, ...patch } : token)),
+    )
+    const result = await bulkUpdateTokenClassSettings(campaignId, map.id, {
+      tokenTypes: definition.tokenTypes,
+      settings: definition.settings,
+    })
+    setTokenClassBusy(null)
+    if ('error' in result && result.error) {
+      showToast(`${definition.label} settings failed: ${result.error}`, 'error')
+      router.refresh()
+      return
+    }
+    showToast(`Applied ${definition.label} behavior to ${matchingCount} token${matchingCount === 1 ? '' : 's'}.`, 'success')
+  }
+
+  async function applyAllTokenClassSettings() {
+    setTokenClassBusy('all')
+    const nextTokens = tokens.map((token) => {
+      const definition = tokenClassForType(token.token_type)
+      return definition ? { ...token, ...tokenClassPatch(definition.settings) } : token
+    })
+    setTokens(nextTokens)
+
+    for (const definition of TOKEN_CLASS_DEFINITIONS) {
+      const result = await bulkUpdateTokenClassSettings(campaignId, map.id, {
+        tokenTypes: definition.tokenTypes,
+        settings: definition.settings,
+      })
+      if ('error' in result && result.error) {
+        setTokenClassBusy(null)
+        showToast(`${definition.label} settings failed: ${result.error}`, 'error')
+        router.refresh()
+        return
+      }
+    }
+
+    setTokenClassBusy(null)
+    showToast('Applied recommended behavior to all token classes on this map.', 'success')
   }
 
   async function saveSelected(patch: Partial<Token>) {
@@ -839,9 +1050,23 @@ export function MapEditor({
             onClick={() => {
               setCastSettingsOpen((open) => !open)
               setPartyMenuOpen(false)
+              setTokenClassPanelOpen(false)
             }}
           >
             Cast Settings
+          </Button>
+          <Button
+            size="sm"
+            variant={tokenClassPanelOpen ? 'primary' : 'secondary'}
+            onClick={() => {
+              setTokenClassPanelOpen((open) => !open)
+              setPartyMenuOpen(false)
+              setCastSettingsOpen(false)
+              setAddMenuOpen(false)
+              setContextMenuOpen(false)
+            }}
+          >
+            Token Classes
           </Button>
           <button
             type="button"
@@ -960,6 +1185,7 @@ export function MapEditor({
             onToggle={() => {
               setAddMenuOpen((open) => !open)
               setContextMenuOpen(false)
+              setTokenClassPanelOpen(false)
             }}
             onAdd={handleAddToken}
           />
@@ -979,6 +1205,8 @@ export function MapEditor({
               setPartyMenuOpen((open) => !open)
               setAddMenuOpen(false)
               setContextMenuOpen(false)
+              setCastSettingsOpen(false)
+              setTokenClassPanelOpen(false)
             }}
             onUpdate={handleTravelOptionUpdate}
             onReviewParty={handleReviewParty}
@@ -996,6 +1224,14 @@ export function MapEditor({
             feedback={castSettingsFeedback}
             onToggle={() => setCastSettingsOpen((open) => !open)}
             onChange={handleCastSettingsUpdate}
+          />
+          <TokenClassSettingsPanel
+            open={tokenClassPanelOpen}
+            tokens={tokens}
+            busyClass={tokenClassBusy}
+            onToggle={() => setTokenClassPanelOpen((open) => !open)}
+            onApply={applyTokenClassSettings}
+            onApplyAll={applyAllTokenClassSettings}
           />
           {selected && contextMenuOpen && tokenMenuPosition && (
             <TokenContextMenu
@@ -1720,6 +1956,132 @@ function SliderSetting({
         className="w-full accent-amber-500"
       />
     </label>
+  )
+}
+
+function TokenClassSettingsPanel({
+  open,
+  tokens,
+  busyClass,
+  onToggle,
+  onApply,
+  onApplyAll,
+}: {
+  open: boolean
+  tokens: Token[]
+  busyClass: TokenClassId | 'all' | null
+  onToggle: () => void
+  onApply: (definition: TokenClassDefinition) => void
+  onApplyAll: () => void
+}) {
+  if (!open) return null
+
+  const classifiedCount = tokens.filter((token) => tokenClassForType(token.token_type)).length
+
+  return (
+    <div className="absolute right-3 top-3 z-30 flex max-h-[calc(100%-6rem)] w-[min(27rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-fuchsia-400/30 bg-zinc-950/95 shadow-2xl shadow-fuchsia-950/30 backdrop-blur">
+      <div className="border-b border-zinc-800 px-4 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-fuchsia-300">Live Map Control</p>
+            <h2 className="mt-1 text-base font-semibold text-zinc-50">Token Classes</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Apply behavior presets to already placed enemies, NPCs, portals, loot, and objects.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onToggle}
+            className="rounded-md px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+            aria-label="Close token class settings"
+          >
+            x
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="mb-3 rounded-lg border border-fuchsia-500/25 bg-fuchsia-500/10 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-zinc-100">Recommended defaults</p>
+              <p className="mt-1 text-xs text-zinc-400">
+                {classifiedCount} of {tokens.length} placed tokens match these classes.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="primary"
+              loading={busyClass === 'all'}
+              disabled={busyClass !== null}
+              onClick={onApplyAll}
+            >
+              Apply all
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-3">
+          {TOKEN_CLASS_DEFINITIONS.map((definition) => {
+            const count = tokens.filter((token) => definition.tokenTypes.includes(token.token_type)).length
+            const settings = definition.settings
+            return (
+              <div key={definition.id} className={`rounded-lg border p-3 ${definition.accent}`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-semibold text-zinc-50">{definition.label}</h3>
+                      <span className="rounded-full border border-current/25 px-2 py-0.5 text-[11px]">
+                        {count} token{count === 1 ? '' : 's'}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-300">{definition.description}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    loading={busyClass === definition.id}
+                    disabled={busyClass !== null}
+                    onClick={() => onApply(definition)}
+                  >
+                    Apply
+                  </Button>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-zinc-200">
+                  <TokenClassChip label={settings.visible_to_players ? 'Visible' : 'Dim until discovered'} />
+                  <TokenClassChip label={settings.discoverable ? 'Discoverable' : 'Not discoverable'} />
+                  <TokenClassChip label={settings.visible_on_cast ? 'Cast display' : 'Hidden from cast'} />
+                  <TokenClassChip label={settings.interactable ? 'Interactable' : 'Map marker'} />
+                  <TokenClassChip label={settings.requires_approval ? 'DM approval' : 'Auto resolve'} />
+                  <TokenClassChip label={settings.movement_locked ? 'Locked' : 'Movable'} />
+                  <TokenClassChip label={`${settings.interaction_range_feet} ft range`} />
+                  <TokenClassChip label={`Resolver: ${settings.resolver_type}`} />
+                </div>
+
+                <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Actions</p>
+                  <p className="mt-1 text-xs text-zinc-200">
+                    {(settings.available_actions ?? []).join(', ') || 'Uses default actions'}
+                  </p>
+                  <p className="mt-2 text-[11px] text-zinc-400">
+                    Types: {definition.tokenTypes.join(', ')}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TokenClassChip({ label }: { label: string }) {
+  return (
+    <span className="rounded-full border border-white/10 bg-black/25 px-2 py-0.5">
+      {label}
+    </span>
   )
 }
 

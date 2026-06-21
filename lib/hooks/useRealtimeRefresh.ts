@@ -33,7 +33,7 @@ export interface RealtimeWatch {
 export function useRealtimeRefresh(
   channelName: string,
   watches: RealtimeWatch[],
-  options?: { debounceMs?: number; enabled?: boolean },
+  options?: { debounceMs?: number; enabled?: boolean; onStatus?: (status: string) => void },
 ) {
   const router = useRouter()
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -64,7 +64,9 @@ export function useRealtimeRefresh(
       )
     })
 
-    channel.subscribe()
+    channel.subscribe((status) => {
+      options?.onStatus?.(status)
+    })
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)

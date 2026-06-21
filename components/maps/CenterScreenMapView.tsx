@@ -6,6 +6,7 @@ import { MapCanvas, type RenderArea, type RenderToken } from './MapCanvas'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import type { GameMap } from '@/lib/types/database'
 import { normalizeCenterCastSettings, type CenterCastSettings } from '@/lib/utils/cast-settings'
+import { createClient } from '@/lib/supabase/client'
 
 export interface CenterScreenViewGroup {
   id: string
@@ -47,6 +48,26 @@ export function CenterScreenMapView({
     { table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
     { table: 'map_travel_party_members', filter: `map_id=eq.${map.id}` },
   ], { debounceMs: 250 })
+
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase.channel(`center-screen-presence-${map.id}`, {
+      config: { presence: { key: `center-${crypto.randomUUID()}` } },
+    })
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({
+          role: 'center_screen',
+          mapId: map.id,
+          connectedAt: new Date().toISOString(),
+        })
+      }
+    })
+    return () => {
+      void channel.untrack()
+      supabase.removeChannel(channel)
+    }
+  }, [map.id])
 
   const visibleGroups = useMemo(() => {
     const groups = viewGroups.length > 0

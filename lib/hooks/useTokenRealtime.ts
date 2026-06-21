@@ -12,6 +12,7 @@ interface Handlers {
   onMapChange?: (map: GameMap) => void
   onAreaUpsert?: (area: MapRevealedArea) => void
   onAreaDelete?: (id: string) => void
+  onStatus?: (status: string) => void
 }
 
 /**
@@ -80,7 +81,9 @@ export function useTokenRealtime(
           }
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        ref.current.onStatus?.(status)
+      })
 
     return () => {
       supabase.removeChannel(channel)

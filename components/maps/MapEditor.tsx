@@ -74,6 +74,9 @@ const ACTIVE_INTENT_STATUSES: ActionIntentStatus[] = [
 type TokenEditTab = 'basic' | 'actions' | 'visibility' | 'combat' | 'notes' | 'advanced'
 type SaveStatus = 'idle' | 'saving' | 'saved'
 type MapToolTab = 'overview' | 'reveal' | 'grid'
+type TokenVisibilityFilter = 'all' | 'visible' | 'hidden' | 'discoverable' | 'cast'
+
+const LATEST_LOCAL_MIGRATION = '053_allow_confirmed_combat_player_movement.sql'
 
 const TOKEN_EDIT_TABS: { value: TokenEditTab; label: string }[] = [
   { value: 'basic', label: 'Basic' },
@@ -194,6 +197,15 @@ export function MapEditor({
   const [castSettingsFeedback, setCastSettingsFeedback] = useState<string | null>(null)
   const [partyBusy, setPartyBusy] = useState<string | null>(null)
   const [partyFeedback, setPartyFeedback] = useState<string | null>(null)
+  const [mapRealtimeStatus, setMapRealtimeStatus] = useState('connecting')
+  const [codexRealtimeStatus, setCodexRealtimeStatus] = useState('connecting')
+  const [travelRealtimeStatus, setTravelRealtimeStatus] = useState('connecting')
+  const [centerPresenceStatus, setCenterPresenceStatus] = useState('connecting')
+  const [centerScreenCount, setCenterScreenCount] = useState(0)
+  const [toast, setToast] = useState<{ tone: 'success' | 'error' | 'info'; message: string } | null>(null)
+  const [tokenQuery, setTokenQuery] = useState('')
+  const [tokenTypeFilter, setTokenTypeFilter] = useState<'all' | TokenType>('all')
+  const [tokenVisibilityFilter, setTokenVisibilityFilter] = useState<TokenVisibilityFilter>('all')
   const [busy, setBusy] = useState(false)
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const [contextMenuOpen, setContextMenuOpen] = useState(false)
@@ -211,6 +223,11 @@ export function MapEditor({
   // even if another DM device toggles it.
   const session = useActiveSession(campaignId)
   const [sessionBusy, setSessionBusy] = useState(false)
+
+  function showToast(message: string, tone: 'success' | 'error' | 'info' = 'info') {
+    setToast({ message, tone })
+    window.setTimeout(() => setToast(null), 4500)
+  }
 
   async function handleToggleSession() {
     setSessionBusy(true)
@@ -312,6 +329,7 @@ export function MapEditor({
     },
     onAreaUpsert: (area) => setAreas((prev) => mergeAreaList(prev, area)),
     onAreaDelete: (id) => setAreas((prev) => prev.filter((a) => a.id !== id)),
+    onStatus: setMapRealtimeStatus,
   })
 
   // Keep the DM's linked Codex panels (map/token/object drawers) live: when a
@@ -321,12 +339,34 @@ export function MapEditor({
   useRealtimeRefresh(`codex-map-${map.id}`, [
     { table: 'campaign_docs', filter: `campaign_id=eq.${campaignId}` },
     { table: 'campaign_doc_links', filter: `campaign_id=eq.${campaignId}` },
-  ])
+  ], { onStatus: setCodexRealtimeStatus })
 
   useRealtimeRefresh(`travel-map-${map.id}`, [
     { table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
     { table: 'map_travel_party_members', filter: `map_id=eq.${map.id}` },
-  ])
+  ], { onStatus: setTravelRealtimeStatus })
+
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase.channel(`center-screen-presence-${map.id}`)
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState()
+      const count = Object.values(state)
+        .flat()
+        .filter((entry) => (entry as { role?: string }).role === 'center_screen')
+        .length
+      setCenterScreenCount(count)
+    })
+    channel.subscribe((status) => {
+      setCenterPresenceStatus(status)
+      if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        setCenterScreenCount(0)
+      }
+    })
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [map.id])
 
   const renderAreas: RenderArea[] = useMemo(
     () =>
@@ -382,9 +422,29 @@ export function MapEditor({
       ? characters.find((c) => c.id === selected.linked_character_id)?.speed
       : undefined
 
+  const filteredTokens = useMemo(() => {
+    const query = tokenQuery.trim().toLowerCase()
+    return tokens.filter((token) => {
+      const matchesQuery =
+        !query ||
+        token.name?.toLowerCase().includes(query) ||
+        token.token_type.toLowerCase().includes(query) ||
+        token.notes?.toLowerCase().includes(query) ||
+        token.public_description?.toLowerCase().includes(query)
+      const matchesType = tokenTypeFilter === 'all' || token.token_type === tokenTypeFilter
+      const matchesVisibility =
+        tokenVisibilityFilter === 'all' ||
+        (tokenVisibilityFilter === 'visible' && token.visible_to_players !== false) ||
+        (tokenVisibilityFilter === 'hidden' && token.visible_to_players === false) ||
+        (tokenVisibilityFilter === 'discoverable' && token.discoverable) ||
+        (tokenVisibilityFilter === 'cast' && token.visible_on_cast !== false)
+      return matchesQuery && matchesType && matchesVisibility
+    })
+  }, [tokenQuery, tokenTypeFilter, tokenVisibilityFilter, tokens])
+
   const renderTokens: RenderToken[] = useMemo(
     () =>
-      tokens.map((t) => ({
+      filteredTokens.map((t) => ({
         id: t.id,
         token_type: t.token_type,
         name: t.name,
@@ -398,7 +458,7 @@ export function MapEditor({
         temp_hp: t.temp_hp,
         is_defeated: t.is_defeated,
       })),
-    [tokens],
+    [filteredTokens],
   )
 
   async function handleMove(id: string, x: number, y: number) {
@@ -677,9 +737,10 @@ export function MapEditor({
     const result = await travelThroughTransport(campaignId, tokenId)
     setPortalBusy(false)
     if ('error' in result) {
-      window.alert(result.error)
+      showToast(result.error, 'error')
       return
     }
+    showToast('Travel party sent through portal.', 'success')
     if (result.traveled) router.push(`/campaigns/${campaignId}/live-map/${result.liveMapId}`)
   }
 
@@ -689,9 +750,10 @@ export function MapEditor({
     const result = await goToTransportDestination(campaignId, tokenId)
     setPortalBusy(false)
     if ('error' in result) {
-      window.alert(result.error)
+      showToast(result.error, 'error')
       return
     }
+    showToast('Opening portal destination.', 'success')
     router.push(`/campaigns/${campaignId}/live-map/${result.liveMapId}`)
   }
 
@@ -830,6 +892,34 @@ export function MapEditor({
           </Button>
         </div>
       </div>
+
+      <LiveMapHealthPanel
+        isActive={isActive}
+        mapRealtimeStatus={mapRealtimeStatus}
+        codexRealtimeStatus={codexRealtimeStatus}
+        travelRealtimeStatus={travelRealtimeStatus}
+        centerPresenceStatus={centerPresenceStatus}
+        centerScreenCount={centerScreenCount}
+        sessionLoaded={session.loaded}
+        sessionLive={session.isLive}
+        latestMigration={LATEST_LOCAL_MIGRATION}
+        unappliedMigrationHint="Run npm.cmd run db:migrate after Supabase credentials are available."
+      />
+
+      {toast && (
+        <div
+          className={`rounded-lg border px-3 py-2 text-sm shadow-lg ${
+            toast.tone === 'error'
+              ? 'border-red-500/40 bg-red-950/70 text-red-100'
+              : toast.tone === 'success'
+                ? 'border-emerald-500/40 bg-emerald-950/70 text-emerald-100'
+                : 'border-sky-500/40 bg-sky-950/70 text-sky-100'
+          }`}
+          role="status"
+        >
+          {toast.message}
+        </div>
+      )}
 
       <div
         className={
@@ -972,6 +1062,16 @@ export function MapEditor({
                   docs={codexDocs}
                   links={codexLinks}
                   players={players}
+                />
+                <TokenFilterPanel
+                  total={tokens.length}
+                  shown={filteredTokens.length}
+                  query={tokenQuery}
+                  typeFilter={tokenTypeFilter}
+                  visibilityFilter={tokenVisibilityFilter}
+                  onQueryChange={setTokenQuery}
+                  onTypeChange={setTokenTypeFilter}
+                  onVisibilityChange={setTokenVisibilityFilter}
                 />
                 <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
                   <h3 className="text-sm font-semibold text-zinc-200">Token Editing</h3>
@@ -1217,6 +1317,170 @@ export function MapEditor({
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function realtimeHealthy(status: string) {
+  return status === 'SUBSCRIBED'
+}
+
+function LiveMapHealthPanel({
+  isActive,
+  mapRealtimeStatus,
+  codexRealtimeStatus,
+  travelRealtimeStatus,
+  centerPresenceStatus,
+  centerScreenCount,
+  sessionLoaded,
+  sessionLive,
+  latestMigration,
+  unappliedMigrationHint,
+}: {
+  isActive: boolean
+  mapRealtimeStatus: string
+  codexRealtimeStatus: string
+  travelRealtimeStatus: string
+  centerPresenceStatus: string
+  centerScreenCount: number
+  sessionLoaded: boolean
+  sessionLive: boolean
+  latestMigration: string
+  unappliedMigrationHint: string
+}) {
+  return (
+    <div className="grid gap-2 rounded-xl border border-zinc-800 bg-zinc-950 p-3 shadow-xl shadow-black/20 lg:grid-cols-[1fr_1fr]">
+      <div>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold text-zinc-100">Live map health</h2>
+          <span className="text-[11px] uppercase tracking-wide text-zinc-500">DM diagnostics</span>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <HealthItem label="Active map" value={isActive ? 'Active' : 'Inactive'} ok={isActive} />
+          <HealthItem
+            label="Map realtime"
+            value={realtimeHealthy(mapRealtimeStatus) ? 'Connected' : mapRealtimeStatus}
+            ok={realtimeHealthy(mapRealtimeStatus)}
+          />
+          <HealthItem
+            label="Center screen"
+            value={centerScreenCount > 0 ? `${centerScreenCount} connected` : realtimeHealthy(centerPresenceStatus) ? 'Waiting' : centerPresenceStatus}
+            ok={centerScreenCount > 0}
+          />
+          <HealthItem
+            label="Player session"
+            value={!sessionLoaded ? 'Checking' : sessionLive ? 'Live' : 'Not live'}
+            ok={sessionLoaded && sessionLive}
+          />
+        </div>
+      </div>
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Migration/status diagnostics</p>
+            <p className="mt-1 break-all text-xs text-zinc-300">Latest local: {latestMigration}</p>
+          </div>
+          <span className="rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-200">
+            Remote unverified
+          </span>
+        </div>
+        <p className="mt-2 text-xs text-zinc-500">{unappliedMigrationHint}</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <HealthItem
+            label="Codex realtime"
+            value={realtimeHealthy(codexRealtimeStatus) ? 'Connected' : codexRealtimeStatus}
+            ok={realtimeHealthy(codexRealtimeStatus)}
+          />
+          <HealthItem
+            label="Party realtime"
+            value={realtimeHealthy(travelRealtimeStatus) ? 'Connected' : travelRealtimeStatus}
+            ok={realtimeHealthy(travelRealtimeStatus)}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HealthItem({ label, value, ok }: { label: string; value: string; ok: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2">
+      <div className="min-w-0">
+        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{label}</p>
+        <p className="mt-0.5 truncate text-xs text-zinc-200">{value}</p>
+      </div>
+      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${ok ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]' : 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.6)]'}`} />
+    </div>
+  )
+}
+
+function TokenFilterPanel({
+  total,
+  shown,
+  query,
+  typeFilter,
+  visibilityFilter,
+  onQueryChange,
+  onTypeChange,
+  onVisibilityChange,
+}: {
+  total: number
+  shown: number
+  query: string
+  typeFilter: 'all' | TokenType
+  visibilityFilter: TokenVisibilityFilter
+  onQueryChange: (value: string) => void
+  onTypeChange: (value: 'all' | TokenType) => void
+  onVisibilityChange: (value: TokenVisibilityFilter) => void
+}) {
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-zinc-200">Token search</h3>
+        <span className="text-xs text-zinc-500">{shown}/{total} shown</span>
+      </div>
+      <input
+        value={query}
+        onChange={(event) => onQueryChange(event.target.value)}
+        placeholder="Search name, type, notes..."
+        className="mt-3 min-h-10 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-amber-400"
+      />
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <select
+          value={typeFilter}
+          onChange={(event) => onTypeChange(event.target.value as 'all' | TokenType)}
+          className="min-h-10 rounded-md border border-zinc-700 bg-zinc-950 px-2 text-sm text-zinc-100 outline-none focus:border-amber-400"
+        >
+          <option value="all">All types</option>
+          {TOKEN_TYPES.map((type) => (
+            <option key={type.value} value={type.value}>{type.label}</option>
+          ))}
+        </select>
+        <select
+          value={visibilityFilter}
+          onChange={(event) => onVisibilityChange(event.target.value as TokenVisibilityFilter)}
+          className="min-h-10 rounded-md border border-zinc-700 bg-zinc-950 px-2 text-sm text-zinc-100 outline-none focus:border-amber-400"
+        >
+          <option value="all">All visibility</option>
+          <option value="visible">Visible to players</option>
+          <option value="hidden">Hidden</option>
+          <option value="discoverable">Discoverable</option>
+          <option value="cast">Shown on cast</option>
+        </select>
+      </div>
+      {(query || typeFilter !== 'all' || visibilityFilter !== 'all') && (
+        <button
+          type="button"
+          onClick={() => {
+            onQueryChange('')
+            onTypeChange('all')
+            onVisibilityChange('all')
+          }}
+          className="mt-2 text-xs font-semibold text-amber-300 hover:text-amber-200"
+        >
+          Clear filters
+        </button>
+      )}
     </div>
   )
 }

@@ -9,7 +9,11 @@ import { RemoveLiveMapButton } from '@/components/maps/RemoveLiveMapButton'
 import { DMUtilityPanel } from '@/components/nav/DMUtilityPanel'
 import type {
   CampaignDocLinkPublication,
+  Ability,
+  Character,
+  Condition,
   GameMap,
+  InventoryItem,
   MapRevealedArea,
   MapTransportConfirmation,
   MapTravelParty,
@@ -17,6 +21,7 @@ import type {
   PlayerToken,
   PlayerVisibleCampaignDoc,
   Profile,
+  Spell,
 } from '@/lib/types/database'
 
 interface PageProps {
@@ -104,7 +109,7 @@ export default async function MapsPage({ params }: PageProps) {
     ] = await Promise.all([
       supabase.storage.from('maps').createSignedUrl(activeMap.storage_path, 3600),
       supabase.rpc('get_player_live_map_tokens', { p_map_id: activeMap.id }),
-      supabase.from('characters').select('id, name, speed, user_id').eq('campaign_id', id).eq('user_id', user.id),
+      supabase.from('characters').select('*').eq('campaign_id', id).eq('user_id', user.id),
       // RLS returns only player-visible areas on the active map.
       supabase.from('map_revealed_areas').select('*').eq('map_id', activeMap.id),
       supabase
@@ -137,11 +142,45 @@ export default async function MapsPage({ params }: PageProps) {
         ? await supabase.from('tokens').select('*').eq('map_id', activeMap.id)
         : { data: null }
     const playerTokens = tokens ?? fallbackTokens.data ?? []
+    const ownedCharacters = (characters ?? []) as Character[]
+    const ownedCharacterIds = ownedCharacters.map((character) => character.id)
+    const [{ data: ownedInventory }, { data: ownedSpells }, { data: ownedAbilities }, { data: ownedConditions }] =
+      ownedCharacterIds.length > 0
+        ? await Promise.all([
+            supabase
+              .from('character_inventory_items')
+              .select('*')
+              .in('character_id', ownedCharacterIds)
+              .order('created_at', { ascending: true }),
+            supabase
+              .from('character_spells')
+              .select('*')
+              .in('character_id', ownedCharacterIds)
+              .order('spell_level', { ascending: true }),
+            supabase
+              .from('character_abilities')
+              .select('*')
+              .in('character_id', ownedCharacterIds)
+              .order('created_at', { ascending: true }),
+            supabase
+              .from('character_conditions')
+              .select('*')
+              .in('character_id', ownedCharacterIds)
+              .order('created_at', { ascending: true }),
+          ])
+        : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }]
 
     const characterSpeeds: Record<string, number> = {}
-    ;(characters ?? []).forEach((c) => {
+    ownedCharacters.forEach((c) => {
       characterSpeeds[c.id] = c.speed
     })
+    const characterSummaries = ownedCharacters.map((character) => ({
+      character,
+      inventory: ((ownedInventory ?? []) as InventoryItem[]).filter((item) => item.character_id === character.id),
+      spells: ((ownedSpells ?? []) as Spell[]).filter((spell) => spell.character_id === character.id),
+      abilities: ((ownedAbilities ?? []) as Ability[]).filter((ability) => ability.character_id === character.id),
+      conditions: ((ownedConditions ?? []) as Condition[]).filter((condition) => condition.character_id === character.id),
+    }))
 
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
@@ -158,7 +197,8 @@ export default async function MapsPage({ params }: PageProps) {
             initialAreas={(areas ?? []) as MapRevealedArea[]}
             currentUserId={user.id}
             characterSpeeds={characterSpeeds}
-            myCharacters={(characters ?? []).map((c) => ({ id: c.id, name: c.name }))}
+            myCharacters={ownedCharacters.map((c) => ({ id: c.id, name: c.name }))}
+            characterSummaries={characterSummaries}
             partyMembers={(members ?? []).map((member) => ({
               userId: member.user_id,
               role: member.role,

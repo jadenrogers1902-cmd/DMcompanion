@@ -1,10 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   CircleX,
   Dices,
@@ -23,6 +25,7 @@ import {
   Sparkles,
   Swords,
   Target,
+  UserCircle,
   Users,
   WandSparkles,
   X,
@@ -58,9 +61,15 @@ import {
   type ActionRollRequest,
   type ActionRollResult,
   type AdvantageState,
+  ABILITY_KEYS,
+  ABILITY_LABELS,
+  type Ability,
   type CampaignDocLinkPublication,
   type CampaignDocLiveObjectType,
+  type Character,
+  type Condition,
   type GameMap,
+  type InventoryItem,
   type MapRevealedArea,
   type MapTransportConfirmation,
   type MapTravelParty,
@@ -68,12 +77,21 @@ import {
   type MoveTokenResult,
   type PlayerVisibleCampaignDoc,
   type Profile,
+  type Spell,
   type Token,
   type TokenType,
   type TravelMode,
 } from '@/lib/types/database'
 
 type PlayerMapInteractionMode = 'hand' | 'move' | 'target'
+
+interface PlayerCharacterSummary {
+  character: Character
+  inventory: InventoryItem[]
+  spells: Spell[]
+  abilities: Ability[]
+  conditions: Condition[]
+}
 
 function mergeTokenList(tokens: Token[], token: Token) {
   const next = tokens.filter((t) => t.id !== token.id)
@@ -120,6 +138,7 @@ interface PlayerMapViewProps {
   characterSpeeds: Record<string, number>
   // this player's own characters, for submitting contextual actions
   myCharacters: { id: string; name: string }[]
+  characterSummaries?: PlayerCharacterSummary[]
   partyMembers: { userId: string; role: string; profile: Profile | null }[]
   playerCodexDocs?: PlayerVisibleCampaignDoc[]
   playerCodexLinks?: CampaignDocLinkPublication[]
@@ -358,6 +377,7 @@ export function PlayerMapView({
   currentUserId,
   characterSpeeds,
   myCharacters,
+  characterSummaries = [],
   partyMembers,
   playerCodexDocs = [],
   playerCodexLinks = [],
@@ -381,6 +401,8 @@ export function PlayerMapView({
   const [transportFeedback, setTransportFeedback] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
+  const [characterCardOpen, setCharacterCardOpen] = useState(false)
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string>('')
   const [mapInteractionMode, setMapInteractionMode] = useState<PlayerMapInteractionMode>('hand')
   const [viewportCommand, setViewportCommand] = useState<
     { type: 'fit' } | { type: 'center'; x: number; y: number; gridSquares?: number; nonce: number } | undefined
@@ -391,6 +413,18 @@ export function PlayerMapView({
     y: number
     feet: number
     overLimit: boolean
+    remaining: number | null
+    tokenName: string
+    live: boolean
+  } | null>(null)
+  const [pendingMove, setPendingMove] = useState<{
+    id: string
+    x: number
+    y: number
+    feet: number
+    overLimit: boolean
+    remaining: number | null
+    tokenName: string
   } | null>(null)
   const [interactionOpen, setInteractionOpen] = useState(false)
   const [section, setSection] = useState<InteractionSection>('root')
@@ -526,7 +560,7 @@ export function PlayerMapView({
 
   async function handleMove(id: string, x: number, y: number) {
     const prev = tokens.find((t) => t.id === id)
-    if (!prev) return
+    if (!prev) return false
     const prevX = prev.x
     const prevY = prev.y
 
@@ -541,10 +575,12 @@ export function PlayerMapView({
       setTokens((p) => p.map((t) => (t.id === id ? { ...t, x: prevX, y: prevY } : t)))
       setWarning(result.error)
       setTimeout(() => setWarning(null), 4000)
+      return false
     } else if (typeof result?.movement_used === 'number') {
       const used = result.movement_used
       setTokens((p) => p.map((t) => (t.id === id ? { ...t, movement_used: used } : t)))
     }
+    return true
   }
 
   const renderTokens: RenderToken[] = tokens.map((t) => ({
@@ -574,6 +610,17 @@ export function PlayerMapView({
   const canUseMoveMode = myControlled.length > 0 && !mapLocked
   const effectiveMapInteractionMode =
     mapInteractionMode === 'move' && !canUseMoveMode ? 'hand' : mapInteractionMode
+  const controlledCharacterId =
+    primaryControlledToken?.linked_character_id ??
+    myControlled.find((token) => token.linked_character_id)?.linked_character_id ??
+    null
+  const selectedCharacterSummary =
+    characterSummaries.find((summary) => summary.character.id === selectedCharacterId) ??
+    (controlledCharacterId
+      ? characterSummaries.find((summary) => summary.character.id === controlledCharacterId)
+      : null) ??
+    characterSummaries[0] ??
+    null
 
   function movementAllowanceFor(token: Token) {
     if (mapState.travel_mode === 'group_party' && mapState.group_movement_unlimited) return null
@@ -585,10 +632,12 @@ export function PlayerMapView({
   }
 
   function movementFeetFrom(token: Token, x: number, y: number) {
-    const dx = x - token.x
-    const dy = y - token.y
-    const pixels = Math.sqrt((dx * dx) + (dy * dy))
-    return Math.round((pixels / Math.max(1, map.grid_size)) * Math.max(1, map.grid_scale_feet))
+    const anchorX = token.last_x ?? token.x
+    const anchorY = token.last_y ?? token.y
+    const dx = Math.abs(x - anchorX)
+    const dy = Math.abs(y - anchorY)
+    const squares = Math.round(Math.max(dx, dy) / Math.max(1, map.grid_size))
+    return squares * Math.max(1, map.grid_scale_feet)
   }
 
   function centerOnControlledToken() {
@@ -619,12 +668,53 @@ export function PlayerMapView({
     if (!token) return
     const feet = movementFeetFrom(token, preview.x, preview.y)
     const allowance = movementAllowanceFor(token)
-    const used = Math.round(token.movement_used || 0)
     setMovementPreview({
       ...preview,
       feet,
-      overLimit: allowance !== null && used + feet > allowance,
+      overLimit: allowance !== null && !token.movement_override_allowed && feet > allowance,
+      remaining: allowance === null ? null : Math.max(0, allowance - feet),
+      tokenName: token.name || 'Your token',
+      live: true,
     })
+  }
+
+  function pendingMoveFromPreview(preview: { id: string; x: number; y: number }) {
+    const token = tokens.find((item) => item.id === preview.id)
+    if (!token) return null
+    const feet = movementFeetFrom(token, preview.x, preview.y)
+    const allowance = movementAllowanceFor(token)
+    return {
+      ...preview,
+      feet,
+      overLimit: allowance !== null && !token.movement_override_allowed && feet > allowance,
+      remaining: allowance === null ? null : Math.max(0, allowance - feet),
+      tokenName: token.name || 'Your token',
+    }
+  }
+
+  function handleTokenMovePreview(preview: { id: string; x: number; y: number } | null) {
+    if (!preview) {
+      setPendingMove(null)
+      setMovementPreview(null)
+      return
+    }
+    const next = pendingMoveFromPreview(preview)
+    setPendingMove(next)
+    setMovementPreview(next ? { ...next, live: false } : null)
+  }
+
+  async function confirmPendingMove() {
+    if (!pendingMove) return
+    const ok = await handleMove(pendingMove.id, pendingMove.x, pendingMove.y)
+    if (ok) {
+      setPendingMove(null)
+      setMovementPreview(null)
+    }
+  }
+
+  function cancelPendingMove() {
+    setPendingMove(null)
+    setMovementPreview(null)
   }
   // Portals are excluded — they are travel points, not action targets.
   const visibleTargets = tokens.filter(
@@ -1437,6 +1527,10 @@ export function PlayerMapView({
           canDragToken={canDrag}
           viewportCommand={viewportCommand}
           onTokenDragPreview={handleTokenDragPreview}
+          snapToGrid
+          deferTokenMove
+          pendingTokenPosition={pendingMove}
+          onTokenMovePreview={handleTokenMovePreview}
           revealedAreas={renderAreas}
           fogEnabled
         />
@@ -1449,16 +1543,16 @@ export function PlayerMapView({
           onFit={fitMapToScreen}
         />
 
-        {movementPreview && (
-          <div
-            className={`absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-xl backdrop-blur ${
-              movementPreview.overLimit
-                ? 'border-red-400/60 bg-red-950/85 text-red-100'
-                : 'border-emerald-400/60 bg-emerald-950/85 text-emerald-100'
-            }`}
-          >
-            Moving {movementPreview.feet} ft{movementPreview.overLimit ? ' - over limit' : ''}
-          </div>
+        {movementPreview && !pendingMove && (
+          <MovementPreviewPill preview={movementPreview} />
+        )}
+
+        {pendingMove && (
+          <PendingMoveCard
+            move={pendingMove}
+            onConfirm={confirmPendingMove}
+            onCancel={cancelPendingMove}
+          />
         )}
 
         {areas.length === 0 && (
@@ -1636,12 +1730,38 @@ export function PlayerMapView({
           </div>
         )}
 
-        <div className="absolute bottom-3 left-3 z-30">
+        {characterCardOpen && (
+          <CharacterInfoCard
+            campaignId={campaignId}
+            summaries={characterSummaries}
+            selectedCharacterId={selectedCharacterSummary?.character.id ?? ''}
+            onSelectCharacter={(id) => setSelectedCharacterId(id)}
+            onClose={() => setCharacterCardOpen(false)}
+          />
+        )}
+
+        <div className="absolute bottom-3 left-3 z-30 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setCharacterCardOpen((open) => !open)
+              setInteractionOpen(false)
+            }}
+            aria-label="Open character information"
+            className={`flex h-12 w-12 items-center justify-center rounded-full border shadow-xl backdrop-blur transition active:scale-95 ${
+              characterCardOpen
+                ? 'border-sky-300 bg-sky-400 text-zinc-950'
+                : 'border-zinc-700 bg-zinc-950/90 text-sky-200 hover:border-sky-400/70 hover:bg-zinc-900'
+            }`}
+          >
+            <UserCircle className="h-6 w-6" aria-hidden="true" />
+          </button>
           <button
             type="button"
             onClick={() => {
               setInteractionOpen((open) => !open)
               setSection('root')
+              setCharacterCardOpen(false)
             }}
             aria-label="Open interaction menu"
             className={`flex h-12 w-12 items-center justify-center rounded-full border shadow-xl backdrop-blur transition active:scale-95 ${
@@ -1755,6 +1875,285 @@ export function PlayerMapView({
         Hand: pan/pinch - Move: drag your token - Target: tap to interact - 1 square = {map.grid_scale_feet} ft
       </p>
 
+    </div>
+  )
+}
+
+function MovementPreviewPill({
+  preview,
+}: {
+  preview: {
+    feet: number
+    overLimit: boolean
+    remaining: number | null
+  }
+}) {
+  return (
+    <div
+      className={`absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-xl backdrop-blur ${
+        preview.overLimit
+          ? 'border-red-400/60 bg-red-950/85 text-red-100'
+          : 'border-emerald-400/60 bg-emerald-950/85 text-emerald-100'
+      }`}
+    >
+      Moving {preview.feet} ft
+      {preview.remaining !== null && !preview.overLimit ? ` - ${preview.remaining} ft left` : ''}
+      {preview.overLimit ? ' - over limit' : ''}
+    </div>
+  )
+}
+
+function PendingMoveCard({
+  move,
+  onConfirm,
+  onCancel,
+}: {
+  move: {
+    tokenName: string
+    feet: number
+    overLimit: boolean
+    remaining: number | null
+  }
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div className="absolute bottom-20 left-3 right-3 z-40 max-w-sm rounded-xl border border-zinc-700 bg-zinc-950/96 p-3 shadow-2xl shadow-black/50 backdrop-blur sm:right-auto">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-300">Confirm movement</p>
+          <p className="mt-1 text-sm font-semibold text-zinc-100">{move.tokenName}</p>
+        </div>
+        <span
+          className={`rounded-full border px-2 py-1 text-xs font-semibold ${
+            move.overLimit
+              ? 'border-red-400/50 bg-red-500/15 text-red-100'
+              : 'border-emerald-400/50 bg-emerald-500/15 text-emerald-100'
+          }`}
+        >
+          {move.feet} ft
+        </span>
+      </div>
+      <p className="mt-2 text-xs text-zinc-400">
+        {move.overLimit
+          ? 'This is beyond your normal movement. The DM or server rules may reject it.'
+          : move.remaining === null
+            ? 'Movement is unlimited for this mode.'
+            : `${move.remaining} ft remaining after this move.`}
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="min-h-10 rounded-md border border-zinc-700 bg-zinc-900 px-3 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="min-h-10 rounded-md bg-amber-500 px-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+        >
+          Confirm Move
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function abilityModifierText(score: number) {
+  const mod = Math.floor((score - 10) / 2)
+  return mod >= 0 ? `+${mod}` : String(mod)
+}
+
+function CharacterInfoCard({
+  campaignId,
+  summaries,
+  selectedCharacterId,
+  onSelectCharacter,
+  onClose,
+}: {
+  campaignId: string
+  summaries: PlayerCharacterSummary[]
+  selectedCharacterId: string
+  onSelectCharacter: (id: string) => void
+  onClose: () => void
+}) {
+  const summary = summaries.find((item) => item.character.id === selectedCharacterId) ?? summaries[0] ?? null
+
+  return (
+    <div className="absolute bottom-[8.5rem] left-3 right-3 z-40 flex max-h-[min(35rem,calc(100%-10rem))] max-w-md flex-col overflow-hidden rounded-2xl border border-sky-400/30 bg-zinc-950/97 shadow-2xl shadow-black/55 backdrop-blur sm:right-auto sm:w-[26rem]">
+      <div className="flex items-start justify-between gap-3 border-b border-zinc-800 px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-300">Character</p>
+          <h2 className="mt-1 truncate text-base font-bold text-zinc-50">
+            {summary?.character.name ?? 'No character'}
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
+          aria-label="Close character card"
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        {!summary ? (
+          <p className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-400">
+            No owned character is available for this campaign yet.
+          </p>
+        ) : (
+          <div className="grid gap-3">
+            {summaries.length > 1 && (
+              <label className="grid gap-1.5 text-xs font-medium text-zinc-300">
+                Character
+                <select
+                  value={summary.character.id}
+                  onChange={(event) => onSelectCharacter(event.target.value)}
+                  className="min-h-10 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100 outline-none focus:border-sky-400"
+                >
+                  {summaries.map((item) => (
+                    <option key={item.character.id} value={item.character.id}>
+                      {item.character.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <CharacterSection title="Vitals" defaultOpen>
+              <div className="grid grid-cols-3 gap-2">
+                <MiniStat label="HP" value={`${summary.character.current_hp}/${summary.character.max_hp}`} />
+                <MiniStat label="Temp" value={summary.character.temp_hp} />
+                <MiniStat label="AC" value={summary.character.armor_class} />
+                <MiniStat label="Speed" value={`${summary.character.speed} ft`} />
+                <MiniStat label="Level" value={summary.character.level} />
+                <MiniStat label="Passive" value={summary.character.passive_perception} />
+              </div>
+              <p className="mt-2 text-xs text-zinc-400">
+                {[summary.character.race, summary.character.class, summary.character.background].filter(Boolean).join(' - ') || 'No class details saved.'}
+              </p>
+            </CharacterSection>
+
+            <CharacterSection title="Abilities">
+              <div className="grid grid-cols-3 gap-2">
+                {ABILITY_KEYS.map((key) => (
+                  <MiniStat
+                    key={key}
+                    label={ABILITY_LABELS[key]}
+                    value={`${summary.character[key]} (${abilityModifierText(summary.character[key])})`}
+                  />
+                ))}
+              </div>
+            </CharacterSection>
+
+            <CharacterSection title={`Inventory (${summary.inventory.length})`}>
+              <SimpleRecordList
+                empty="No inventory items."
+                items={summary.inventory.map((item) => ({
+                  id: item.id,
+                  title: `${item.name}${item.quantity > 1 ? ` x${item.quantity}` : ''}`,
+                  meta: [item.equipped ? 'Equipped' : null, item.magical ? 'Magical' : null].filter(Boolean).join(' - '),
+                  body: item.description ?? item.notes,
+                }))}
+              />
+            </CharacterSection>
+
+            <CharacterSection title={`Spells (${summary.spells.length})`}>
+              <SimpleRecordList
+                empty="No spells."
+                items={summary.spells.map((spell) => ({
+                  id: spell.id,
+                  title: spell.name,
+                  meta: [`Level ${spell.spell_level}`, spell.prepared ? 'Prepared' : null, spell.uses].filter(Boolean).join(' - '),
+                  body: spell.description ?? spell.notes,
+                }))}
+              />
+            </CharacterSection>
+
+            <CharacterSection title={`Features (${summary.abilities.length})`}>
+              <SimpleRecordList
+                empty="No features."
+                items={summary.abilities.map((ability) => ({
+                  id: ability.id,
+                  title: ability.name,
+                  meta: [ability.source, ability.uses, ability.reset_type].filter(Boolean).join(' - '),
+                  body: ability.description ?? ability.notes,
+                }))}
+              />
+            </CharacterSection>
+
+            <CharacterSection title={`Conditions (${summary.conditions.length})`}>
+              <SimpleRecordList
+                empty="No active conditions."
+                items={summary.conditions.map((condition) => ({
+                  id: condition.id,
+                  title: condition.name,
+                  body: condition.notes,
+                }))}
+              />
+            </CharacterSection>
+
+            <CharacterSection title="Notes">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">
+                {summary.character.notes || 'No notes saved.'}
+              </p>
+            </CharacterSection>
+
+            <Link
+              href={`/campaigns/${campaignId}/characters/${summary.character.id}`}
+              className="inline-flex min-h-10 items-center justify-center rounded-md border border-sky-400/40 bg-sky-500/10 px-3 text-sm font-semibold text-sky-100 transition hover:border-sky-300"
+            >
+              Open full sheet
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CharacterSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  return (
+    <details open={defaultOpen} className="rounded-lg border border-zinc-800 bg-zinc-900/75">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-zinc-100">
+        {title}
+        <ChevronDown className="h-4 w-4 text-zinc-500" aria-hidden="true" />
+      </summary>
+      <div className="border-t border-zinc-800 p-3">{children}</div>
+    </details>
+  )
+}
+
+function MiniStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-md border border-zinc-800 bg-zinc-950 px-2 py-2 text-center">
+      <p className="truncate text-sm font-bold text-zinc-100">{value}</p>
+      <p className="mt-0.5 truncate text-[10px] uppercase tracking-wide text-zinc-500">{label}</p>
+    </div>
+  )
+}
+
+function SimpleRecordList({
+  items,
+  empty,
+}: {
+  items: { id: string; title: string; meta?: string | null; body?: string | null }[]
+  empty: string
+}) {
+  if (items.length === 0) return <p className="text-sm text-zinc-500">{empty}</p>
+  return (
+    <div className="grid gap-2">
+      {items.map((item) => (
+        <div key={item.id} className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2">
+          <p className="text-sm font-semibold text-zinc-100">{item.title}</p>
+          {item.meta && <p className="mt-0.5 text-[11px] text-amber-300/80">{item.meta}</p>}
+          {item.body && <p className="mt-1 text-xs leading-relaxed text-zinc-400">{item.body}</p>}
+        </div>
+      ))}
     </div>
   )
 }

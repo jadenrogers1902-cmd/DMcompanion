@@ -75,6 +75,10 @@ interface MapCanvasProps {
   followGridSquares?: number
   viewportCommand?: { type: 'fit' } | { type: 'center'; x: number; y: number; gridSquares?: number; nonce: number }
   onTokenDragPreview?: (preview: { id: string; x: number; y: number } | null) => void
+  snapToGrid?: boolean
+  deferTokenMove?: boolean
+  pendingTokenPosition?: { id: string; x: number; y: number } | null
+  onTokenMovePreview?: (preview: { id: string; x: number; y: number } | null) => void
 }
 
 const MIN_SCALE = 0.1
@@ -151,6 +155,10 @@ export function MapCanvas({
   followGridSquares = 18,
   viewportCommand,
   onTokenDragPreview,
+  snapToGrid = false,
+  deferTokenMove = false,
+  pendingTokenPosition = null,
+  onTokenMovePreview,
 }: MapCanvasProps) {
   const isDraggable = (id: string) =>
     canDragToken ? canDragToken(id) : mode === 'dm'
@@ -177,6 +185,25 @@ export function MapCanvas({
     return {
       x: (clientX - rect.left - offset.x) / scale,
       y: (clientY - rect.top - offset.y) / scale,
+    }
+  }
+
+  function clampWorld(value: number, max: number) {
+    return clamp(value, 0, max)
+  }
+
+  function snapWorldToGrid(x: number, y: number) {
+    if (!snapToGrid) {
+      return { x: clampWorld(x, width), y: clampWorld(y, height) }
+    }
+    const grid = safeGridSize
+    const offsetX = gridOffsetX ?? 0
+    const offsetY = gridOffsetY ?? 0
+    const snappedX = offsetX + (Math.floor((x - offsetX) / grid) * grid) + (grid / 2)
+    const snappedY = offsetY + (Math.floor((y - offsetY) / grid) * grid) + (grid / 2)
+    return {
+      x: clampWorld(snappedX, width),
+      y: clampWorld(snappedY, height),
     }
   }
 
@@ -448,10 +475,14 @@ export function MapCanvas({
     if (i.kind === 'pan') {
       setOffset({ x: i.startOffsetX + dx, y: i.startOffsetY + dy })
     } else if (i.kind === 'token' && i.tokenId) {
+      const world = snapWorldToGrid(
+        i.tokenStartX + dx / scale,
+        i.tokenStartY + dy / scale,
+      )
       const preview = {
         id: i.tokenId,
-        x: i.tokenStartX + dx / scale,
-        y: i.tokenStartY + dy / scale,
+        x: world.x,
+        y: world.y,
       }
       setDragPos(preview)
       onTokenDragPreview?.(preview)
@@ -487,7 +518,16 @@ export function MapCanvas({
 
     if (i.kind === 'token' && i.tokenId) {
       if (i.moved && dragPos) {
-        onMoveToken?.(i.tokenId, Math.round(dragPos.x), Math.round(dragPos.y))
+        const finalPreview = {
+          id: i.tokenId,
+          x: Math.round(dragPos.x),
+          y: Math.round(dragPos.y),
+        }
+        if (deferTokenMove) {
+          onTokenMovePreview?.(finalPreview)
+        } else {
+          onMoveToken?.(finalPreview.id, finalPreview.x, finalPreview.y)
+        }
       } else {
         onSelectToken?.(i.tokenId)
       }
@@ -689,7 +729,7 @@ export function MapCanvas({
 
           {/* Tokens */}
           {tokens.map((t) => {
-            const pos = dragPos?.id === t.id ? dragPos : t
+            const pos = dragPos?.id === t.id ? dragPos : pendingTokenPosition?.id === t.id ? pendingTokenPosition : t
             const px = t.size * gridSize
             const isSelected = selectedTokenId === t.id
             const hiddenFromPlayers = mode === 'dm' && !t.visible_to_players

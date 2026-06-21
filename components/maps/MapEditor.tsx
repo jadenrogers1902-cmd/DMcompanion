@@ -295,6 +295,7 @@ interface MapEditorProps {
   players?: CodexPlayer[]
   initialTravelParties?: MapTravelParty[]
   initialTravelPartyMembers?: MapTravelPartyMember[]
+  editMapHref?: string | null
 }
 
 export function MapEditor({
@@ -311,6 +312,7 @@ export function MapEditor({
   players = [],
   initialTravelParties = [],
   initialTravelPartyMembers = [],
+  editMapHref = null,
 }: MapEditorProps) {
   const router = useRouter()
   const [tokens, setTokens] = useState<Token[]>(() =>
@@ -1078,6 +1080,20 @@ export function MapEditor({
               setContextMenuOpen(false)
             }}
           >
+            {editMapHref ? (
+              <Link href={editMapHref} className="block" onClick={() => setTopToolbarMenu(null)}>
+                <ToolbarMenuItemText
+                  title="Edit Map"
+                  description="Open this map in Adventure Maker."
+                />
+              </Link>
+            ) : (
+              <ToolbarMenuItemText
+                title="Edit Map"
+                description="No Adventure Maker source is linked to this live map."
+                disabled
+              />
+            )}
             <ToolbarMenuButton
               title="Token Classes"
               description="Mass-apply behavior presets for enemies, NPCs, portals, items, and objects."
@@ -1622,15 +1638,19 @@ function ToolbarMenuItemText({
   title,
   description,
   active = false,
+  disabled = false,
 }: {
   title: string
   description: string
   active?: boolean
+  disabled?: boolean
 }) {
   return (
     <span
       className={`block rounded-md border px-3 py-2 text-left transition ${
-        active
+        disabled
+          ? 'border-transparent text-zinc-600'
+          : active
           ? 'border-amber-400/50 bg-amber-500/15 text-amber-100'
           : 'border-transparent text-zinc-200 hover:border-zinc-700 hover:bg-zinc-900'
       }`}

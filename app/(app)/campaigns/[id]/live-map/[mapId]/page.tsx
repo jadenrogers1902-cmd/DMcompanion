@@ -138,6 +138,10 @@ export default async function MapEditorPage({ params }: PageProps) {
       .maybeSingle()
     if (prep) prepSource = prep
   }
+  const editMapHref =
+    prepSource && map.source_prepared_map_id
+      ? `/campaigns/${id}/adventures/${prepSource.adventure_id}/chapters/${prepSource.chapter_id}/maps/${map.source_prepared_map_id}`
+      : null
 
   const backLink = (
     <Link
@@ -157,7 +161,7 @@ export default async function MapEditorPage({ params }: PageProps) {
         {backLink}
         {prepSource && (
           <Link
-            href={`/campaigns/${id}/adventures/${prepSource.adventure_id}/chapters/${prepSource.chapter_id}/maps/${map.source_prepared_map_id}`}
+            href={editMapHref ?? '#'}
             className="-mt-2 mb-4 flex items-center gap-1.5 text-xs text-amber-400/80 hover:text-amber-300"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -182,6 +186,7 @@ export default async function MapEditorPage({ params }: PageProps) {
           players={players}
           initialTravelParties={(travelParties ?? []) as MapTravelParty[]}
           initialTravelPartyMembers={(travelPartyMembers ?? []) as MapTravelPartyMember[]}
+          editMapHref={editMapHref}
         />
       ) : (
         <EmptyState

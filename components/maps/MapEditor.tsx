@@ -32,7 +32,6 @@ import {
   addRevealedArea,
   addToken,
   bulkUpdateTokenClassSettings,
-  deleteMap,
   deleteRevealedArea,
   deleteToken,
   hideEntireMap,
@@ -77,6 +76,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved'
 type MapToolTab = 'overview' | 'reveal' | 'grid'
 type TokenVisibilityFilter = 'all' | 'visible' | 'hidden' | 'discoverable' | 'cast'
 type TokenClassId = 'enemy' | 'npc' | 'portal' | 'item' | 'object'
+type TopToolbarMenu = 'casting' | 'map' | null
 type TokenClassSettings = Pick<
   Token,
   | 'visible_to_players'
@@ -347,6 +347,8 @@ export function MapEditor({
   const [castSettingsOpen, setCastSettingsOpen] = useState(false)
   const [tokenClassPanelOpen, setTokenClassPanelOpen] = useState(false)
   const [tokenClassBusy, setTokenClassBusy] = useState<TokenClassId | 'all' | null>(null)
+  const [topToolbarMenu, setTopToolbarMenu] = useState<TopToolbarMenu>(null)
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const [castSettings, setCastSettings] = useState<CenterCastSettings>(() =>
     normalizeCenterCastSettings(map.cast_settings),
   )
@@ -367,7 +369,7 @@ export function MapEditor({
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const [contextMenuOpen, setContextMenuOpen] = useState(false)
   const [editorOpen, setEditorOpen] = useState(false)
-  const [toolsOpen, setToolsOpen] = useState(true)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [mapToolTab, setMapToolTab] = useState<MapToolTab>('overview')
   const [editorTab, setEditorTab] = useState<TokenEditTab>('basic')
   const [draftToken, setDraftToken] = useState<Partial<Token> | null>(null)
@@ -443,6 +445,8 @@ export function MapEditor({
       setContextMenuOpen(false)
       setEditorOpen(false)
       setTokenClassPanelOpen(false)
+      setTopToolbarMenu(null)
+      setDiagnosticsOpen(false)
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -814,12 +818,6 @@ export function MapEditor({
     router.refresh()
   }
 
-  async function handleDeleteMap() {
-    if (!confirm(`Delete "${map.name}"? This removes the map and all its tokens.`)) return
-    setBusy(true)
-    await deleteMap(campaignId, map.id, map.storage_path)
-  }
-
   async function handleToggleMapLock() {
     const next = !mapLocked
     setMapLocked(next)
@@ -1034,43 +1032,101 @@ export function MapEditor({
           </Badge>
           {partyOptionsLocked && <Badge variant="warning">Party options locked</Badge>}
         </div>
-        <div className="flex gap-2">
-          <Link
-            href={`/campaigns/${campaignId}/live-map/${map.id}/center-screen`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button size="sm" variant="primary">
-              Center screen
-            </Button>
-          </Link>
-          <Button
-            size="sm"
-            variant={castSettingsOpen ? 'primary' : 'secondary'}
-            onClick={() => {
-              setCastSettingsOpen((open) => !open)
+        <div className="flex flex-wrap justify-end gap-2">
+          <ToolbarMenu
+            label="Casting Options"
+            open={topToolbarMenu === 'casting'}
+            onToggle={() => {
+              setTopToolbarMenu((open) => (open === 'casting' ? null : 'casting'))
               setPartyMenuOpen(false)
-              setTokenClassPanelOpen(false)
-            }}
-          >
-            Cast Settings
-          </Button>
-          <Button
-            size="sm"
-            variant={tokenClassPanelOpen ? 'primary' : 'secondary'}
-            onClick={() => {
-              setTokenClassPanelOpen((open) => !open)
-              setPartyMenuOpen(false)
-              setCastSettingsOpen(false)
               setAddMenuOpen(false)
               setContextMenuOpen(false)
             }}
           >
-            Token Classes
-          </Button>
+            <Link
+              href={`/campaigns/${campaignId}/live-map/${map.id}/center-screen`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block"
+              onClick={() => setTopToolbarMenu(null)}
+            >
+              <ToolbarMenuItemText
+                title="Cast to Center Screen"
+                description="Open the shared table display in a new tab."
+              />
+            </Link>
+            <ToolbarMenuButton
+              title="Cast Settings"
+              description="Configure split views, fog, names, health bars, and cast chrome."
+              active={castSettingsOpen}
+              onClick={() => {
+                setCastSettingsOpen((open) => !open)
+                setTokenClassPanelOpen(false)
+                setPartyMenuOpen(false)
+                setTopToolbarMenu(null)
+              }}
+            />
+          </ToolbarMenu>
+
+          <ToolbarMenu
+            label="Map Options"
+            open={topToolbarMenu === 'map'}
+            onToggle={() => {
+              setTopToolbarMenu((open) => (open === 'map' ? null : 'map'))
+              setPartyMenuOpen(false)
+              setAddMenuOpen(false)
+              setContextMenuOpen(false)
+            }}
+          >
+            <ToolbarMenuButton
+              title="Token Classes"
+              description="Mass-apply behavior presets for enemies, NPCs, portals, items, and objects."
+              active={tokenClassPanelOpen}
+              onClick={() => {
+                setTokenClassPanelOpen((open) => !open)
+                setCastSettingsOpen(false)
+                setPartyMenuOpen(false)
+                setAddMenuOpen(false)
+                setContextMenuOpen(false)
+                setTopToolbarMenu(null)
+              }}
+            />
+            <ToolbarMenuButton
+              title="Map Tools"
+              description={toolsOpen ? 'Hide the right-side map tools panel.' : 'Show the right-side map tools panel.'}
+              active={toolsOpen}
+              onClick={() => {
+                setToolsOpen((open) => !open)
+                setTopToolbarMenu(null)
+              }}
+            />
+            <ToolbarMenuButton
+              title={mapLocked ? 'Unlock Player Movement' : 'Lock Player Movement'}
+              description="Control whether players can move tokens on this map."
+              active={mapLocked}
+              onClick={() => {
+                void handleToggleMapLock()
+                setTopToolbarMenu(null)
+              }}
+            />
+            {!isActive && (
+              <ToolbarMenuButton
+                title="Set Active for Players"
+                description="Make this the map players enter from the Adventure tab."
+                loading={busy}
+                onClick={() => {
+                  void handleSetActive()
+                  setTopToolbarMenu(null)
+                }}
+              />
+            )}
+          </ToolbarMenu>
           <button
             type="button"
-            onClick={handleToggleSession}
+            onClick={() => {
+              setTopToolbarMenu(null)
+              void handleToggleSession()
+            }}
             disabled={sessionBusy}
             className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold transition disabled:opacity-50 ${
               session.isLive
@@ -1086,39 +1142,15 @@ export function MapEditor({
             )}
             {sessionBusy ? 'Working…' : session.isLive ? 'End session' : 'Start session'}
           </button>
-          <Button
-            size="sm"
-            variant={partyOptionsLocked ? 'primary' : 'secondary'}
-            onClick={() => handleTravelOptionUpdate({ partyOptionsLocked: !partyOptionsLocked })}
-          >
-            {partyOptionsLocked ? 'Unlock Party Options' : 'Lock Party Options'}
-          </Button>
-          <Button
-            size="sm"
-            variant={toolsOpen ? 'secondary' : 'primary'}
-            onClick={() => setToolsOpen((open) => !open)}
-          >
-            {toolsOpen ? 'Hide tools' : 'Show tools'}
-          </Button>
-          <Button
-            size="sm"
-            variant={mapLocked ? 'primary' : 'secondary'}
-            onClick={handleToggleMapLock}
-          >
-            {mapLocked ? 'Unlock player movement' : 'Lock player movement'}
-          </Button>
-          {!isActive && (
-            <Button size="sm" variant="secondary" onClick={handleSetActive} loading={busy}>
-              Set active for players
-            </Button>
-          )}
-          <Button size="sm" variant="danger" onClick={handleDeleteMap}>
-            Delete map
-          </Button>
         </div>
       </div>
 
       <LiveMapHealthPanel
+        open={diagnosticsOpen}
+        onToggle={() => {
+          setDiagnosticsOpen((open) => !open)
+          setTopToolbarMenu(null)
+        }}
         isActive={isActive}
         mapRealtimeStatus={mapRealtimeStatus}
         codexRealtimeStatus={codexRealtimeStatus}
@@ -1561,7 +1593,77 @@ function realtimeHealthy(status: string) {
   return status === 'SUBSCRIBED'
 }
 
+function ToolbarMenu({
+  label,
+  open,
+  onToggle,
+  children,
+}: {
+  label: string
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
+}) {
+  return (
+    <div className="relative">
+      <Button size="sm" variant={open ? 'primary' : 'secondary'} onClick={onToggle}>
+        {label}
+      </Button>
+      {open && (
+        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-zinc-700 bg-zinc-950 shadow-2xl shadow-black/40">
+          <div className="grid gap-1 p-2">{children}</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ToolbarMenuItemText({
+  title,
+  description,
+  active = false,
+}: {
+  title: string
+  description: string
+  active?: boolean
+}) {
+  return (
+    <span
+      className={`block rounded-md border px-3 py-2 text-left transition ${
+        active
+          ? 'border-amber-400/50 bg-amber-500/15 text-amber-100'
+          : 'border-transparent text-zinc-200 hover:border-zinc-700 hover:bg-zinc-900'
+      }`}
+    >
+      <span className="block text-sm font-semibold">{title}</span>
+      <span className="mt-0.5 block text-xs text-zinc-500">{description}</span>
+    </span>
+  )
+}
+
+function ToolbarMenuButton({
+  title,
+  description,
+  active,
+  loading,
+  onClick,
+}: {
+  title: string
+  description: string
+  active?: boolean
+  loading?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button type="button" onClick={onClick} disabled={loading} className="disabled:opacity-50">
+      <ToolbarMenuItemText title={loading ? 'Working...' : title} description={description} active={active} />
+    </button>
+  )
+}
+
 function LiveMapHealthPanel({
+  open,
+  onToggle,
   isActive,
   mapRealtimeStatus,
   codexRealtimeStatus,
@@ -1573,6 +1675,8 @@ function LiveMapHealthPanel({
   latestMigration,
   unappliedMigrationHint,
 }: {
+  open: boolean
+  onToggle: () => void
   isActive: boolean
   mapRealtimeStatus: string
   codexRealtimeStatus: string
@@ -1584,56 +1688,92 @@ function LiveMapHealthPanel({
   latestMigration: string
   unappliedMigrationHint: string
 }) {
+  const checks = [
+    isActive,
+    realtimeHealthy(mapRealtimeStatus),
+    realtimeHealthy(codexRealtimeStatus),
+    realtimeHealthy(travelRealtimeStatus),
+    centerScreenCount > 0,
+    sessionLoaded && sessionLive,
+  ]
+  const issueCount = checks.filter((ok) => !ok).length
+  const statusTone =
+    issueCount === 0
+      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
+      : issueCount <= 2
+        ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+        : 'border-red-500/40 bg-red-500/10 text-red-200'
+
   return (
-    <div className="grid gap-2 rounded-xl border border-zinc-800 bg-zinc-950 p-3 shadow-xl shadow-black/20 lg:grid-cols-[1fr_1fr]">
-      <div>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-zinc-100">Live map health</h2>
-          <span className="text-[11px] uppercase tracking-wide text-zinc-500">DM diagnostics</span>
+    <div className="rounded-xl border border-zinc-800 bg-zinc-950 shadow-xl shadow-black/20">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full flex-wrap items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-zinc-900/70"
+      >
+        <div>
+          <p className="text-sm font-semibold text-zinc-100">Diagnostics</p>
+          <p className="text-xs text-zinc-500">Live map health, realtime, session, cast, and migration status.</p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <HealthItem label="Active map" value={isActive ? 'Active' : 'Inactive'} ok={isActive} />
-          <HealthItem
-            label="Map realtime"
-            value={realtimeHealthy(mapRealtimeStatus) ? 'Connected' : mapRealtimeStatus}
-            ok={realtimeHealthy(mapRealtimeStatus)}
-          />
-          <HealthItem
-            label="Center screen"
-            value={centerScreenCount > 0 ? `${centerScreenCount} connected` : realtimeHealthy(centerPresenceStatus) ? 'Waiting' : centerPresenceStatus}
-            ok={centerScreenCount > 0}
-          />
-          <HealthItem
-            label="Player session"
-            value={!sessionLoaded ? 'Checking' : sessionLive ? 'Live' : 'Not live'}
-            ok={sessionLoaded && sessionLive}
-          />
-        </div>
-      </div>
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Migration/status diagnostics</p>
-            <p className="mt-1 break-all text-xs text-zinc-300">Latest local: {latestMigration}</p>
-          </div>
-          <span className="rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-200">
-            Remote unverified
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${statusTone}`}>
+            {issueCount === 0 ? 'Healthy' : `${issueCount} check${issueCount === 1 ? '' : 's'}`}
           </span>
+          <span className="text-xs text-zinc-500">{open ? 'Hide' : 'Show'}</span>
         </div>
-        <p className="mt-2 text-xs text-zinc-500">{unappliedMigrationHint}</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <HealthItem
-            label="Codex realtime"
-            value={realtimeHealthy(codexRealtimeStatus) ? 'Connected' : codexRealtimeStatus}
-            ok={realtimeHealthy(codexRealtimeStatus)}
-          />
-          <HealthItem
-            label="Party realtime"
-            value={realtimeHealthy(travelRealtimeStatus) ? 'Connected' : travelRealtimeStatus}
-            ok={realtimeHealthy(travelRealtimeStatus)}
-          />
+      </button>
+      {open && (
+        <div className="grid gap-2 border-t border-zinc-800 p-3 lg:grid-cols-[1fr_1fr]">
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-zinc-100">Live map health</h2>
+              <span className="text-[11px] uppercase tracking-wide text-zinc-500">DM diagnostics</span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <HealthItem label="Active map" value={isActive ? 'Active' : 'Inactive'} ok={isActive} />
+              <HealthItem
+                label="Map realtime"
+                value={realtimeHealthy(mapRealtimeStatus) ? 'Connected' : mapRealtimeStatus}
+                ok={realtimeHealthy(mapRealtimeStatus)}
+              />
+              <HealthItem
+                label="Center screen"
+                value={centerScreenCount > 0 ? `${centerScreenCount} connected` : realtimeHealthy(centerPresenceStatus) ? 'Waiting' : centerPresenceStatus}
+                ok={centerScreenCount > 0}
+              />
+              <HealthItem
+                label="Player session"
+                value={!sessionLoaded ? 'Checking' : sessionLive ? 'Live' : 'Not live'}
+                ok={sessionLoaded && sessionLive}
+              />
+            </div>
+          </div>
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Migration/status diagnostics</p>
+                <p className="mt-1 break-all text-xs text-zinc-300">Latest local: {latestMigration}</p>
+              </div>
+              <span className="rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-200">
+                Remote unverified
+              </span>
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">{unappliedMigrationHint}</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <HealthItem
+                label="Codex realtime"
+                value={realtimeHealthy(codexRealtimeStatus) ? 'Connected' : codexRealtimeStatus}
+                ok={realtimeHealthy(codexRealtimeStatus)}
+              />
+              <HealthItem
+                label="Party realtime"
+                value={realtimeHealthy(travelRealtimeStatus) ? 'Connected' : travelRealtimeStatus}
+                ok={realtimeHealthy(travelRealtimeStatus)}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

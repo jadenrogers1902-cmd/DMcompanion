@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AdventureStatus, PreparedMap, PreparedMapRoomRegion, PreparedMapToken } from '@/lib/types/adventure'
 import type { Database } from '@/lib/types/database'
 import {
+  MAX_ROOM_POINTS,
   normalizePreparedRoomRegion,
   normalizePrepLinks,
   normalizePrepNotes,
@@ -76,7 +77,7 @@ export function sanitizeRoomRegions(roomRegions: PreparedMapRoomRegion[]): Prepa
       height: room.height === null || room.height === undefined ? null : Math.max(8, Math.round(room.height)),
       points: room.points
         .map((point) => ({ x: Math.round(point.x), y: Math.round(point.y) }))
-        .slice(0, 32),
+        .slice(0, MAX_ROOM_POINTS),
       auto_reveal_distance_feet: Math.max(0, Math.round(room.auto_reveal_distance_feet)),
       dm_notes: (room.dm_notes ?? '').slice(0, 2000),
     }

@@ -15,6 +15,8 @@ const ROOM_SHAPES: RoomRegionShapeType[] = ['rectangle', 'polygon']
 const ROOM_REVEAL_MODES: RoomRevealMode[] = ['manual', 'auto', 'manual_auto']
 const ROOM_MASK_STYLES: RoomMaskStyle[] = ['blackout', 'dim', 'outline_only']
 const ROOM_BORDER_STYLES: RoomBorderStyle[] = ['door', 'dashed', 'solid', 'glow']
+/** Max vertices kept per polygon room/fog region (safety bound, not a UX cap). */
+export const MAX_ROOM_POINTS = 1000
 
 export function nowIso() {
   return new Date().toISOString()
@@ -43,7 +45,9 @@ function normalizeRoomPoints(value: unknown): PreparedMapRoomRegion['points'] {
       y: Math.round(finiteNumber(point.y)),
     }))
     .filter((point) => point.x >= 0 && point.y >= 0)
-    .slice(0, 32)
+    // Generous upper bound only as a runaway-payload guard — high enough that
+    // authoring a detailed polygon never feels capped.
+    .slice(0, MAX_ROOM_POINTS)
 }
 
 export function normalizeTags(tags: unknown): string[] {

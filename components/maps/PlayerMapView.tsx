@@ -503,8 +503,10 @@ export function PlayerMapView({
     onMapChange: (m) => {
       setMapState(m)
       setMapLocked(m.player_movement_locked)
-      if (m.travel_mode !== 'combat' || m.player_movement_locked) {
+      if (m.player_movement_locked) {
         setMapInteractionMode((current) => (current === 'move' ? 'hand' : current))
+      }
+      if (m.travel_mode !== 'combat' || m.player_movement_locked) {
         setPendingMove(null)
         setMovementPreview(null)
       }
@@ -613,7 +615,7 @@ export function PlayerMapView({
     myControlled[0] ??
     null
   const combatMovementActive = mapState.travel_mode === 'combat'
-  const canUseMoveMode = combatMovementActive && myControlled.length > 0 && !mapLocked
+  const canUseMoveMode = myControlled.length > 0 && !mapLocked
   const effectiveMapInteractionMode =
     mapInteractionMode === 'move' && !canUseMoveMode ? 'hand' : mapInteractionMode
   const controlledCharacterId =
@@ -666,6 +668,10 @@ export function PlayerMapView({
   }
 
   function handleTokenDragPreview(preview: { id: string; x: number; y: number } | null) {
+    if (!combatMovementActive) {
+      setMovementPreview(null)
+      return
+    }
     if (!preview) {
       setMovementPreview(null)
       return
@@ -1404,7 +1410,6 @@ export function PlayerMapView({
     }
     setMapState((prev) => ({ ...prev, travel_mode: travelMode }))
     if (travelMode !== 'combat') {
-      setMapInteractionMode((current) => (current === 'move' ? 'hand' : current))
       setPendingMove(null)
       setMovementPreview(null)
     }
@@ -1539,10 +1544,10 @@ export function PlayerMapView({
           canDragToken={canDrag}
           viewportCommand={viewportCommand}
           onTokenDragPreview={handleTokenDragPreview}
-          snapToGrid
-          deferTokenMove
-          pendingTokenPosition={pendingMove}
-          onTokenMovePreview={handleTokenMovePreview}
+          snapToGrid={combatMovementActive}
+          deferTokenMove={combatMovementActive}
+          pendingTokenPosition={combatMovementActive ? pendingMove : null}
+          onTokenMovePreview={combatMovementActive ? handleTokenMovePreview : undefined}
           revealedAreas={renderAreas}
           fogEnabled
         />
@@ -1551,7 +1556,7 @@ export function PlayerMapView({
           mode={effectiveMapInteractionMode}
           setMode={setMapInteractionMode}
           canMove={canUseMoveMode}
-          showMove={combatMovementActive}
+          showMove
           onCenter={centerOnControlledToken}
           onFit={fitMapToScreen}
         />

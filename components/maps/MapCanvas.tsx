@@ -207,6 +207,61 @@ export function MapCanvas({
     }
   }
 
+  function worldToGridCell(x: number, y: number) {
+    const grid = safeGridSize
+    const offsetX = gridOffsetX ?? 0
+    const offsetY = gridOffsetY ?? 0
+    const minCol = Math.floor((0 - offsetX) / grid)
+    const minRow = Math.floor((0 - offsetY) / grid)
+    const maxCol = Math.floor((width - 0.001 - offsetX) / grid)
+    const maxRow = Math.floor((height - 0.001 - offsetY) / grid)
+    return {
+      col: clamp(Math.floor((x - offsetX) / grid), minCol, maxCol),
+      row: clamp(Math.floor((y - offsetY) / grid), minRow, maxRow),
+    }
+  }
+
+  function gridCellToClippedRect(col: number, row: number) {
+    const grid = safeGridSize
+    const x1 = (gridOffsetX ?? 0) + (col * grid)
+    const y1 = (gridOffsetY ?? 0) + (row * grid)
+    const x2 = x1 + grid
+    const y2 = y1 + grid
+    const left = clamp(x1, 0, width)
+    const top = clamp(y1, 0, height)
+    const right = clamp(x2, 0, width)
+    const bottom = clamp(y2, 0, height)
+    return {
+      key: `${col}:${row}`,
+      left,
+      top,
+      width: Math.max(0, right - left),
+      height: Math.max(0, bottom - top),
+    }
+  }
+
+  function buildMovementPathSquares(token: RenderToken | undefined, target: { x: number; y: number } | null) {
+    if (!token || !target || !snapToGrid) return []
+    const start = worldToGridCell(token.x, token.y)
+    const end = worldToGridCell(target.x, target.y)
+    const deltaCol = end.col - start.col
+    const deltaRow = end.row - start.row
+    const steps = Math.max(Math.abs(deltaCol), Math.abs(deltaRow))
+    if (steps === 0) return []
+
+    const seen = new Set<string>()
+    const squares: ReturnType<typeof gridCellToClippedRect>[] = []
+    for (let step = 1; step <= steps; step += 1) {
+      const col = start.col + Math.round((deltaCol * step) / steps)
+      const row = start.row + Math.round((deltaRow * step) / steps)
+      const rect = gridCellToClippedRect(col, row)
+      if (rect.width <= 0 || rect.height <= 0 || seen.has(rect.key)) continue
+      seen.add(rect.key)
+      squares.push(rect)
+    }
+    return squares
+  }
+
   // Interaction tracking (refs avoid re-render churn during a gesture)
   const interaction = useRef<{
     kind: 'none' | 'pan' | 'token' | 'draw' | 'pinch'
@@ -560,6 +615,12 @@ export function MapCanvas({
     i.tokenId = null
   }
 
+  const movementPathTarget = deferTokenMove ? (dragPos ?? pendingTokenPosition) : null
+  const movementPathToken = movementPathTarget
+    ? tokens.find((token) => token.id === movementPathTarget.id)
+    : undefined
+  const movementPathSquares = buildMovementPathSquares(movementPathToken, movementPathTarget)
+
   return (
     <div className="relative w-full h-full overflow-hidden rounded-lg bg-zinc-950 select-none">
       <div
@@ -727,9 +788,53 @@ export function MapCanvas({
             </svg>
           )}
 
+          {movementPathSquares.length > 0 && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                pointerEvents: 'none',
+              }}
+            >
+              {movementPathSquares.map((square, index) => {
+                const isDestination = index === movementPathSquares.length - 1
+                return (
+                  <div
+                    key={square.key}
+                    style={{
+                      position: 'absolute',
+                      left: square.left,
+                      top: square.top,
+                      width: square.width,
+                      height: square.height,
+                      borderRadius: Math.max(3, Math.min(8, safeGridSize * 0.12)),
+                      border: isDestination
+                        ? '2px solid rgba(187,247,208,0.98)'
+                        : '1px solid rgba(134,239,172,0.82)',
+                      background: isDestination
+                        ? 'radial-gradient(circle, rgba(187,247,208,0.48) 0%, rgba(34,197,94,0.34) 58%, rgba(22,163,74,0.18) 100%)'
+                        : 'linear-gradient(135deg, rgba(34,197,94,0.16), rgba(132,204,22,0.34))',
+                      boxShadow: isDestination
+                        ? '0 0 22px rgba(74,222,128,0.96), inset 0 0 18px rgba(187,247,208,0.52)'
+                        : '0 0 14px rgba(34,197,94,0.72), inset 0 0 12px rgba(187,247,208,0.28)',
+                      opacity: Math.min(1, 0.58 + ((index + 1) / movementPathSquares.length) * 0.38),
+                    }}
+                  />
+                )
+              })}
+            </div>
+          )}
+
           {/* Tokens */}
           {tokens.map((t) => {
-            const pos = dragPos?.id === t.id ? dragPos : pendingTokenPosition?.id === t.id ? pendingTokenPosition : t
+            const pos = deferTokenMove
+              ? t
+              : dragPos?.id === t.id
+                ? dragPos
+                : pendingTokenPosition?.id === t.id
+                  ? pendingTokenPosition
+                  : t
             const px = t.size * gridSize
             const isSelected = selectedTokenId === t.id
             const hiddenFromPlayers = mode === 'dm' && !t.visible_to_players

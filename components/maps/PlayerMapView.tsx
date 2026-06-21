@@ -503,6 +503,11 @@ export function PlayerMapView({
     onMapChange: (m) => {
       setMapState(m)
       setMapLocked(m.player_movement_locked)
+      if (m.travel_mode !== 'combat' || m.player_movement_locked) {
+        setMapInteractionMode((current) => (current === 'move' ? 'hand' : current))
+        setPendingMove(null)
+        setMovementPreview(null)
+      }
     },
     onAreaUpsert: (area) => setAreas((prev) => mergeAreaList(prev, area)),
     onAreaDelete: (id) => setAreas((prev) => prev.filter((a) => a.id !== id)),
@@ -607,7 +612,8 @@ export function PlayerMapView({
     myControlled.find((token) => token.token_type === 'player') ??
     myControlled[0] ??
     null
-  const canUseMoveMode = myControlled.length > 0 && !mapLocked
+  const combatMovementActive = mapState.travel_mode === 'combat'
+  const canUseMoveMode = combatMovementActive && myControlled.length > 0 && !mapLocked
   const effectiveMapInteractionMode =
     mapInteractionMode === 'move' && !canUseMoveMode ? 'hand' : mapInteractionMode
   const controlledCharacterId =
@@ -716,6 +722,7 @@ export function PlayerMapView({
     setPendingMove(null)
     setMovementPreview(null)
   }
+
   // Portals are excluded — they are travel points, not action targets.
   const visibleTargets = tokens.filter(
     (token) => token.visible_to_players !== false && token.token_type !== 'portal',
@@ -1396,6 +1403,11 @@ export function PlayerMapView({
       return
     }
     setMapState((prev) => ({ ...prev, travel_mode: travelMode }))
+    if (travelMode !== 'combat') {
+      setMapInteractionMode((current) => (current === 'move' ? 'hand' : current))
+      setPendingMove(null)
+      setMovementPreview(null)
+    }
     setTravelFeedback('Travel mode updated.')
     router.refresh()
   }
@@ -1486,7 +1498,7 @@ export function PlayerMapView({
         )}
 
         {/* Remaining movement for controlled, linked tokens */}
-        {!mapLocked &&
+        {combatMovementActive && !mapLocked &&
           myControlled.map((t) => {
             const r = remainingFor(t)
             if (!r) return null
@@ -1539,6 +1551,7 @@ export function PlayerMapView({
           mode={effectiveMapInteractionMode}
           setMode={setMapInteractionMode}
           canMove={canUseMoveMode}
+          showMove={combatMovementActive}
           onCenter={centerOnControlledToken}
           onFit={fitMapToScreen}
         />
@@ -2162,31 +2175,35 @@ function MobileMapControls({
   mode,
   setMode,
   canMove,
+  showMove,
   onCenter,
   onFit,
 }: {
   mode: PlayerMapInteractionMode
   setMode: (mode: PlayerMapInteractionMode) => void
   canMove: boolean
+  showMove: boolean
   onCenter: () => void
   onFit: () => void
 }) {
   return (
     <div className="absolute left-3 top-3 z-30 flex max-w-[calc(100%-1.5rem)] flex-col gap-2">
-      <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950/92 shadow-xl shadow-black/35 backdrop-blur">
+      <div className={`grid overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950/92 shadow-xl shadow-black/35 backdrop-blur ${showMove ? 'grid-cols-3' : 'grid-cols-2'}`}>
         <MobileModeButton
           active={mode === 'hand'}
           label="Hand"
           icon={<Hand className="h-4 w-4" aria-hidden="true" />}
           onClick={() => setMode('hand')}
         />
-        <MobileModeButton
-          active={mode === 'move'}
-          label="Move"
-          icon={<Move className="h-4 w-4" aria-hidden="true" />}
-          disabled={!canMove}
-          onClick={() => setMode('move')}
-        />
+        {showMove && (
+          <MobileModeButton
+            active={mode === 'move'}
+            label="Move"
+            icon={<Move className="h-4 w-4" aria-hidden="true" />}
+            disabled={!canMove}
+            onClick={() => setMode('move')}
+          />
+        )}
         <MobileModeButton
           active={mode === 'target'}
           label="Target"

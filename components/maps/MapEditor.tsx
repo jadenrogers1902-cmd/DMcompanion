@@ -102,7 +102,7 @@ type TokenClassDefinition = {
   settings: TokenClassSettings
 }
 
-const LATEST_LOCAL_MIGRATION = '054_token_class_behavior_defaults.sql'
+const LATEST_LOCAL_MIGRATION = '055_token_class_behavior_defaults.sql'
 
 const TOKEN_EDIT_TABS: { value: TokenEditTab; label: string }[] = [
   { value: 'basic', label: 'Basic' },

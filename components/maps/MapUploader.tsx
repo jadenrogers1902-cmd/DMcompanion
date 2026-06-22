@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { createMap } from '@/lib/actions/maps'
+import { prepareMapImageUpload } from '@/lib/maps/image-compress'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
@@ -15,22 +16,6 @@ interface MapUploaderProps {
 
 const MAX_BYTES = 15 * 1024 * 1024 // 15 MB
 const ACCEPTED = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
-
-function loadImageSize(file: File): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
-      resolve({ width: img.naturalWidth, height: img.naturalHeight })
-      URL.revokeObjectURL(url)
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('Could not read image dimensions.'))
-    }
-    img.src = url
-  })
-}
 
 export function MapUploader({ campaignId }: MapUploaderProps) {
   const router = useRouter()
@@ -73,13 +58,14 @@ export function MapUploader({ campaignId }: MapUploaderProps) {
 
     try {
       const supabase = createClient()
-      const { width, height } = await loadImageSize(file)
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
+      // Compress/downscale before upload to cut storage + egress.
+      const { file: uploadFile, width, height } = await prepareMapImageUpload(file)
+      const ext = uploadFile.type === 'image/webp' ? 'webp' : file.name.split('.').pop()?.toLowerCase() || 'png'
       const path = `${campaignId}/${crypto.randomUUID()}.${ext}`
 
       const { error: uploadError } = await supabase.storage
         .from('maps')
-        .upload(path, file, { contentType: file.type, upsert: false })
+        .upload(path, uploadFile, { contentType: uploadFile.type, upsert: false })
 
       if (uploadError) {
         setError(`Upload failed: ${uploadError.message}`)

@@ -54,3 +54,8 @@ dev.err.log
 .claude/
 .cache/
 skills-lock.json
+
+.agents/
+.claude/
+.cache/
+skills-lock.json

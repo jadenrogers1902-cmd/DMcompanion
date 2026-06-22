@@ -49,3 +49,8 @@ next-env.d.ts
 dev.log
 dev.err.log
 *.smoke.log
+
+.agents/
+.claude/
+.cache/
+skills-lock.json

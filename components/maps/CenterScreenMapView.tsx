@@ -112,7 +112,8 @@ export function CenterScreenMapView({
       ...token,
       showHealth: settings.showHealthBars ? token.showHealth : false,
     }))
-  const displayAreas = settings.showFog ? revealedAreas : []
+  const revealOverride = map.reveal_override ?? 'normal'
+  const displayAreas = settings.showFog && revealOverride !== 'hide_all' ? revealedAreas : []
   const displayRooms: RenderRoomRegion[] = settings.showFog
     ? roomRegions.map((room) => ({
         id: room.id,
@@ -128,7 +129,7 @@ export function CenterScreenMapView({
         border_style: room.border_style,
         border_color: room.border_color,
         player_label_visible: room.player_label_visible,
-        is_revealed: room.is_revealed,
+        is_revealed: revealOverride === 'reveal_all' ? true : room.is_revealed,
         visible_to_players: room.visible_to_players,
       }))
     : []
@@ -137,11 +138,15 @@ export function CenterScreenMapView({
   // gated by the DM's showFog cast setting. Painted/room masks render regardless.
   const fogMode = map.fog_mode ?? 'rooms'
   const baseFog =
-    fogMode === 'none'
+    revealOverride === 'reveal_all'
       ? false
-      : fogMode === 'hidden'
+      : revealOverride === 'hide_all'
         ? true
-        : revealedAreas.length > 0 || roomRegions.length === 0
+        : fogMode === 'none'
+          ? false
+          : fogMode === 'hidden'
+            ? true
+            : displayAreas.length > 0 || roomRegions.length === 0
   const globalFogEnabled = settings.showFog && baseFog
 
   async function enterFullscreen() {

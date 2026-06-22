@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { PartyMessage, PartyMessageType } from '@/lib/types/database'
@@ -41,10 +41,10 @@ export function PartyMessageListener({ userId }: { userId: string }) {
   const [dmPill, setDmPill] = useState<VisiblePartyMessage | null>(null)
   const [dmLog, setDmLog] = useState<VisiblePartyMessage[]>([])
   const [logOpen, setLogOpen] = useState(false)
-  const [seenIds, setSeenIds] = useState<Set<string>>(() => new Set())
+  const seenIdsRef = useRef<Set<string>>(new Set())
 
   const hydrateAndShow = useCallback(async (raw: MaybePartialPartyMessage) => {
-    if (seenIds.has(raw.id)) return
+    if (seenIdsRef.current.has(raw.id)) return
     if (raw.sender_user_id === userId && raw.message_type !== 'meeting') return
     const recipientIds = Array.isArray(raw.recipient_ids) ? raw.recipient_ids : []
     const supabase = createClient()
@@ -64,7 +64,7 @@ export function PartyMessageListener({ userId }: { userId: string }) {
 
     const roleIsDM = membership?.role === 'dm'
     setIsDM(roleIsDM)
-    setSeenIds((prev) => new Set(prev).add(raw.id))
+    seenIdsRef.current.add(raw.id)
     const hydrated = {
       ...raw,
       title: raw.title ?? titleFor(raw.message_type),
@@ -93,7 +93,7 @@ export function PartyMessageListener({ userId }: { userId: string }) {
       recipientIds.includes(userId) ||
       raw.recipient_user_id === userId
     if (isRecipient) setMessage(hydrated)
-  }, [seenIds, userId])
+  }, [userId])
 
   useEffect(() => {
     const supabase = createClient()

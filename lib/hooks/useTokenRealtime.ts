@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { GameMap, MapRevealedArea, MapRoomRegion, Token } from '@/lib/types/database'
+import type { RealtimeConnectionState } from './useRealtimeRefresh'
 
 type TokenRow = Token & { dm_notes?: string | null }
 
@@ -28,6 +29,9 @@ export function useTokenRealtime(
 ) {
   // Keep latest handlers without re-subscribing on every render.
   const ref = useRef(handlers)
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [retryToken, setRetryToken] = useState(0)
+  const [connectionState, setConnectionState] = useState<RealtimeConnectionState>('connecting')
   useEffect(() => {
     ref.current = handlers
   })
@@ -102,10 +106,23 @@ export function useTokenRealtime(
       )
       .subscribe((status) => {
         ref.current.onStatus?.(status)
+        if (status === 'SUBSCRIBED') {
+          setConnectionState('live')
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setConnectionState(status === 'CHANNEL_ERROR' ? 'failed' : 'stale')
+          if (retryRef.current) clearTimeout(retryRef.current)
+          retryRef.current = setTimeout(() => {
+            setConnectionState('reconnecting')
+            setRetryToken((value) => value + 1)
+          }, 1200)
+        }
       })
 
     return () => {
+      if (retryRef.current) clearTimeout(retryRef.current)
       supabase.removeChannel(channel)
     }
-  }, [mapId, campaignId])
+  }, [mapId, campaignId, retryToken])
+
+  return connectionState
 }

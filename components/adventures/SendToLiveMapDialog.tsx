@@ -7,6 +7,7 @@ import {
   getLiveMapDeployContext,
   sendPreparedMapToLiveMap,
   type DeployMode,
+  type DeployPreviewSummary,
 } from '@/lib/actions/prepared-maps'
 
 interface SendToLiveMapButtonProps {
@@ -17,7 +18,11 @@ interface SendToLiveMapButtonProps {
   dirty: boolean
 }
 
-type DeployContext = { activeMapName: string | null; existingDeployCount: number }
+type DeployContext = {
+  activeMapName: string | null
+  existingDeployCount: number
+  preview: DeployPreviewSummary | null
+}
 type DeployResult = {
   liveMapId: string
   mode: DeployMode
@@ -169,6 +174,38 @@ export function SendToLiveMapButton({
                 </div>
               ) : (
                 <div className="flex flex-col gap-2.5">
+                  {ctx?.preview && (
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+                      <h3 className="text-sm font-semibold text-zinc-100">Deploy preview</h3>
+                      <dl className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <dt className="text-zinc-500">Visible tokens</dt>
+                          <dd className="font-semibold text-emerald-300">{ctx.preview.visibleTokens}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-zinc-500">Hidden/discoverable</dt>
+                          <dd className="font-semibold text-amber-300">{ctx.preview.hiddenOrDiscoverableTokens}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-zinc-500">Rooms</dt>
+                          <dd className="font-semibold text-zinc-200">{ctx.preview.rooms}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-zinc-500">Fog masks</dt>
+                          <dd className="font-semibold text-zinc-200">{ctx.preview.fogMasks}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-zinc-500">Transport links</dt>
+                          <dd className="font-semibold text-zinc-200">{ctx.preview.transportLinks}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-zinc-500">Codex links</dt>
+                          <dd className="font-semibold text-zinc-200">{ctx.preview.codexLinks}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  )}
+
                   {MODE_INFO.map((info) => {
                     const isReplace = info.mode === 'replace_active'
                     const deployCount = ctx?.existingDeployCount ?? 0

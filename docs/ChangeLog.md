@@ -5,6 +5,26 @@ Architecture invariant: **Notion is documentation, not the live engine.** Notion
 syncs into the app-owned Codex; live gameplay state (positions, HP, initiative,
 dice, approvals, fog/reveal, turns) is never owned by Notion.
 
+## Live Map Remediation Pass (2026-06-22)
+
+**What changed.** Added hybrid player action authorization, action-specific DM
+nudges, non-destructive reveal-all/hide-all overrides, player-safe center-screen
+filtering, realtime reconnect recovery, and focused QA documentation.
+
+**Why.** The QA review found that player action targeting, DM nudges, cast
+visibility, and reveal-all behavior were either too broad or confusing during
+live play. This pass tightens those flows while preserving the DM-led app model.
+
+**Database changes.**
+- `party_messages.action_intent_id`
+- `maps.reveal_override`
+
+**QA performed.** `npx.cmd tsc --noEmit` passed. Lint/build status is tracked
+in the final implementation handoff for this pass.
+
+**Remaining issues.** Full authenticated DM/player browser QA still requires
+`E2E_DM_EMAIL`, `E2E_DM_PASSWORD`, and `E2E_CAMPAIGN_ID`.
+
 ## Adventure Maker + Codex Token Builder Rebuild (2026-06-13)
 
 **What changed.** Rebuilt the prepared-map editor into a three-part workspace:

@@ -1,5 +1,42 @@
 # Implementation Log
 
+## Live Map Remediation Pass
+
+Date: 2026-06-22
+
+Status: Implementation in progress; static verification started.
+
+## What Changed
+
+- Added `party_messages.action_intent_id` for action-specific DM nudges.
+- Added `maps.reveal_override` for temporary reveal-all/hide-all without deleting painted reveals or room masks.
+- Implemented shared hybrid player action authorization.
+- Updated player action target filtering to match the server-side authorization rule.
+- Updated DM action nudge derivation and acknowledgement to use exact action ids.
+- Made center-screen token and room data player-safe and cast-visibility aware.
+- Added realtime degraded-state refresh/resubscribe behavior.
+- Added `docs/QA_Reports/LiveMap_Remediation_QA.md`.
+
+## Why It Changed
+
+The QA review found confusing or unsafe edges in the live-session flow: broad
+guided action targeting, sender-wide nudge highlights, cast visibility mismatch,
+destructive reveal-all behavior, and realtime channels that only reported raw
+status. This pass moves those systems toward DM-controlled, player-safe,
+session-reliable behavior.
+
+## QA Performed
+
+- `npx.cmd tsc --noEmit` passed.
+- Lint/build and authenticated browser QA status should be recorded in the final handoff for this pass.
+
+## Known Risks
+
+- Production Supabase must receive the new migration before action-specific
+  nudge persistence and reveal override persistence work in deployed runtime.
+- Authenticated two-browser DM/player QA is still required to prove realtime
+  behavior beyond static checks.
+
 ## Phase 1 - Adventure Codex Architecture Spec
 
 Date: 2026-06-12

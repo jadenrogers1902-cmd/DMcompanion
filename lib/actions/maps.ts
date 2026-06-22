@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { tokenTypeColor, type Database, type TokenType, type TravelMode } from '@/lib/types/database'
+import { tokenTypeColor, type Database, type RevealOverride, type TokenType, type TravelMode } from '@/lib/types/database'
 import { castSettingsToJson, normalizeCenterCastSettings, type CenterCastSettings } from '@/lib/utils/cast-settings'
 
 type MapUpdate = Database['public']['Tables']['maps']['Update']
@@ -16,6 +16,22 @@ type TravelOptionsInput = {
   groupMovementUnlimited?: boolean
   freeroamMovementUnlimited?: boolean
   playerVisionRadiusFeet?: number
+}
+
+function revalidateMapSurfaces(campaignId: string, mapId: string) {
+  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}/center-screen`)
+}
+
+async function clearRevealOverrideIfNeeded(campaignId: string, mapId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('maps')
+    .update({ reveal_override: 'normal' })
+    .eq('id', mapId)
+    .eq('campaign_id', campaignId)
+    .neq('reveal_override', 'normal')
+  return error
 }
 
 function travelMigrationError(message: string) {
@@ -728,38 +744,39 @@ export async function deleteToken(
 
 // ────────────────────────────────────────────────────────────
 // Revealed areas (fog/reveal layer) — DM only.
-// First version: hide/reveal whole map, rectangles, circles. Players only
-// ever receive rows where visible_to_players = TRUE on the active map (RLS).
+// Whole-map reveal/hide is non-destructive; painted areas and room masks stay
+// intact and resume when the map returns to planned reveals.
 // ────────────────────────────────────────────────────────────
 export async function revealEntireMap(campaignId: string, mapId: string) {
+  return setMapRevealOverride(campaignId, mapId, 'reveal_all')
+}
+
+export async function hideEntireMap(campaignId: string, mapId: string) {
+  return setMapRevealOverride(campaignId, mapId, 'hide_all')
+}
+
+export async function clearMapRevealOverride(campaignId: string, mapId: string) {
+  return setMapRevealOverride(campaignId, mapId, 'normal')
+}
+
+export async function setMapRevealOverride(campaignId: string, mapId: string, override: RevealOverride) {
+  if (!['normal', 'reveal_all', 'hide_all'].includes(override)) {
+    return { error: 'Unknown reveal mode.' }
+  }
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  // Clear any existing area rows for a clean slate, then add one full reveal.
-  await supabase.from('map_revealed_areas').delete().eq('map_id', mapId)
-
-  const { error } = await supabase.from('map_revealed_areas').insert({
-    campaign_id: campaignId,
-    map_id: mapId,
-    shape_type: 'full',
-    visible_to_players: true,
-    created_by: user.id,
-  })
+  const { error } = await supabase
+    .from('maps')
+    .update({ reveal_override: override })
+    .eq('id', mapId)
+    .eq('campaign_id', campaignId)
   if (error) return { error: error.message }
 
-  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
-  return { success: true }
-}
-
-export async function hideEntireMap(campaignId: string, mapId: string) {
-  const supabase = await createClient()
-  const { error } = await supabase.from('map_revealed_areas').delete().eq('map_id', mapId)
-  if (error) return { error: error.message }
-
-  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidateMapSurfaces(campaignId, mapId)
   return { success: true }
 }
 
@@ -775,6 +792,8 @@ export async function addRevealedArea(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  const overrideError = await clearRevealOverrideIfNeeded(campaignId, mapId)
+  if (overrideError) return { error: overrideError.message }
 
   const row: Database['public']['Tables']['map_revealed_areas']['Insert'] =
     input.shape_type === 'rectangle'
@@ -806,7 +825,7 @@ export async function addRevealedArea(
   const { error } = await supabase.from('map_revealed_areas').insert(row)
   if (error) return { error: error.message }
 
-  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidateMapSurfaces(campaignId, mapId)
   return { success: true }
 }
 
@@ -819,22 +838,26 @@ export async function setRevealedAreaVisibility(
   visible: boolean,
 ) {
   const supabase = await createClient()
+  const overrideError = await clearRevealOverrideIfNeeded(campaignId, mapId)
+  if (overrideError) return { error: overrideError.message }
   const { error } = await supabase
     .from('map_revealed_areas')
     .update({ visible_to_players: visible })
     .eq('id', areaId)
   if (error) return { error: error.message }
 
-  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidateMapSurfaces(campaignId, mapId)
   return { success: true }
 }
 
 export async function deleteRevealedArea(campaignId: string, mapId: string, areaId: string) {
   const supabase = await createClient()
+  const overrideError = await clearRevealOverrideIfNeeded(campaignId, mapId)
+  if (overrideError) return { error: overrideError.message }
   const { error } = await supabase.from('map_revealed_areas').delete().eq('id', areaId)
   if (error) return { error: error.message }
 
-  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidateMapSurfaces(campaignId, mapId)
   return { success: true }
 }
 
@@ -845,6 +868,8 @@ export async function updateRoomRegion(
   patch: Pick<MapRoomRegionUpdate, 'is_revealed' | 'visible_to_players' | 'reveal_mode' | 'player_label_visible'>,
 ) {
   const supabase = await createClient()
+  const overrideError = await clearRevealOverrideIfNeeded(campaignId, mapId)
+  if (overrideError) return { error: overrideError.message }
   const update: MapRoomRegionUpdate = {}
   if (patch.is_revealed !== undefined) update.is_revealed = patch.is_revealed
   if (patch.visible_to_players !== undefined) update.visible_to_players = patch.visible_to_players
@@ -859,12 +884,14 @@ export async function updateRoomRegion(
     .eq('campaign_id', campaignId)
   if (error) return { error: error.message }
 
-  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidateMapSurfaces(campaignId, mapId)
   return { success: true }
 }
 
 export async function deleteRoomRegion(campaignId: string, mapId: string, roomId: string) {
   const supabase = await createClient()
+  const overrideError = await clearRevealOverrideIfNeeded(campaignId, mapId)
+  if (overrideError) return { error: overrideError.message }
   const { error } = await supabase
     .from('map_room_regions')
     .delete()
@@ -873,6 +900,6 @@ export async function deleteRoomRegion(campaignId: string, mapId: string, roomId
     .eq('campaign_id', campaignId)
   if (error) return { error: error.message }
 
-  revalidatePath(`/campaigns/${campaignId}/live-map/${mapId}`)
+  revalidateMapSurfaces(campaignId, mapId)
   return { success: true }
 }

@@ -104,6 +104,7 @@ export interface Condition {
 /** Base (whole-map) fog applied to players. See migration 20260621230000. */
 export type FogMode = 'none' | 'rooms' | 'hidden'
 export type FogStyle = 'blackout' | 'dim'
+export type RevealOverride = 'normal' | 'reveal_all' | 'hide_all'
 
 export interface GameMap {
   id: string
@@ -134,6 +135,7 @@ export interface GameMap {
   source_prepared_map_id: string | null
   fog_mode: FogMode
   fog_style: FogStyle
+  reveal_override: RevealOverride
   created_by: string
   created_at: string
   updated_at: string
@@ -1883,6 +1885,7 @@ export type Database = {
           source_prepared_map_id: string | null
           fog_mode: FogMode
           fog_style: FogStyle
+          reveal_override: RevealOverride
           created_by: string
           created_at: string
           updated_at: string
@@ -1916,6 +1919,7 @@ export type Database = {
           source_prepared_map_id?: string | null
           fog_mode?: FogMode
           fog_style?: FogStyle
+          reveal_override?: RevealOverride
           created_by: string
           created_at?: string
           updated_at?: string
@@ -1947,6 +1951,7 @@ export type Database = {
           source_prepared_map_id?: string | null
           fog_mode?: FogMode
           fog_style?: FogStyle
+          reveal_override?: RevealOverride
           updated_at?: string
         }
         Relationships: []
@@ -2597,6 +2602,7 @@ export type Database = {
           visibility_level?: string
           delivery_status?: string
           delivery_log?: Record<string, unknown>
+          action_intent_id?: string | null
           created_at?: string
           handled_at?: string | null
         }
@@ -2604,6 +2610,7 @@ export type Database = {
           // DM acknowledgement of nudges (migration 20260621220000). The table
           // is otherwise insert-only.
           handled_at?: string | null
+          action_intent_id?: string | null
         }
         Relationships: []
       }

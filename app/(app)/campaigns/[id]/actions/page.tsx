@@ -162,6 +162,7 @@ export default async function ActionsPage({ params }: PageProps) {
   if (isDM) {
     type NudgeRow = {
       sender_user_id: string | null
+      action_intent_id?: string | null
       message_type: string | null
       message: string | null
       handled_at?: string | null
@@ -172,7 +173,7 @@ export default async function ActionsPage({ params }: PageProps) {
     // every nudge as unhandled so highlights still work pre-migration.
     const withHandled = await supabase
       .from('party_messages')
-      .select('sender_user_id, message_type, message, handled_at')
+      .select('sender_user_id, action_intent_id, message_type, message, handled_at')
       .eq('campaign_id', id)
       .order('created_at', { ascending: false })
       .limit(100)
@@ -188,23 +189,45 @@ export default async function ActionsPage({ params }: PageProps) {
     } else {
       nudgeRows = (withHandled.data ?? []) as NudgeRow[]
     }
-    const nudgingUserIds = new Set(
-      nudgeRows
-        .filter(
-          (row) =>
-            !row.handled_at &&
-            (row.message_type === 'nudge' || row.message?.startsWith('Action nudge:')),
-        )
-        .map((row) => row.sender_user_id)
-        .filter((value): value is string => Boolean(value)),
+    const activeIntentIds = new Set(
+      intents
+        .filter((intent) => !['denied', 'resolved', 'cancelled'].includes(intent.status))
+        .map((intent) => intent.id),
     )
-    nudgedIntentIds = intents
-      .filter(
-        (intent) =>
-          !['denied', 'resolved', 'cancelled'].includes(intent.status) &&
-          nudgingUserIds.has(intent.actor_user_id),
+
+    nudgedIntentIds = Array.from(
+      new Set(
+        nudgeRows
+          .filter(
+            (row) =>
+              !row.handled_at &&
+              row.message_type === 'nudge' &&
+              row.action_intent_id &&
+              activeIntentIds.has(row.action_intent_id),
+          )
+          .map((row) => row.action_intent_id as string),
       )
-      .map((intent) => intent.id)
+    )
+
+    if (nudgedIntentIds.length === 0 && withHandled.error) {
+      const nudgingUserIds = new Set(
+        nudgeRows
+          .filter(
+            (row) =>
+              !row.handled_at &&
+              (row.message_type === 'nudge' || row.message?.startsWith('Action nudge:')),
+          )
+          .map((row) => row.sender_user_id)
+          .filter((value): value is string => Boolean(value)),
+      )
+      nudgedIntentIds = intents
+        .filter(
+          (intent) =>
+            !['denied', 'resolved', 'cancelled'].includes(intent.status) &&
+            nudgingUserIds.has(intent.actor_user_id),
+        )
+        .map((intent) => intent.id)
+    }
   }
   const loadedCharacterIds = characters.map((character) => character.id)
   const { data: attacksRaw } = await supabase
@@ -360,7 +383,7 @@ export default async function ActionsPage({ params }: PageProps) {
             campaignName={campaign.name}
             activeMapName={map?.name}
             pendingRequests={intents.filter((intent) =>
-              ['pending', 'needs_roll', 'approved', 'resolving'].includes(intent.status),
+              ['pending', 'needs_roll', 'approved', 'approved_waiting_for_roll', 'rolling', 'rolled_waiting_for_dm', 'resolving'].includes(intent.status),
             ).length}
             characterCount={characters.length}
           />

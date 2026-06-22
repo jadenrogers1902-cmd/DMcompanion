@@ -52,7 +52,7 @@ import { getRollOutcomeVariant } from '@/lib/utils/roll-outcome-display'
 import { PlayerRollOutcomePanel, type PlayerRollOutcomeData } from '@/components/actions/RollOutcomeEffects'
 import { PlayerLinkedCodexDocsPanel } from '@/components/codex/CodexLinkedDocsPanel'
 import { createClient } from '@/lib/supabase/client'
-import { actionsForToken, distanceFeet } from '@/lib/utils/actions'
+import { actionsForToken, authorizePlayerActionTarget, distanceFeet } from '@/lib/utils/actions'
 import type { NpcRevealPayload } from '@/lib/notion/npc-profile'
 import {
   type ActionIntent,
@@ -558,7 +558,8 @@ export function PlayerMapView({
     return () => window.clearTimeout(timer)
   }, [interactionOpen, loadMyRequests, section])
 
-  const renderAreas: RenderArea[] = areas.map((a) => ({
+  const revealOverride = mapState.reveal_override ?? 'normal'
+  const renderAreas: RenderArea[] = revealOverride === 'hide_all' ? [] : areas.map((a) => ({
     id: a.id,
     shape_type: a.shape_type,
     x: a.x,
@@ -568,9 +569,12 @@ export function PlayerMapView({
     radius: a.radius,
   }))
 
-  const renderRooms: RenderRoomRegion[] = rooms.map((room) => ({
+  const renderRooms: RenderRoomRegion[] = rooms.map((room) => {
+    const roomRevealed = revealOverride === 'reveal_all' || room.is_revealed
+    const roomName = roomRevealed || room.player_label_visible ? room.name : ''
+    return {
     id: room.id,
-    name: room.name,
+    name: roomName,
     shape_type: room.shape_type,
     x: room.x,
     y: room.y,
@@ -582,9 +586,10 @@ export function PlayerMapView({
     border_style: room.border_style,
     border_color: room.border_color,
     player_label_visible: room.player_label_visible,
-    is_revealed: room.is_revealed,
+    is_revealed: roomRevealed,
     visible_to_players: room.visible_to_players,
-  }))
+    }
+  })
 
   // ─── Fog × room-mask interaction ──────────────────────────────────────────
   // Two independent reveal systems can apply to a player's map:
@@ -604,9 +609,9 @@ export function PlayerMapView({
   // visibility is unchanged: RLS only sends rooms with visible_to_players=TRUE
   // on the active map, and hidden tokens stay redacted by
   // get_player_live_map_tokens regardless of fog.
-  const hasRevealedAreas = areas.length > 0
+  const hasRevealedAreas = renderAreas.length > 0
   const hasRoomRegions = rooms.length > 0
-  const hasHiddenRooms = rooms.some((room) => !room.is_revealed)
+  const hasHiddenRooms = revealOverride !== 'reveal_all' && rooms.some((room) => !room.is_revealed)
   // The map's base fog mode (Adventure Maker fog controls) decides the global
   // blackout. 'none' = never fog the whole map (painted/room masks still apply);
   // 'hidden' = fog the whole map until revealed live; 'rooms' (default, and the
@@ -614,11 +619,15 @@ export function PlayerMapView({
   const fogMode = mapState.fog_mode ?? 'rooms'
   const fogStyle = mapState.fog_style ?? 'blackout'
   const globalFogEnabled =
-    fogMode === 'none'
+    revealOverride === 'reveal_all'
       ? false
-      : fogMode === 'hidden'
+      : revealOverride === 'hide_all'
         ? true
-        : hasRevealedAreas || !hasRoomRegions
+        : fogMode === 'none'
+          ? false
+          : fogMode === 'hidden'
+            ? true
+            : hasRevealedAreas || !hasRoomRegions
 
   const controls = (t: Token) => t.controlled_by_user_id === currentUserId
 
@@ -794,10 +803,15 @@ export function PlayerMapView({
   }
 
   // Portals are excluded — they are travel points, not action targets.
-  const visibleTargets = tokens.filter(
-    (token) => token.visible_to_players !== false && token.token_type !== 'portal',
+  const visibleTargets = useMemo(
+    () => tokens.filter((token) => token.visible_to_players !== false && token.token_type !== 'portal'),
+    [tokens],
   )
-  const actionTarget = visibleTargets.find((token) => token.id === actionTargetId) ?? null
+  const authorizedActionTargets = useMemo(
+    () => visibleTargets.filter((token) => authorizePlayerActionTarget(guidedActionType, token).allowed),
+    [guidedActionType, visibleTargets],
+  )
+  const actionTarget = authorizedActionTargets.find((token) => token.id === actionTargetId) ?? null
 
   const actorForActionTarget = useMemo(() => {
     if (!actionTarget) return null
@@ -1913,7 +1927,7 @@ export function PlayerMapView({
           <ActionSequenceOverlay
             state={actionFlow}
             target={actionTarget}
-            targets={visibleTargets}
+            targets={authorizedActionTargets}
             actor={actorForActionTarget}
             actionType={guidedActionType}
             setActionType={(value) => {

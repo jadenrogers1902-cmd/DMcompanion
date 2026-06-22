@@ -84,6 +84,11 @@ export function ActionQueueDmControls({
   const selectedWeapon = options?.weapons.find((weapon) => weapon.value === selectedWeaponId) ?? null
   const isAttackRoll = rollType === 'weapon_attack' || rollType === 'attack'
   const isDcRoll = !isAttackRoll
+  const resolveLabel = hasRollResult || status === 'rolled_waiting_for_dm'
+    ? 'Resolve Result'
+    : status === 'resolving'
+      ? 'Apply & Reveal'
+      : 'Approve'
 
   function normalizedSelectedToolId(value?: string | null) {
     return (value ?? '').split(':').pop() ?? ''
@@ -602,7 +607,7 @@ export function ActionQueueDmControls({
           disabled={buttonsDisabled}
           onClick={() => update('resolved')}
         >
-          Approve
+          {resolveLabel}
         </Button>
         <Button
           size="sm"
@@ -610,7 +615,7 @@ export function ActionQueueDmControls({
           disabled={rollButtonsDisabled}
           onClick={() => requestRoll('needs_roll')}
         >
-          Require Roll
+          Request Roll
         </Button>
         <Button
           size="sm"
@@ -631,15 +636,14 @@ export function ActionQueueDmControls({
           disabled={Boolean(busyStatus)}
           onClick={() => requestRoll('needs_roll')}
         >
-          Request Another Roll (reroll)
+          Request Another Roll
         </Button>
       )}
 
       <p className="text-[11px] leading-relaxed text-zinc-600">
         Dismissal and popup controls never mark a request resolved by themselves. Approve resolves
-        without a roll; Require Roll asks the player to roll first. The DM-only note stays private.
-        Reviewing an outcome? Use Approve to complete, Request Another Roll to reroll, the modifier
-        override to modify, or Deny to cancel.
+        without a roll; Request Roll asks the player to roll first. Reviewing an outcome? Resolve
+        Result completes it, Request Another Roll rerolls it, and Deny cancels it.
       </p>
     </div>
   )

@@ -117,8 +117,7 @@ function logPartyMessage(envelope: DeliveryEnvelope, senderId: string, senderNam
     visibilityLevel: envelope.visibilityLevel,
     deliveryStatus: envelope.deliveryStatus,
     // Links a nudge to its action card so the DM queue can highlight it. Null
-    // for non-nudge messages. Stored in the existing delivery_log JSONB — no
-    // schema change required.
+    // for non-nudge messages.
     intentId: envelope.intentId ?? null,
   }
 }
@@ -147,6 +146,7 @@ function rowForEnvelope(
     dm_recipient_id: dmDelivery.dmRecipientId,
     visibility_level: dmDelivery.visibilityLevel,
     delivery_status: envelope.deliveryStatus,
+    action_intent_id: envelope.intentId ?? null,
   }
   return { baseRow, fullRow }
 }
@@ -273,8 +273,22 @@ export async function sendDMNudge(
     waitingSince?: string | null
   },
 ) {
-  const { user } = await getClientAndUser()
+  const { supabase, user } = await getClientAndUser()
   if (!user) return { error: 'Not authenticated' }
+  if (input.intentId) {
+    const { data: intent, error } = await supabase
+      .from('action_intents')
+      .select('id, campaign_id, actor_user_id, status')
+      .eq('id', input.intentId)
+      .eq('campaign_id', campaignId)
+      .maybeSingle()
+    if (error) return { error: 'Could not verify that action request.' }
+    if (!intent) return { error: 'That action request is no longer available.' }
+    if (intent.actor_user_id !== user.id) return { error: 'You can only nudge your own action requests.' }
+    if (['denied', 'resolved', 'cancelled'].includes(intent.status)) {
+      return { error: 'That action request is already closed.' }
+    }
+  }
   const recipients = await getCampaignRecipients(campaignId, user.id)
   if (!recipients.dmRecipientId) return { error: 'No DM is available for this campaign.' }
 
@@ -326,6 +340,25 @@ export async function sendPartyMessage(
  * in-session client-side dismiss still works; only cross-refresh persistence is
  * unavailable until the migration lands.
  */
+export async function acknowledgeActionNudge(campaignId: string, intentId: string) {
+  if (!campaignId || !intentId) return { ok: false as const }
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('party_messages')
+    .update({ handled_at: new Date().toISOString() })
+    .eq('campaign_id', campaignId)
+    .eq('action_intent_id', intentId)
+    .eq('message_type', 'nudge')
+    .is('handled_at', null)
+  if (error) {
+    if (/action_intent_id|handled_at|column|permission|policy|row-level/i.test(error.message)) {
+      return { ok: false as const, degraded: true as const }
+    }
+    return { error: error.message }
+  }
+  return { ok: true as const }
+}
+
 export async function acknowledgePlayerNudges(campaignId: string, actorUserId: string) {
   if (!campaignId || !actorUserId) return { ok: false as const }
   const supabase = await createClient()

@@ -24,6 +24,7 @@ function areaToRenderArea(area: MapRevealedArea): RenderArea {
 }
 
 function tokenToCenterScreenToken(token: Token): RenderToken | null {
+  if (token.visible_on_cast === false) return null
   if (token.visible_to_players === false && !token.discoverable) return null
   const visible = token.visible_to_players !== false
   return {
@@ -190,6 +191,7 @@ export default async function CenterScreenPage({ params }: PageProps) {
       .from('map_room_regions')
       .select('*')
       .eq('map_id', mapId)
+      .eq('visible_to_players', true)
       .order('created_at', { ascending: true }),
     supabase
       .from('map_travel_parties')
@@ -213,19 +215,28 @@ export default async function CenterScreenPage({ params }: PageProps) {
   }
 
   const rawTokens = (tokens ?? []) as Token[]
+  const castSafeTokens = rawTokens.filter((token) => token.visible_on_cast !== false)
   const activeParty = ((parties ?? []) as MapTravelParty[])[0] ?? null
   const rawPartyMembers = (partyMembers ?? []) as MapTravelPartyMember[]
 
-  const renderTokens = rawTokens
+  const renderTokens = castSafeTokens
     .map(tokenToCenterScreenToken)
     .filter((token): token is RenderToken => Boolean(token))
 
   const renderAreas = ((areas ?? []) as MapRevealedArea[]).map(areaToRenderArea)
-  const renderRooms = (rooms ?? []) as MapRoomRegion[]
+  const renderRooms = ((rooms ?? []) as MapRoomRegion[]).map((room) => {
+    if (room.is_revealed || room.player_label_visible) return room
+    return {
+      ...room,
+      name: '',
+      linked_campaign_doc_id: null,
+      door_token_ids: [],
+    }
+  })
   const settings = normalizeCenterCastSettings(map.cast_settings)
   const viewGroups = buildViewGroups({
     map,
-    tokens: rawTokens,
+    tokens: castSafeTokens,
     activeParty,
     partyMembers: rawPartyMembers,
   })

@@ -11,7 +11,7 @@ import { ClearActionBoardButton } from './ClearActionBoardButton'
 import { RollOutcomeBadge, RollOutcomeEffects, usePrefersReducedMotion } from './RollOutcomeEffects'
 import { revealAttackResult } from '@/lib/actions/roll-requests'
 import { applyPendingStateUpdate, rejectPendingStateUpdate } from '@/lib/actions/state-updates'
-import { acknowledgePlayerNudges } from '@/lib/actions/party-messages'
+import { acknowledgeActionNudge } from '@/lib/actions/party-messages'
 import type {
   ActionAttackResult,
   ActionAttackResultDmDetail,
@@ -601,7 +601,7 @@ function DMActionQueue({
     if (!nudgedSet.has(intentId)) return
     const intent = intents.find((i) => i.id === intentId)
     if (intent?.actor_user_id) {
-      void acknowledgePlayerNudges(campaignId, intent.actor_user_id)
+      void acknowledgeActionNudge(campaignId, intent.id)
     }
   }
   const isNudged = (intent: IntentDetails) =>

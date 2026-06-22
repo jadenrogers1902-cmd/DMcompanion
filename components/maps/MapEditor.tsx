@@ -33,6 +33,7 @@ import {
   addRevealedArea,
   addToken,
   bulkUpdateTokenClassSettings,
+  clearMapRevealOverride,
   deleteRevealedArea,
   deleteRoomRegion,
   deleteToken,
@@ -105,7 +106,7 @@ type TokenClassDefinition = {
   settings: TokenClassSettings
 }
 
-const LATEST_LOCAL_MIGRATION = '055_token_class_behavior_defaults.sql'
+const LATEST_LOCAL_MIGRATION = '20260622020402_action_nudges_reveal_override.sql'
 
 const TOKEN_EDIT_TABS: { value: TokenEditTab; label: string }[] = [
   { value: 'basic', label: 'Basic' },
@@ -351,6 +352,7 @@ export function MapEditor({
   const [gridSaveError, setGridSaveError] = useState<string | null>(null)
 
   const [isActive, setIsActive] = useState(map.is_active)
+  const [revealOverride, setRevealOverride] = useState(map.reveal_override ?? 'normal')
   const [mapLocked, setMapLocked] = useState(map.player_movement_locked)
   const [travelMode, setTravelMode] = useState<TravelMode>(map.travel_mode ?? 'freeroam')
   const [partyOptionsLocked, setPartyOptionsLocked] = useState(map.party_options_locked ?? false)
@@ -584,17 +586,26 @@ export function MapEditor({
 
   async function handleRevealAll() {
     setAreaBusy(true)
-    await revealEntireMap(campaignId, map.id)
+    const result = await revealEntireMap(campaignId, map.id)
+    if (!result?.error) setRevealOverride('reveal_all')
     setAreaBusy(false)
     router.refresh()
   }
 
   async function handleHideAll() {
-    if (!confirm('Hide the entire map and clear all revealed areas? Players will see nothing until you reveal again.')) return
     setAreaBusy(true)
-    await hideEntireMap(campaignId, map.id)
-    setAreas([])
+    const result = await hideEntireMap(campaignId, map.id)
+    if (!result?.error) setRevealOverride('hide_all')
     setAreaBusy(false)
+    router.refresh()
+  }
+
+  async function handleUsePlannedReveals() {
+    setAreaBusy(true)
+    const result = await clearMapRevealOverride(campaignId, map.id)
+    if (!result?.error) setRevealOverride('normal')
+    setAreaBusy(false)
+    router.refresh()
   }
 
   async function handleAreaDrawn(
@@ -603,33 +614,39 @@ export function MapEditor({
       | { shape_type: 'circle'; x: number; y: number; radius: number },
   ) {
     setDrawTool(null)
+    setRevealOverride('normal')
     await addRevealedArea(campaignId, map.id, shape)
   }
 
   async function handleToggleArea(area: MapRevealedArea) {
     const next = !area.visible_to_players
+    setRevealOverride('normal')
     setAreas((prev) => prev.map((a) => (a.id === area.id ? { ...a, visible_to_players: next } : a)))
     await setRevealedAreaVisibility(campaignId, map.id, area.id, next)
   }
 
   async function handleDeleteArea(area: MapRevealedArea) {
+    setRevealOverride('normal')
     setAreas((prev) => prev.filter((a) => a.id !== area.id))
     await deleteRevealedArea(campaignId, map.id, area.id)
   }
 
   async function handleToggleRoom(room: MapRoomRegion) {
     const next = !room.is_revealed
+    setRevealOverride('normal')
     setRooms((prev) => prev.map((r) => (r.id === room.id ? { ...r, is_revealed: next } : r)))
     await updateRoomRegion(campaignId, map.id, room.id, { is_revealed: next })
   }
 
   async function handleToggleRoomPlayerLabel(room: MapRoomRegion) {
     const next = !room.player_label_visible
+    setRevealOverride('normal')
     setRooms((prev) => prev.map((r) => (r.id === room.id ? { ...r, player_label_visible: next } : r)))
     await updateRoomRegion(campaignId, map.id, room.id, { player_label_visible: next })
   }
 
   async function handleDeleteRoom(room: MapRoomRegion) {
+    setRevealOverride('normal')
     setRooms((prev) => prev.filter((r) => r.id !== room.id))
     await deleteRoomRegion(campaignId, map.id, room.id)
   }
@@ -1476,17 +1493,27 @@ export function MapEditor({
           {/* Revealed areas (fog layer) */}
           {mapToolTab === 'reveal' && (
           <div className="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-            <h3 className="text-sm font-semibold text-zinc-200">Revealed Areas</h3>
+            <h3 className="text-sm font-semibold text-zinc-200">Visibility</h3>
             <p className="text-xs text-zinc-500">
-              Controls what map regions players can see. With no areas revealed,
-              players see an empty/fogged map.
+              Control the map-level reveal override, painted reveals, and room masks. Temporary
+              reveal/hide does not delete painted areas.
             </p>
+            {revealOverride !== 'normal' && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                {revealOverride === 'reveal_all'
+                  ? 'Reveal-all is active. Painted reveals and room masks are preserved.'
+                  : 'Hide-all is active. Painted reveals and room masks are preserved.'}
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="secondary" onClick={handleRevealAll} loading={areaBusy}>
-                Reveal entire map
+                Reveal all temporarily
               </Button>
               <Button size="sm" variant="danger" onClick={handleHideAll} loading={areaBusy}>
-                Hide / clear all
+                Hide all temporarily
+              </Button>
+              <Button size="sm" variant="secondary" onClick={handleUsePlannedReveals} loading={areaBusy} disabled={revealOverride === 'normal'}>
+                Use planned reveals
               </Button>
             </div>
             <div className="flex gap-2">

@@ -117,6 +117,18 @@ A fully featured campaign management companion that feels fast and clean during 
 
 ---
 
+## Live Session Safety Rules
+
+- Player action requests use hybrid authorization:
+  - Attack requires a visible, non-portal, combat-capable or attack-enabled target.
+  - Talk, Investigate, and Custom Action may target any visible non-portal token.
+  - Interact, Use Item, and Cast Spell require DM-enabled interaction/action settings.
+- Center Screen is player-safe display data. It honors token cast visibility and must not send hidden room/token details to the client.
+- Reveal all / hide all are temporary map-level overrides. They do not delete painted reveal areas or room masks.
+- Realtime subscribers should recover from degraded channel states by refreshing and resubscribing; degraded state should be visible without noisy alert spam.
+
+---
+
 ## File Conventions
 
 - Route groups: `(auth)` for unauthenticated pages, `(app)` for authenticated pages

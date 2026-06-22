@@ -258,6 +258,42 @@ export async function deletePreparedMap(
 export type DeployMode = 'next_scene' | 'duplicate' | 'replace_active'
 const DEPLOY_MODES: DeployMode[] = ['next_scene', 'duplicate', 'replace_active']
 
+export type DeployPreviewSummary = {
+  visibleTokens: number
+  hiddenOrDiscoverableTokens: number
+  rooms: number
+  fogMasks: number
+  transportLinks: number
+  codexLinks: number
+}
+
+function buildDeployPreviewSummary(prepared: Pick<PreparedMap, 'tokens' | 'room_regions' | 'fog_regions' | 'links'>): DeployPreviewSummary {
+  const tokens = Array.isArray(prepared.tokens) ? prepared.tokens : []
+  const rooms = Array.isArray(prepared.room_regions) ? prepared.room_regions : []
+  const fogMasks = Array.isArray(prepared.fog_regions) ? prepared.fog_regions : []
+  const mapLinks = Array.isArray(prepared.links) ? prepared.links : []
+  const visibleTokens = tokens.filter(
+    (token) => token.reveal_state === 'visible' || token.reveal_state === 'revealed' || token.visible_to_players,
+  ).length
+  const hiddenOrDiscoverableTokens = tokens.filter(
+    (token) => token.reveal_state === 'hidden' || token.reveal_state === 'discoverable' || token.reveal_state === 'dm_only',
+  ).length
+  const transportLinks = tokens.filter(
+    (token) => token.token_type === 'transport' && Boolean(token.linked_prepared_map_id),
+  ).length
+  const tokenCodexLinks = tokens.filter((token) => Boolean(token.linked_campaign_doc_id)).length
+  const roomCodexLinks = rooms.filter((room) => Boolean(room.linked_campaign_doc_id)).length
+
+  return {
+    visibleTokens,
+    hiddenOrDiscoverableTokens,
+    rooms: rooms.length,
+    fogMasks: fogMasks.length,
+    transportLinks,
+    codexLinks: tokenCodexLinks + roomCodexLinks + mapLinks.length,
+  }
+}
+
 /**
  * Context for the "Send to Live Map" UI: the current active map's name (for the
  * overwrite warning) and how many live maps already came from this prep.
@@ -269,7 +305,7 @@ export async function getLiveMapDeployContext(campaignId: string, preparedMapId:
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const [{ data: active }, { count }] = await Promise.all([
+  const [{ data: active }, { count }, { data: prepared }] = await Promise.all([
     supabase
       .from('maps')
       .select('name')
@@ -281,11 +317,20 @@ export async function getLiveMapDeployContext(campaignId: string, preparedMapId:
       .select('id', { count: 'exact', head: true })
       .eq('campaign_id', campaignId)
       .eq('source_prepared_map_id', preparedMapId),
+    supabase
+      .from('prepared_maps')
+      .select('tokens, room_regions, fog_regions, links')
+      .eq('id', preparedMapId)
+      .eq('campaign_id', campaignId)
+      .single(),
   ])
 
   return {
     activeMapName: active?.name ?? null,
     existingDeployCount: count ?? 0,
+    preview: prepared
+      ? buildDeployPreviewSummary(prepared as Pick<PreparedMap, 'tokens' | 'room_regions' | 'fog_regions' | 'links'>)
+      : null,
   }
 }
 

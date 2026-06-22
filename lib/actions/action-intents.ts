@@ -16,18 +16,10 @@ import {
   type NpcRevealPayload,
 } from '@/lib/notion/npc-profile'
 import type { ActionIntent, ActionIntentStatus, CampaignDoc, CharacterAttack, Token } from '@/lib/types/database'
-import { actionsForToken, distanceFeet } from '@/lib/utils/actions'
+import { authorizePlayerActionTarget, distanceFeet } from '@/lib/utils/actions'
 
 const ACTIONS_PATH = (campaignId: string) => `/campaigns/${campaignId}/actions`
-const GUIDED_PLAYER_ACTIONS = [
-  'Attack',
-  'Interact',
-  'Talk',
-  'Investigate',
-  'Use Item',
-  'Cast Spell',
-  'Custom Action',
-]
+const GUIDED_PLAYER_ACTIONS = ['Attack', 'Interact', 'Talk', 'Investigate', 'Use Item', 'Cast Spell', 'Custom Action']
 
 async function getClientAndUser() {
   const supabase = await createClient()
@@ -262,12 +254,9 @@ export async function submitActionIntent(
 
   const targetToken = target as Token
   const isGuidedAction = GUIDED_PLAYER_ACTIONS.includes(actionType)
-  if (!targetToken.interactable && !isGuidedAction) {
-    return { error: 'The DM has not made that available for interaction.' }
-  }
-  const availableActions = actionsForToken(targetToken)
-  if (!availableActions.includes(actionType) && !isGuidedAction) {
-    return { error: 'That action is not available for this target.' }
+  const authorization = authorizePlayerActionTarget(actionType, targetToken, actor as Token)
+  if (!authorization.allowed) {
+    return { error: authorization.message }
   }
 
   const range = targetToken.interaction_range_feet ?? (isGuidedAction ? 60 : 5)

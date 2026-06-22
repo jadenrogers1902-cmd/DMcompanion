@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -10,6 +10,8 @@ export interface RealtimeWatch {
   filter?: string
   event?: '*' | 'INSERT' | 'UPDATE' | 'DELETE'
 }
+
+export type RealtimeConnectionState = 'connecting' | 'live' | 'reconnecting' | 'stale' | 'failed'
 
 /**
  * Subscribes to one or more tables and asks Next.js to re-fetch the current
@@ -37,6 +39,9 @@ export function useRealtimeRefresh(
 ) {
   const router = useRouter()
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [retryToken, setRetryToken] = useState(0)
+  const [connectionState, setConnectionState] = useState<RealtimeConnectionState>('connecting')
   const watchesKey = JSON.stringify(watches)
   const enabled = options?.enabled ?? true
 
@@ -45,6 +50,21 @@ export function useRealtimeRefresh(
 
     const supabase = createClient()
     let channel = supabase.channel(channelName)
+
+    const refreshSoon = () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => {
+        router.refresh()
+      }, options?.debounceMs ?? 200)
+    }
+
+    const retrySoon = () => {
+      if (retryRef.current) clearTimeout(retryRef.current)
+      retryRef.current = setTimeout(() => {
+        setConnectionState('reconnecting')
+        setRetryToken((value) => value + 1)
+      }, 1200)
+    }
 
     watches.forEach((w) => {
       channel = channel.on(
@@ -55,23 +75,29 @@ export function useRealtimeRefresh(
           table: w.table,
           filter: w.filter,
         },
-        () => {
-          if (timerRef.current) clearTimeout(timerRef.current)
-          timerRef.current = setTimeout(() => {
-            router.refresh()
-          }, options?.debounceMs ?? 200)
-        },
+        refreshSoon,
       )
     })
 
     channel.subscribe((status) => {
       options?.onStatus?.(status)
+      if (status === 'SUBSCRIBED') {
+        setConnectionState('live')
+        refreshSoon()
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        setConnectionState(status === 'CHANNEL_ERROR' ? 'failed' : 'stale')
+        refreshSoon()
+        retrySoon()
+      }
     })
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
+      if (retryRef.current) clearTimeout(retryRef.current)
       supabase.removeChannel(channel)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelName, watchesKey, enabled])
+  }, [channelName, watchesKey, enabled, retryToken])
+
+  return connectionState
 }

@@ -4,6 +4,11 @@ This document describes the live DM-controlled map visibility ("fog of war
 v1") system, what it does and does not do, and the manual two-browser test
 checklist for verifying it.
 
+> Current behavior note: reveal-all and hide-all are now non-destructive
+> map-level overrides (`maps.reveal_override`). They temporarily show or hide
+> the whole map without deleting painted reveal areas or room masks. Use planned
+> reveals restores the stored painted reveal / room-mask behavior.
+
 ## Scope
 
 In scope (implemented):

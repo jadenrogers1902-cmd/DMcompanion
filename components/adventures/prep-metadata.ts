@@ -205,6 +205,13 @@ export function normalizePreparedRoomRegion(value: unknown): PreparedMapRoomRegi
   const borderStyle = ROOM_BORDER_STYLES.includes(raw.border_style as RoomBorderStyle)
     ? (raw.border_style as RoomBorderStyle)
     : 'door'
+  const borderColor =
+    typeof raw.border_color === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw.border_color)
+      ? raw.border_color
+      : null
+  const doorTokenIds = Array.isArray(raw.door_token_ids)
+    ? Array.from(new Set(raw.door_token_ids.map((value) => String(value)).filter(Boolean))).slice(0, 50)
+    : []
   const points = normalizeRoomPoints(raw.points)
   return {
     id: String(raw.id ?? crypto.randomUUID()),
@@ -219,6 +226,8 @@ export function normalizePreparedRoomRegion(value: unknown): PreparedMapRoomRegi
     reveal_mode: revealMode,
     mask_style: maskStyle,
     border_style: borderStyle,
+    border_color: borderColor,
+    door_token_ids: doorTokenIds,
     player_label_visible: Boolean(raw.player_label_visible),
     auto_reveal_distance_feet: Math.max(0, Math.round(finiteNumber(raw.auto_reveal_distance_feet, 0))),
     is_revealed_by_default: Boolean(raw.is_revealed_by_default),

@@ -188,6 +188,7 @@ export function PreparedMapEditor({
         reveal_mode: room.reveal_mode,
         mask_style: room.mask_style,
         border_style: room.border_style,
+        border_color: room.border_color ?? null,
         player_label_visible: room.player_label_visible,
         is_revealed: room.is_revealed_by_default,
         visible_to_players: room.visible_to_players,
@@ -203,6 +204,42 @@ export function PreparedMapEditor({
   function updateToken(id: string, patch: Partial<PreparedMapToken>) {
     setTokens((prev) => prev.map((token) => (token.id === id ? { ...token, ...patch } : token)))
     touch()
+  }
+
+  // Is image-space point (x,y) inside this region's geometry?
+  function roomContainsPoint(room: PreparedMapRoomRegion, x: number, y: number): boolean {
+    if (room.shape_type === 'rectangle') {
+      const w = room.width ?? 0
+      const h = room.height ?? 0
+      return x >= room.x && x <= room.x + w && y >= room.y && y <= room.y + h
+    }
+    const pts = room.points ?? []
+    if (pts.length < 3) return false
+    let inside = false
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const xi = pts[i].x
+      const yi = pts[i].y
+      const xj = pts[j].x
+      const yj = pts[j].y
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi || 1) + xi) inside = !inside
+    }
+    return inside
+  }
+
+  // Move a token; if it's a door, auto-link it to any room it now sits inside
+  // (one of the two ways to tie a door to an area). Never auto-unlinks — use the
+  // room's Doors list to remove a link.
+  function handleTokenMove(id: string, x: number, y: number) {
+    updateToken(id, { x, y })
+    const token = tokens.find((t) => t.id === id)
+    if (token?.token_type !== 'door') return
+    setRoomRegions((prev) =>
+      prev.map((room) =>
+        roomContainsPoint(room, x, y) && !(room.door_token_ids ?? []).includes(id)
+          ? { ...room, door_token_ids: [...(room.door_token_ids ?? []), id] }
+          : room,
+      ),
+    )
   }
 
   // Update a region in whichever array holds it (room or fog).
@@ -681,7 +718,7 @@ export function PreparedMapEditor({
                     setSelectedFogId(null)
                   }
                 }}
-                onMoveToken={(id, x, y) => updateToken(id, { x, y })}
+                onMoveToken={handleTokenMove}
                 canDragToken={() => true}
                 roomRegions={renderRooms}
                 selectedRoomRegionId={selectedRoomId ?? selectedFogId}
@@ -1410,6 +1447,86 @@ function SubLocationsPanel({
                         <option value="solid">Solid</option>
                         <option value="glow">Glow</option>
                       </Select>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="flex items-center gap-2 text-xs text-zinc-300">
+                        Border color
+                        <input
+                          type="color"
+                          value={selectedRoom.border_color ?? '#f472b6'}
+                          onChange={(event) => onUpdateRoom(selectedRoom.id, { border_color: event.target.value })}
+                          className="h-7 w-10 cursor-pointer rounded border border-zinc-700 bg-transparent"
+                        />
+                      </label>
+                      {selectedRoom.border_color && (
+                        <button
+                          type="button"
+                          onClick={() => onUpdateRoom(selectedRoom.id, { border_color: null })}
+                          className="text-xs font-medium text-zinc-400 hover:text-zinc-100"
+                        >
+                          Reset to style
+                        </button>
+                      )}
+                    </div>
+                    <div>
+                      <p className="mb-1.5 text-xs font-semibold text-zinc-300">Doors (entrances)</p>
+                      {(selectedRoom.door_token_ids ?? []).length > 0 ? (
+                        <div className="mb-2 grid gap-1.5">
+                          {(selectedRoom.door_token_ids ?? []).map((doorId) => {
+                            const door = doors.find((d) => d.id === doorId)
+                            return (
+                              <div
+                                key={doorId}
+                                className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900/80 px-2.5 py-1.5 text-sm text-zinc-300"
+                              >
+                                <span aria-hidden="true">🚪</span>
+                                <span className="min-w-0 flex-1 truncate">{door?.name ?? 'Door (removed)'}</span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    onUpdateRoom(selectedRoom.id, {
+                                      door_token_ids: (selectedRoom.door_token_ids ?? []).filter((id) => id !== doorId),
+                                    })
+                                  }
+                                  className="shrink-0 text-xs font-semibold text-red-400 hover:text-red-300"
+                                >
+                                  Unlink
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p className="mb-2 text-[11px] text-zinc-500">
+                          No doors linked yet. Players enter this area through its linked doors.
+                        </p>
+                      )}
+                      {doors.filter((d) => !(selectedRoom.door_token_ids ?? []).includes(d.id)).length > 0 ? (
+                        <Select
+                          label="Link a door"
+                          value=""
+                          onChange={(event) => {
+                            const doorId = event.target.value
+                            if (!doorId) return
+                            onUpdateRoom(selectedRoom.id, {
+                              door_token_ids: [...(selectedRoom.door_token_ids ?? []), doorId],
+                            })
+                          }}
+                        >
+                          <option value="">Choose a door…</option>
+                          {doors
+                            .filter((d) => !(selectedRoom.door_token_ids ?? []).includes(d.id))
+                            .map((d) => (
+                              <option key={d.id} value={d.id}>{d.name || 'Door'}</option>
+                            ))}
+                        </Select>
+                      ) : (
+                        <p className="text-[11px] text-zinc-500">
+                          {doors.length === 0
+                            ? 'Add doors from the Doors card above, or drag a door into this area to link it.'
+                            : 'All doors are linked to this area.'}
+                        </p>
+                      )}
                     </div>
                     <label className="flex items-center gap-2 text-xs text-zinc-300">
                       <input

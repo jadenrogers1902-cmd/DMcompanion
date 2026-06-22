@@ -580,6 +580,7 @@ export function PlayerMapView({
     reveal_mode: room.reveal_mode,
     mask_style: room.mask_style,
     border_style: room.border_style,
+    border_color: room.border_color,
     player_label_visible: room.player_label_visible,
     is_revealed: room.is_revealed,
     visible_to_players: room.visible_to_players,

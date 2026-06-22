@@ -282,6 +282,10 @@ export interface MapRoomRegion {
   reveal_mode: RoomRevealMode
   mask_style: RoomMaskStyle
   border_style: RoomBorderStyle
+  /** Custom border colour (hex); null keeps the border-style default colour. */
+  border_color: string | null
+  /** Live door-token ids tied to this room (its entrances). */
+  door_token_ids: string[]
   player_label_visible: boolean
   auto_reveal_distance_feet: number
   is_revealed: boolean
@@ -2175,6 +2179,8 @@ export type Database = {
           reveal_mode?: RoomRevealMode
           mask_style?: RoomMaskStyle
           border_style?: RoomBorderStyle
+          border_color?: string | null
+          door_token_ids?: string[]
           player_label_visible?: boolean
           auto_reveal_distance_feet?: number
           is_revealed?: boolean
@@ -2196,6 +2202,8 @@ export type Database = {
           reveal_mode?: RoomRevealMode
           mask_style?: RoomMaskStyle
           border_style?: RoomBorderStyle
+          border_color?: string | null
+          door_token_ids?: string[]
           player_label_visible?: boolean
           auto_reveal_distance_feet?: number
           is_revealed?: boolean

@@ -159,6 +159,10 @@ export type PreparedMapRoomRegion = {
   reveal_mode: RoomRevealMode
   mask_style: RoomMaskStyle
   border_style: RoomBorderStyle
+  /** Custom border colour (hex); null/undefined keeps the style default. */
+  border_color?: string | null
+  /** Prep door-token ids tied to this room (its entrances). */
+  door_token_ids?: string[]
   player_label_visible: boolean
   auto_reveal_distance_feet: number
   is_revealed_by_default: boolean

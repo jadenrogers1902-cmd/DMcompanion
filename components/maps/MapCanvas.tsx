@@ -56,6 +56,7 @@ export interface RenderRoomRegion {
   reveal_mode: 'manual' | 'auto' | 'manual_auto'
   mask_style: 'blackout' | 'dim' | 'outline_only'
   border_style: 'door' | 'dashed' | 'solid' | 'glow'
+  border_color?: string | null
   player_label_visible: boolean
   is_revealed: boolean
   visible_to_players: boolean
@@ -353,6 +354,8 @@ export function MapCanvas({
 
   function roomStroke(room: RenderRoomRegion, selected: boolean) {
     if (selected) return '#f472b6'
+    // A custom border colour overrides the style/revealed defaults.
+    if (room.border_color) return room.border_color
     if (room.is_revealed) return 'rgba(34,197,94,0.78)'
     if (room.border_style === 'glow') return 'rgba(96,165,250,0.95)'
     if (room.border_style === 'door') return 'rgba(251,191,36,0.92)'

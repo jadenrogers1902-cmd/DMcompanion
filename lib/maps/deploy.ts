@@ -169,8 +169,11 @@ export async function instantiatePreparedMap(
     return token.name
   }
 
+  // Maps a prepared token id → its new live token id, so room↔door links can be
+  // re-pointed at the live door tokens after deploy.
+  const prepToLiveTokenId = new Map<string, string>()
   if (tokens.length > 0) {
-    const { error: tokenError } = await insertPreparedTokens(client, {
+    const tokenResult = await insertPreparedTokens(client, {
       campaignId,
       liveMapId: liveMap.id,
       tokens,
@@ -178,11 +181,16 @@ export async function instantiatePreparedMap(
       liveTokenName,
       copyPrivateMetadata: true,
     })
-    if (tokenError) {
+    if (tokenResult.error) {
       return {
-        error: `Live map "${prepared.title}" was created, but tokens failed to copy: ${sourceTrackingMigrationMessage(tokenError.message)}`,
+        error: `Live map "${prepared.title}" was created, but tokens failed to copy: ${sourceTrackingMigrationMessage(tokenResult.error.message)}`,
       }
     }
+    const liveIds = tokenResult.data ?? []
+    tokens.forEach((token, index) => {
+      const liveId = liveIds[index]?.id
+      if (liveId) prepToLiveTokenId.set(token.id, liveId)
+    })
   }
 
   // Room masks and painted fog regions both deploy into map_room_regions —
@@ -209,6 +217,10 @@ export async function instantiatePreparedMap(
         reveal_mode: room.reveal_mode,
         mask_style: room.mask_style,
         border_style: room.border_style,
+        border_color: room.border_color ?? null,
+        door_token_ids: (room.door_token_ids ?? [])
+          .map((prepId) => prepToLiveTokenId.get(prepId))
+          .filter((id): id is string => Boolean(id)),
         player_label_visible: room.player_label_visible,
         auto_reveal_distance_feet: room.auto_reveal_distance_feet,
         is_revealed: room.is_revealed_by_default,

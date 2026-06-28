@@ -5,6 +5,20 @@ Architecture invariant: **Notion is documentation, not the live engine.** Notion
 syncs into the app-owned Codex; live gameplay state (positions, HP, initiative,
 dice, approvals, fog/reveal, turns) is never owned by Notion.
 
+## Live Map Egress Reduction Pass (2026-06-28)
+
+**What changed.** Swapped live-map image delivery to a stable private app route,
+removed center-screen route-refresh live updates, narrowed realtime refresh
+recovery behavior, tightened several live-map queries, and added a Supabase
+egress verification guide.
+
+**Why.** Live gameplay updates were regenerating signed map URLs and causing
+private map assets to be treated like fresh downloads. This pass keeps the
+privacy model intact while reducing Storage and Database egress pressure.
+
+**QA performed.** Static checks and browser-network verification still need to
+be recorded in the final handoff for this pass.
+
 ## Live Map Remediation Pass (2026-06-22)
 
 **What changed.** Added hybrid player action authorization, action-specific DM

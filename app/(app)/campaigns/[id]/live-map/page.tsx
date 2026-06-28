@@ -7,6 +7,15 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { PlayerMapView } from '@/components/maps/PlayerMapView'
 import { RemoveLiveMapButton } from '@/components/maps/RemoveLiveMapButton'
 import { DMUtilityPanel } from '@/components/nav/DMUtilityPanel'
+import {
+  buildPrivateMapImageUrl,
+  LIVE_MAP_COLUMNS,
+  MAP_REVEALED_AREA_COLUMNS,
+  MAP_ROOM_REGION_COLUMNS,
+  MAP_TRANSPORT_CONFIRMATION_COLUMNS,
+  MAP_TRAVEL_PARTY_COLUMNS,
+  MAP_TRAVEL_PARTY_MEMBER_COLUMNS,
+} from '@/lib/maps/live-map'
 import type {
   CampaignDocLinkPublication,
   Ability,
@@ -77,7 +86,7 @@ export default async function MapsPage({ params }: PageProps) {
   if (!isDM) {
     const { data: activeMap } = await supabase
       .from('maps')
-      .select('*')
+      .select(LIVE_MAP_COLUMNS)
       .eq('campaign_id', id)
       .eq('is_active', true)
       .maybeSingle<GameMap>()
@@ -96,8 +105,16 @@ export default async function MapsPage({ params }: PageProps) {
       )
     }
 
+    const stableImageUrl = buildPrivateMapImageUrl(id, activeMap.id, activeMap.updated_at)
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[live-map] player route using stable map image url', {
+        campaignId: id,
+        mapId: activeMap.id,
+        updatedAt: activeMap.updated_at,
+      })
+    }
+
     const [
-      { data: signed },
       { data: tokens, error: tokensError },
       { data: characters },
       { data: areas },
@@ -109,12 +126,11 @@ export default async function MapsPage({ params }: PageProps) {
       { data: travelPartyMembers },
       { data: transportConfirmations },
     ] = await Promise.all([
-      supabase.storage.from('maps').createSignedUrl(activeMap.storage_path, 3600),
       supabase.rpc('get_player_live_map_tokens', { p_map_id: activeMap.id }),
       supabase.from('characters').select('*').eq('campaign_id', id).eq('user_id', user.id),
       // RLS returns only player-visible areas on the active map.
-      supabase.from('map_revealed_areas').select('*').eq('map_id', activeMap.id),
-      supabase.from('map_room_regions').select('*').eq('map_id', activeMap.id),
+      supabase.from('map_revealed_areas').select(MAP_REVEALED_AREA_COLUMNS).eq('map_id', activeMap.id),
+      supabase.from('map_room_regions').select(MAP_ROOM_REGION_COLUMNS).eq('map_id', activeMap.id),
       supabase
         .from('campaign_members')
         .select('user_id, role, profiles ( id, display_name, avatar_url, created_at )')
@@ -126,17 +142,17 @@ export default async function MapsPage({ params }: PageProps) {
         .eq('campaign_id', id),
       supabase
         .from('map_travel_parties')
-        .select('*')
+        .select(MAP_TRAVEL_PARTY_COLUMNS)
         .eq('map_id', activeMap.id)
         .order('updated_at', { ascending: false }),
       supabase
         .from('map_travel_party_members')
-        .select('*')
+        .select(MAP_TRAVEL_PARTY_MEMBER_COLUMNS)
         .eq('map_id', activeMap.id)
         .order('created_at', { ascending: true }),
       supabase
         .from('map_transport_confirmations')
-        .select('*')
+        .select(MAP_TRANSPORT_CONFIRMATION_COLUMNS)
         .eq('map_id', activeMap.id),
     ])
 
@@ -206,15 +222,15 @@ export default async function MapsPage({ params }: PageProps) {
         {backLink(id, campaign.name)}
         <p className="text-xs uppercase tracking-wide text-zinc-600 mb-1">Adventure</p>
         <h1 className="text-2xl font-bold text-zinc-100 mb-4">{activeMap.name}</h1>
-        {signed?.signedUrl ? (
+        {stableImageUrl ? (
           <PlayerMapView
             key={activeMap.id}
             campaignId={id}
             map={activeMap}
-            imageUrl={signed.signedUrl}
+            imageUrl={stableImageUrl}
             initialTokens={playerTokens as PlayerToken[]}
-            initialAreas={(areas ?? []) as MapRevealedArea[]}
-            initialRooms={(rooms ?? []) as MapRoomRegion[]}
+            initialAreas={(areas ?? []) as unknown as MapRevealedArea[]}
+            initialRooms={(rooms ?? []) as unknown as MapRoomRegion[]}
             currentUserId={user.id}
             characterSpeeds={characterSpeeds}
             myCharacters={ownedCharacters.map((c) => ({ id: c.id, name: c.name }))}
@@ -226,9 +242,9 @@ export default async function MapsPage({ params }: PageProps) {
             }))}
             playerCodexDocs={(playerCodexDocs ?? []) as PlayerVisibleCampaignDoc[]}
             playerCodexLinks={(playerCodexLinks ?? []) as CampaignDocLinkPublication[]}
-            initialTravelParties={(travelParties ?? []) as MapTravelParty[]}
-            initialTravelPartyMembers={(travelPartyMembers ?? []) as MapTravelPartyMember[]}
-            initialTransportConfirmations={(transportConfirmations ?? []) as MapTransportConfirmation[]}
+            initialTravelParties={(travelParties ?? []) as unknown as MapTravelParty[]}
+            initialTravelPartyMembers={(travelPartyMembers ?? []) as unknown as MapTravelPartyMember[]}
+            initialTransportConfirmations={(transportConfirmations ?? []) as unknown as MapTransportConfirmation[]}
           />
         ) : (
           <EmptyState title="Map image unavailable" description="The map file could not be loaded." />

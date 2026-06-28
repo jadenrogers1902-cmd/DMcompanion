@@ -51,6 +51,7 @@ import {
 import { getRollOutcomeVariant } from '@/lib/utils/roll-outcome-display'
 import { PlayerRollOutcomePanel, type PlayerRollOutcomeData } from '@/components/actions/RollOutcomeEffects'
 import { PlayerLinkedCodexDocsPanel } from '@/components/codex/CodexLinkedDocsPanel'
+import { buildPrivateMapImageUrl } from '@/lib/maps/live-map'
 import { createClient } from '@/lib/supabase/client'
 import { actionsForToken, authorizePlayerActionTarget, distanceFeet } from '@/lib/utils/actions'
 import type { NpcRevealPayload } from '@/lib/notion/npc-profile'
@@ -126,6 +127,10 @@ function mergeRoomList(rooms: MapRoomRegion[], room: MapRoomRegion) {
   const next = rooms.filter((r) => r.id !== room.id)
   next.push(room)
   return next.sort((a, b) => a.created_at.localeCompare(b.created_at))
+}
+
+function mergeById<T extends { id: string }>(rows: T[], next: T) {
+  return [...rows.filter((row) => row.id !== next.id), next]
 }
 
 function removeDuplicateAreas(areas: MapRevealedArea[]) {
@@ -404,9 +409,9 @@ export function PlayerMapView({
   const [rooms, setRooms] = useState<MapRoomRegion[]>(initialRooms)
   const [mapState, setMapState] = useState(map)
   const [mapLocked, setMapLocked] = useState(map.player_movement_locked)
-  const travelParties = initialTravelParties
-  const travelPartyMembers = initialTravelPartyMembers
-  const transportConfirmations = initialTransportConfirmations
+  const [travelParties, setTravelParties] = useState<MapTravelParty[]>(initialTravelParties)
+  const [travelPartyMembers, setTravelPartyMembers] = useState<MapTravelPartyMember[]>(initialTravelPartyMembers)
+  const [transportConfirmations, setTransportConfirmations] = useState<MapTransportConfirmation[]>(initialTransportConfirmations)
   const [transportBusy, setTransportBusy] = useState(false)
   const [transportFeedback, setTransportFeedback] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -487,18 +492,12 @@ export function PlayerMapView({
   const [nudgeBusy, setNudgeBusy] = useState(false)
   const [nudgeCooldownUntil, setNudgeCooldownUntil] = useState<number | null>(null)
 
-  // Live sync: if the DM activates a *different* map (or changes this map's
-  // image/grid/name), re-fetch the server-rendered route so the player's view
-  // swaps to the new active map (or picks up the new settings) with no manual
-  // refresh. useTokenRealtime below handles in-place token/area/lock updates
-  // for the currently-active map; this catches "the active map itself changed".
-  useRealtimeRefresh(`maps-watch-${campaignId}`, [
-    { table: 'maps', filter: `campaign_id=eq.${campaignId}` },
+  // Live sync: only refresh when the *active map identity* changes. Routine
+  // updates to the current map row are merged in-place by useTokenRealtime and
+  // should not churn the whole route or image URL.
+  useRealtimeRefresh(`player-codex-${campaignId}`, [
     { table: 'campaign_doc_publications', filter: `campaign_id=eq.${campaignId}` },
     { table: 'campaign_doc_link_publications', filter: `campaign_id=eq.${campaignId}` },
-    { table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
-    { table: 'map_travel_party_members', filter: `map_id=eq.${map.id}` },
-    { table: 'map_transport_confirmations', filter: `map_id=eq.${map.id}` },
   ])
 
   useTokenRealtime(map.id, campaignId, {
@@ -526,6 +525,81 @@ export function PlayerMapView({
     onRoomUpsert: (room) => setRooms((prev) => mergeRoomList(prev, room)),
     onRoomDelete: (id) => setRooms((prev) => prev.filter((room) => room.id !== id)),
   })
+
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`active-map-watch-${campaignId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'maps', filter: `campaign_id=eq.${campaignId}` },
+        (payload) => {
+          const nextMap = payload.new as GameMap
+          const previousMap = payload.old as Partial<GameMap>
+          const activatedDifferentMap = nextMap.is_active && nextMap.id !== map.id
+          const currentMapWasDeactivated = previousMap.id === map.id && previousMap.is_active && !nextMap.is_active
+          if (activatedDifferentMap || currentMapWasDeactivated) {
+            router.refresh()
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [campaignId, map.id, router])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`map-travel-state-${map.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const oldRow = payload.old as { id?: string }
+            if (oldRow.id) setTravelParties((current) => current.filter((row) => row.id !== oldRow.id))
+            return
+          }
+          setTravelParties((current) => mergeById(current, payload.new as MapTravelParty))
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'map_travel_party_members', filter: `map_id=eq.${map.id}` },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const oldRow = payload.old as { id?: string }
+            if (oldRow.id) {
+              setTravelPartyMembers((current) => current.filter((row) => row.id !== oldRow.id))
+            }
+            return
+          }
+          setTravelPartyMembers((current) => mergeById(current, payload.new as MapTravelPartyMember))
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'map_transport_confirmations', filter: `map_id=eq.${map.id}` },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const oldRow = payload.old as { id?: string }
+            if (oldRow.id) {
+              setTransportConfirmations((current) => current.filter((row) => row.id !== oldRow.id))
+            }
+            return
+          }
+          setTransportConfirmations((current) => mergeById(current, payload.new as MapTransportConfirmation))
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [map.id])
 
   const loadMyRequests = useCallback(async () => {
     setRequestsLoading(true)
@@ -618,6 +692,10 @@ export function PlayerMapView({
   // value for every pre-fog-controls map) keeps the legacy behaviour.
   const fogMode = mapState.fog_mode ?? 'rooms'
   const fogStyle = mapState.fog_style ?? 'blackout'
+  const stableImageUrl = useMemo(
+    () => buildPrivateMapImageUrl(campaignId, mapState.id, mapState.updated_at),
+    [campaignId, mapState.id, mapState.updated_at],
+  )
   const globalFogEnabled =
     revealOverride === 'reveal_all'
       ? false
@@ -1492,7 +1570,6 @@ export function PlayerMapView({
       setMovementPreview(null)
     }
     setTravelFeedback('Travel mode updated.')
-    router.refresh()
   }
 
   async function submitCreateParty() {
@@ -1509,7 +1586,6 @@ export function PlayerMapView({
       return
     }
     setTravelFeedback('Party created. Invited players can respond, then the DM can approve it.')
-    router.refresh()
   }
 
   async function respondToPartyInvite(partyId: string, accepted: boolean) {
@@ -1522,8 +1598,13 @@ export function PlayerMapView({
       return
     }
     setTravelFeedback(accepted ? 'Party invite accepted.' : 'Party invite denied.')
-    router.refresh()
   }
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' && stableImageUrl.includes('/api/campaigns/')) {
+      console.debug('[live-map-image] player map image url', stableImageUrl)
+    }
+  }, [stableImageUrl])
 
   // Remaining movement for a controlled, linked token
   function remainingFor(t: Token): { used: number; speed: number } | null {
@@ -1605,7 +1686,7 @@ export function PlayerMapView({
 
       <div className="h-[60vh] lg:h-[calc(100vh-220px)] min-h-80 relative">
         <MapCanvas
-          imageUrl={imageUrl}
+          imageUrl={stableImageUrl || imageUrl}
           width={map.width}
           height={map.height}
           gridEnabled={map.grid_enabled}

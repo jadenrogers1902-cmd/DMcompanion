@@ -1,144 +1,21 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { CenterScreenMapView, type CenterScreenViewGroup } from '@/components/maps/CenterScreenMapView'
+import { CenterScreenMapView } from '@/components/maps/CenterScreenMapView'
 import { EmptyState } from '@/components/ui/EmptyState'
-import type { RenderArea, RenderToken } from '@/components/maps/MapCanvas'
+import {
+  buildPrivateMapImageUrl,
+  CENTER_SCREEN_TOKEN_COLUMNS,
+  LIVE_MAP_COLUMNS,
+  MAP_REVEALED_AREA_COLUMNS,
+  MAP_ROOM_REGION_COLUMNS,
+  MAP_TRAVEL_PARTY_COLUMNS,
+  MAP_TRAVEL_PARTY_MEMBER_COLUMNS,
+} from '@/lib/maps/live-map'
 import type { GameMap, MapRevealedArea, MapRoomRegion, MapTravelParty, MapTravelPartyMember, Token } from '@/lib/types/database'
-import { normalizeCenterCastSettings } from '@/lib/utils/cast-settings'
 
 interface PageProps {
   params: Promise<{ id: string; mapId: string }>
-}
-
-function areaToRenderArea(area: MapRevealedArea): RenderArea {
-  return {
-    id: area.id,
-    shape_type: area.shape_type,
-    x: area.x,
-    y: area.y,
-    width: area.width,
-    height: area.height,
-    radius: area.radius,
-  }
-}
-
-function tokenToCenterScreenToken(token: Token): RenderToken | null {
-  if (token.visible_on_cast === false) return null
-  if (token.visible_to_players === false && !token.discoverable) return null
-  const visible = token.visible_to_players !== false
-  return {
-    id: token.id,
-    token_type: token.token_type,
-    name: visible ? token.name : '',
-    x: token.x,
-    y: token.y,
-    size: token.size,
-    color: token.color,
-    visible_to_players: visible,
-    max_hp: visible ? token.max_hp : 0,
-    current_hp: visible ? token.current_hp : 0,
-    temp_hp: visible ? token.temp_hp : 0,
-    is_defeated: visible ? token.is_defeated : false,
-    showHealth: visible && token.max_hp > 0,
-    dimmed: !visible,
-  }
-}
-
-function distanceFeet(a: Token, b: Token, map: GameMap) {
-  const gridSize = Math.max(1, map.grid_size || 1)
-  const gridScale = Math.max(1, map.grid_scale_feet || 5)
-  const dx = a.x - b.x
-  const dy = a.y - b.y
-  return (Math.sqrt((dx * dx) + (dy * dy)) / gridSize) * gridScale
-}
-
-function playerLabel(token: Token) {
-  return token.name?.trim() || 'Player'
-}
-
-function buildViewGroups(input: {
-  map: GameMap
-  tokens: Token[]
-  activeParty: MapTravelParty | null
-  partyMembers: MapTravelPartyMember[]
-}): CenterScreenViewGroup[] {
-  const { map, tokens, activeParty, partyMembers } = input
-  const settings = normalizeCenterCastSettings(map.cast_settings)
-  const playerTokens = tokens.filter((token) => (
-    token.token_type === 'player' &&
-    token.visible_to_players !== false
-  ))
-  if (playerTokens.length === 0) {
-    return [{
-      id: 'map',
-      label: map.name,
-      subtitle: 'Full map',
-      focusTokenId: null,
-      focus: null,
-      tone: 'party',
-    }]
-  }
-
-  const firstPlayer = playerTokens[0]
-  const partyLeaderToken = activeParty
-    ? playerTokens.find((token) => token.controlled_by_user_id === activeParty.leader_user_id) ?? null
-    : null
-  const mainToken =
-    settings.mainFocus === 'first_player'
-      ? firstPlayer
-      : partyLeaderToken ?? firstPlayer
-  const acceptedPartyUsers = new Set(
-    activeParty
-      ? partyMembers
-          .filter((member) => member.party_id === activeParty.id && member.status === 'accepted')
-          .map((member) => member.user_id)
-      : [],
-  )
-  if (activeParty) acceptedPartyUsers.add(activeParty.leader_user_id)
-
-  const splitDistance = settings.splitDistanceFeet
-  const separated = settings.dynamicSplitEnabled
-    ? playerTokens.filter((token) => {
-        if (token.id === mainToken.id) return false
-        const userId = token.controlled_by_user_id
-        const isAcceptedPartyMember = Boolean(userId && acceptedPartyUsers.has(userId))
-        const tooFar = distanceFeet(token, mainToken, map) > splitDistance
-        if (map.travel_mode === 'group_party' && activeParty) {
-          return !isAcceptedPartyMember || tooFar
-        }
-        return tooFar
-      })
-    : []
-
-  const mainLabel = activeParty && map.travel_mode === 'group_party'
-    ? activeParty.name || 'Party'
-    : playerLabel(mainToken)
-  const mainSubtitle = separated.length > 0
-    ? `${playerLabel(mainToken)} focus - ${separated.length} separated`
-    : `${playerLabel(mainToken)} focus - everyone present`
-
-  return [
-    {
-      id: 'party',
-      label: mainLabel,
-      subtitle: mainSubtitle,
-      focusTokenId: mainToken.id,
-      focus: { x: mainToken.x, y: mainToken.y },
-      tone: 'party',
-    },
-    ...separated.map((token) => {
-      const feetAway = Math.round(distanceFeet(token, mainToken, map))
-      return {
-        id: `player-${token.id}`,
-        label: `${playerLabel(token)} alone`,
-        subtitle: `${feetAway} ft from ${playerLabel(mainToken)}`,
-        focusTokenId: token.id,
-        focus: { x: token.x, y: token.y },
-        tone: 'solo' as const,
-      }
-    }),
-  ]
 }
 
 export default async function CenterScreenPage({ params }: PageProps) {
@@ -161,85 +38,57 @@ export default async function CenterScreenPage({ params }: PageProps) {
 
   const { data: map } = await supabase
     .from('maps')
-    .select('*')
+    .select(LIVE_MAP_COLUMNS)
     .eq('id', mapId)
     .eq('campaign_id', id)
     .single<GameMap>()
   if (!map) notFound()
 
-  const [
-    { data: signed },
-    { data: tokens },
-    { data: areas },
-    { data: rooms },
-    { data: parties },
-    { data: partyMembers },
-  ] = await Promise.all([
-    supabase.storage.from('maps').createSignedUrl(map.storage_path, 3600),
+  const stableImageUrl = buildPrivateMapImageUrl(id, map.id, map.updated_at)
+  if (process.env.NODE_ENV !== 'production') {
+    console.info('[live-map] center screen using stable map image url', {
+      campaignId: id,
+      mapId: map.id,
+      updatedAt: map.updated_at,
+    })
+  }
+
+  const [{ data: tokens }, { data: areas }, { data: rooms }, { data: parties }, { data: partyMembers }] = await Promise.all([
     supabase
       .from('tokens')
-      .select('*')
+      .select(CENTER_SCREEN_TOKEN_COLUMNS)
       .eq('map_id', mapId)
       .order('created_at', { ascending: true }),
     supabase
       .from('map_revealed_areas')
-      .select('*')
+      .select(MAP_REVEALED_AREA_COLUMNS)
       .eq('map_id', mapId)
       .eq('visible_to_players', true)
       .order('created_at', { ascending: true }),
     supabase
       .from('map_room_regions')
-      .select('*')
+      .select(MAP_ROOM_REGION_COLUMNS)
       .eq('map_id', mapId)
       .eq('visible_to_players', true)
       .order('created_at', { ascending: true }),
     supabase
       .from('map_travel_parties')
-      .select('*')
+      .select(MAP_TRAVEL_PARTY_COLUMNS)
       .eq('map_id', mapId)
-      .eq('status', 'approved')
-      .order('updated_at', { ascending: false })
-      .limit(1),
+      .order('updated_at', { ascending: false }),
     supabase
       .from('map_travel_party_members')
-      .select('*')
+      .select(MAP_TRAVEL_PARTY_MEMBER_COLUMNS)
       .eq('map_id', mapId),
   ])
 
-  if (!signed?.signedUrl) {
+  if (!stableImageUrl) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-zinc-950 p-4">
         <EmptyState title="Map image unavailable" description="The map file could not be loaded from storage." />
       </div>
     )
   }
-
-  const rawTokens = (tokens ?? []) as Token[]
-  const castSafeTokens = rawTokens.filter((token) => token.visible_on_cast !== false)
-  const activeParty = ((parties ?? []) as MapTravelParty[])[0] ?? null
-  const rawPartyMembers = (partyMembers ?? []) as MapTravelPartyMember[]
-
-  const renderTokens = castSafeTokens
-    .map(tokenToCenterScreenToken)
-    .filter((token): token is RenderToken => Boolean(token))
-
-  const renderAreas = ((areas ?? []) as MapRevealedArea[]).map(areaToRenderArea)
-  const renderRooms = ((rooms ?? []) as MapRoomRegion[]).map((room) => {
-    if (room.is_revealed || room.player_label_visible) return room
-    return {
-      ...room,
-      name: '',
-      linked_campaign_doc_id: null,
-      door_token_ids: [],
-    }
-  })
-  const settings = normalizeCenterCastSettings(map.cast_settings)
-  const viewGroups = buildViewGroups({
-    map,
-    tokens: castSafeTokens,
-    activeParty,
-    partyMembers: rawPartyMembers,
-  })
 
   return (
     <main className="relative min-h-dvh bg-black">
@@ -250,14 +99,15 @@ export default async function CenterScreenPage({ params }: PageProps) {
         Back to DM map editor
       </Link>
       <CenterScreenMapView
+        key={`${map.id}:${map.updated_at}`}
         campaignId={id}
         map={map}
-        imageUrl={signed.signedUrl}
-        tokens={renderTokens}
-        revealedAreas={renderAreas}
-        roomRegions={renderRooms}
-        settings={settings}
-        viewGroups={viewGroups}
+        imageUrl={stableImageUrl}
+        initialTokens={(tokens ?? []) as unknown as Token[]}
+        initialRevealedAreas={(areas ?? []) as unknown as MapRevealedArea[]}
+        initialRoomRegions={(rooms ?? []) as unknown as MapRoomRegion[]}
+        initialTravelParties={(parties ?? []) as unknown as MapTravelParty[]}
+        initialTravelPartyMembers={(partyMembers ?? []) as unknown as MapTravelPartyMember[]}
       />
     </main>
   )

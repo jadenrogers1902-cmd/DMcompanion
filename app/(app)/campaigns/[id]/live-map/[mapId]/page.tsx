@@ -4,6 +4,14 @@ import { createClient } from '@/lib/supabase/server'
 import { fetchCampaignPlayers } from '@/lib/actions/codex'
 import { MapEditor } from '@/components/maps/MapEditor'
 import { EmptyState } from '@/components/ui/EmptyState'
+import {
+  buildPrivateMapImageUrl,
+  LIVE_MAP_COLUMNS,
+  MAP_REVEALED_AREA_COLUMNS,
+  MAP_ROOM_REGION_COLUMNS,
+  MAP_TRAVEL_PARTY_COLUMNS,
+  MAP_TRAVEL_PARTY_MEMBER_COLUMNS,
+} from '@/lib/maps/live-map'
 import type {
   CampaignDoc,
   CampaignDocLink,
@@ -41,14 +49,22 @@ export default async function MapEditorPage({ params }: PageProps) {
 
   const { data: map } = await supabase
     .from('maps')
-    .select('*')
+    .select(LIVE_MAP_COLUMNS)
     .eq('id', mapId)
     .eq('campaign_id', id)
     .single<GameMap>()
   if (!map) notFound()
 
+  const stableImageUrl = buildPrivateMapImageUrl(id, map.id, map.updated_at)
+  if (process.env.NODE_ENV !== 'production') {
+    console.info('[live-map] dm route using stable map image url', {
+      campaignId: id,
+      mapId: map.id,
+      updatedAt: map.updated_at,
+    })
+  }
+
   const [
-    { data: signed },
     { data: tokens },
     { data: characters },
     { data: dmNoteRows },
@@ -60,7 +76,6 @@ export default async function MapEditorPage({ params }: PageProps) {
     { data: travelPartyMembers },
   ] =
     await Promise.all([
-      supabase.storage.from('maps').createSignedUrl(map.storage_path, 3600),
       supabase
         .from('tokens')
         .select('*')
@@ -77,12 +92,12 @@ export default async function MapEditorPage({ params }: PageProps) {
         .eq('campaign_id', id),
       supabase
         .from('map_revealed_areas')
-        .select('*')
+        .select(MAP_REVEALED_AREA_COLUMNS)
         .eq('map_id', mapId)
         .order('created_at', { ascending: true }),
       supabase
         .from('map_room_regions')
-        .select('*')
+        .select(MAP_ROOM_REGION_COLUMNS)
         .eq('map_id', mapId)
         .order('created_at', { ascending: true }),
       supabase
@@ -97,12 +112,12 @@ export default async function MapEditorPage({ params }: PageProps) {
         .order('updated_at', { ascending: false }),
       supabase
         .from('map_travel_parties')
-        .select('*')
+        .select(MAP_TRAVEL_PARTY_COLUMNS)
         .eq('map_id', mapId)
         .order('updated_at', { ascending: false }),
       supabase
         .from('map_travel_party_members')
-        .select('*')
+        .select(MAP_TRAVEL_PARTY_MEMBER_COLUMNS)
         .eq('map_id', mapId)
         .order('created_at', { ascending: true }),
     ])
@@ -178,22 +193,22 @@ export default async function MapEditorPage({ params }: PageProps) {
           </Link>
         )}
       </div>
-      {signed?.signedUrl ? (
+      {stableImageUrl ? (
         <MapEditor
           campaignId={id}
           map={map}
-          imageUrl={signed.signedUrl}
+          imageUrl={stableImageUrl}
           initialTokens={(tokens ?? []) as Token[]}
           initialDmNotes={initialDmNotes}
-          initialAreas={(areas ?? []) as MapRevealedArea[]}
-          initialRooms={(rooms ?? []) as MapRoomRegion[]}
+          initialAreas={(areas ?? []) as unknown as MapRevealedArea[]}
+          initialRooms={(rooms ?? []) as unknown as MapRoomRegion[]}
           characters={(characters ?? []) as Pick<Character, 'id' | 'name' | 'speed'>[]}
           initialAlertTokenIds={initialAlertTokenIds}
           codexDocs={(codexDocs ?? []) as CampaignDoc[]}
           codexLinks={(codexLinks ?? []) as CampaignDocLink[]}
           players={players}
-          initialTravelParties={(travelParties ?? []) as MapTravelParty[]}
-          initialTravelPartyMembers={(travelPartyMembers ?? []) as MapTravelPartyMember[]}
+          initialTravelParties={(travelParties ?? []) as unknown as MapTravelParty[]}
+          initialTravelPartyMembers={(travelPartyMembers ?? []) as unknown as MapTravelPartyMember[]}
           editMapHref={editMapHref}
         />
       ) : (

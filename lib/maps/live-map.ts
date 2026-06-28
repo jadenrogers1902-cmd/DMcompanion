@@ -1,0 +1,140 @@
+export const LIVE_MAP_COLUMNS = [
+  'id',
+  'campaign_id',
+  'name',
+  'storage_path',
+  'grid_enabled',
+  'grid_size',
+  'grid_scale_feet',
+  'grid_color',
+  'grid_opacity',
+  'grid_line_width',
+  'grid_subdivisions',
+  'grid_offset_x',
+  'grid_offset_y',
+  'dm_light_brightness',
+  'width',
+  'height',
+  'is_active',
+  'player_movement_locked',
+  'travel_mode',
+  'party_options_locked',
+  'group_movement_unlimited',
+  'freeroam_movement_unlimited',
+  'player_vision_radius_feet',
+  'cast_settings',
+  'combat_round',
+  'source_prepared_map_id',
+  'fog_mode',
+  'fog_style',
+  'reveal_override',
+  'created_by',
+  'created_at',
+  'updated_at',
+].join(',')
+
+export const CENTER_SCREEN_TOKEN_COLUMNS = [
+  'id',
+  'campaign_id',
+  'map_id',
+  'token_type',
+  'name',
+  'x',
+  'y',
+  'size',
+  'color',
+  'visible_to_players',
+  'controlled_by_user_id',
+  'discoverable',
+  'visible_on_cast',
+  'max_hp',
+  'current_hp',
+  'temp_hp',
+  'is_defeated',
+].join(',')
+
+export const MAP_REVEALED_AREA_COLUMNS = [
+  'id',
+  'campaign_id',
+  'map_id',
+  'shape_type',
+  'x',
+  'y',
+  'width',
+  'height',
+  'radius',
+  'visible_to_players',
+  'created_by',
+  'created_at',
+  'updated_at',
+].join(',')
+
+export const MAP_ROOM_REGION_COLUMNS = [
+  'id',
+  'campaign_id',
+  'map_id',
+  'source_prepared_room_id',
+  'linked_campaign_doc_id',
+  'name',
+  'shape_type',
+  'x',
+  'y',
+  'width',
+  'height',
+  'points',
+  'reveal_mode',
+  'mask_style',
+  'border_style',
+  'border_color',
+  'door_token_ids',
+  'player_label_visible',
+  'auto_reveal_distance_feet',
+  'is_revealed',
+  'visible_to_players',
+  'created_by',
+  'created_at',
+  'updated_at',
+].join(',')
+
+export const MAP_TRAVEL_PARTY_COLUMNS = [
+  'id',
+  'campaign_id',
+  'map_id',
+  'name',
+  'created_by',
+  'leader_user_id',
+  'status',
+  'dm_response',
+  'approved_by',
+  'created_at',
+  'updated_at',
+].join(',')
+
+export const MAP_TRAVEL_PARTY_MEMBER_COLUMNS = [
+  'id',
+  'party_id',
+  'campaign_id',
+  'map_id',
+  'user_id',
+  'status',
+  'created_at',
+  'updated_at',
+].join(',')
+
+export const MAP_TRANSPORT_CONFIRMATION_COLUMNS = [
+  'id',
+  'campaign_id',
+  'map_id',
+  'token_id',
+  'destination_prepared_map_id',
+  'user_id',
+  'created_at',
+  'updated_at',
+].join(',')
+
+export function buildPrivateMapImageUrl(campaignId: string, mapId: string, version?: string | null) {
+  const params = new URLSearchParams()
+  if (version) params.set('v', version)
+  const query = params.toString()
+  return `/api/campaigns/${campaignId}/maps/${mapId}/image${query ? `?${query}` : ''}`
+}

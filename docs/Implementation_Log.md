@@ -1,5 +1,36 @@
 # Implementation Log
 
+## Live Map Egress Reduction Pass
+
+Date: 2026-06-28
+
+Status: Implementation in progress; static verification pending.
+
+## What Changed
+
+- Replaced live-map signed image URLs with a stable private app route for player, DM, and center-screen map rendering.
+- Removed center-screen route-refresh-driven live updates in favor of client-side realtime state.
+- Narrowed live-route refresh semantics so subscribe/reconnect no longer trigger unnecessary route refreshes.
+- Tightened several live-map queries to explicit column lists and added a Supabase egress debug guide.
+
+## Why It Changed
+
+Supabase usage showed heavy uncached egress on a project with very small stored
+assets. The main issue was live routes regenerating private signed Storage URLs
+and re-rendering image-backed screens during normal realtime gameplay updates.
+
+## QA Performed
+
+- Static verification is required after this pass:
+  `npx.cmd tsc --noEmit`
+  `npm.cmd run lint`
+  `npm.cmd run build`
+
+## Known Risks
+
+- Browser/devtools verification is still needed to prove token/fog/travel updates no longer re-download the map image.
+- If remaining usage is still high, the next check should separate Storage egress from Database egress in Supabase.
+
 ## Live Map Remediation Pass
 
 Date: 2026-06-22

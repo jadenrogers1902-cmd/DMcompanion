@@ -35,11 +35,19 @@ export type RealtimeConnectionState = 'connecting' | 'live' | 'reconnecting' | '
 export function useRealtimeRefresh(
   channelName: string,
   watches: RealtimeWatch[],
-  options?: { debounceMs?: number; enabled?: boolean; onStatus?: (status: string) => void },
+  options?: {
+    debounceMs?: number
+    enabled?: boolean
+    onStatus?: (status: string) => void
+    refreshOnSubscribed?: boolean
+    refreshOnReconnect?: boolean
+  },
 ) {
   const router = useRouter()
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wasLiveRef = useRef(false)
+  const needsRecoveryRefreshRef = useRef(false)
   const [retryToken, setRetryToken] = useState(0)
   const [connectionState, setConnectionState] = useState<RealtimeConnectionState>('connecting')
   const watchesKey = JSON.stringify(watches)
@@ -83,10 +91,18 @@ export function useRealtimeRefresh(
       options?.onStatus?.(status)
       if (status === 'SUBSCRIBED') {
         setConnectionState('live')
-        refreshSoon()
+        const shouldRefresh =
+          (!wasLiveRef.current && (options?.refreshOnSubscribed ?? false)) ||
+          (needsRecoveryRefreshRef.current && (options?.refreshOnReconnect ?? true))
+        wasLiveRef.current = true
+        needsRecoveryRefreshRef.current = false
+        if (shouldRefresh) refreshSoon()
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         setConnectionState(status === 'CHANNEL_ERROR' ? 'failed' : 'stale')
-        refreshSoon()
+        if (wasLiveRef.current) {
+          needsRecoveryRefreshRef.current = true
+        }
+        wasLiveRef.current = false
         retrySoon()
       }
     })
@@ -94,6 +110,8 @@ export function useRealtimeRefresh(
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
       if (retryRef.current) clearTimeout(retryRef.current)
+      wasLiveRef.current = false
+      needsRecoveryRefreshRef.current = false
       supabase.removeChannel(channel)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

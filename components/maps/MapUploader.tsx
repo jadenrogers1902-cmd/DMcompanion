@@ -65,7 +65,11 @@ export function MapUploader({ campaignId }: MapUploaderProps) {
 
       const { error: uploadError } = await supabase.storage
         .from('maps')
-        .upload(path, uploadFile, { contentType: uploadFile.type, upsert: false })
+        .upload(path, uploadFile, {
+          contentType: uploadFile.type,
+          cacheControl: '3600',
+          upsert: false,
+        })
 
       if (uploadError) {
         setError(`Upload failed: ${uploadError.message}`)

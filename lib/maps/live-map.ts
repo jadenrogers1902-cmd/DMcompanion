@@ -96,6 +96,26 @@ export const MAP_ROOM_REGION_COLUMNS = [
   'updated_at',
 ].join(',')
 
+export const MAP_WALL_COLUMNS = [
+  'id',
+  'campaign_id',
+  'map_id',
+  'source_prepared_wall_id',
+  'name',
+  'shape_type',
+  'x',
+  'y',
+  'width',
+  'height',
+  'points',
+  'border_style',
+  'border_color',
+  'door_token_ids',
+  'created_by',
+  'created_at',
+  'updated_at',
+].join(',')
+
 export const MAP_TRAVEL_PARTY_COLUMNS = [
   'id',
   'campaign_id',

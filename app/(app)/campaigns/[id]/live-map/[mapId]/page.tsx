@@ -11,6 +11,7 @@ import {
   MAP_ROOM_REGION_COLUMNS,
   MAP_TRAVEL_PARTY_COLUMNS,
   MAP_TRAVEL_PARTY_MEMBER_COLUMNS,
+  MAP_WALL_COLUMNS,
 } from '@/lib/maps/live-map'
 import type {
   CampaignDoc,
@@ -21,6 +22,7 @@ import type {
   MapRoomRegion,
   MapTravelParty,
   MapTravelPartyMember,
+  MapWall,
   Token,
 } from '@/lib/types/database'
 
@@ -70,6 +72,7 @@ export default async function MapEditorPage({ params }: PageProps) {
     { data: dmNoteRows },
     { data: areas },
     { data: rooms },
+    { data: walls },
     { data: codexDocs },
     { data: codexLinks },
     { data: travelParties },
@@ -98,6 +101,11 @@ export default async function MapEditorPage({ params }: PageProps) {
       supabase
         .from('map_room_regions')
         .select(MAP_ROOM_REGION_COLUMNS)
+        .eq('map_id', mapId)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('map_walls')
+        .select(MAP_WALL_COLUMNS)
         .eq('map_id', mapId)
         .order('created_at', { ascending: true }),
       supabase
@@ -202,6 +210,7 @@ export default async function MapEditorPage({ params }: PageProps) {
           initialDmNotes={initialDmNotes}
           initialAreas={(areas ?? []) as unknown as MapRevealedArea[]}
           initialRooms={(rooms ?? []) as unknown as MapRoomRegion[]}
+          initialWalls={(walls ?? []) as unknown as MapWall[]}
           characters={(characters ?? []) as Pick<Character, 'id' | 'name' | 'speed'>[]}
           initialAlertTokenIds={initialAlertTokenIds}
           codexDocs={(codexDocs ?? []) as CampaignDoc[]}

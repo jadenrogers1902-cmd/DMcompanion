@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { GameMap, MapRevealedArea, MapRoomRegion, Token } from '@/lib/types/database'
+import type { GameMap, MapRevealedArea, MapRoomRegion, MapWall, Token } from '@/lib/types/database'
 import type { RealtimeConnectionState } from './useRealtimeRefresh'
 
 type TokenRow = Token & { dm_notes?: string | null }
@@ -15,6 +15,8 @@ interface Handlers {
   onAreaDelete?: (id: string) => void
   onRoomUpsert?: (room: MapRoomRegion) => void
   onRoomDelete?: (id: string) => void
+  onWallUpsert?: (wall: MapWall) => void
+  onWallDelete?: (id: string) => void
   onStatus?: (status: string) => void
 }
 
@@ -101,6 +103,23 @@ export function useTokenRealtime(
             if (oldRow?.id) ref.current.onRoomDelete?.(oldRow.id)
           } else {
             ref.current.onRoomUpsert?.(payload.new as MapRoomRegion)
+          }
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'map_walls',
+          filter: `map_id=eq.${mapId}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const oldRow = payload.old as { id?: string }
+            if (oldRow?.id) ref.current.onWallDelete?.(oldRow.id)
+          } else {
+            ref.current.onWallUpsert?.(payload.new as MapWall)
           }
         },
       )

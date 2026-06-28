@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Eye, Maximize2, RefreshCw } from 'lucide-react'
-import { MapCanvas, type RenderArea, type RenderRoomRegion, type RenderToken } from './MapCanvas'
+import { MapCanvas, type RenderArea, type RenderRoomRegion, type RenderToken, type RenderWall } from './MapCanvas'
 import { buildPrivateMapImageUrl } from '@/lib/maps/live-map'
 import type {
   GameMap,
@@ -10,6 +10,7 @@ import type {
   MapRoomRegion,
   MapTravelParty,
   MapTravelPartyMember,
+  MapWall,
   Token,
 } from '@/lib/types/database'
 import { normalizeCenterCastSettings, type CenterCastSettings } from '@/lib/utils/cast-settings'
@@ -31,6 +32,7 @@ interface CenterScreenMapViewProps {
   initialTokens: Token[]
   initialRevealedAreas: MapRevealedArea[]
   initialRoomRegions: MapRoomRegion[]
+  initialWalls: MapWall[]
   initialTravelParties: MapTravelParty[]
   initialTravelPartyMembers: MapTravelPartyMember[]
 }
@@ -156,6 +158,7 @@ export function CenterScreenMapView({
   initialTokens,
   initialRevealedAreas,
   initialRoomRegions,
+  initialWalls,
   initialTravelParties,
   initialTravelPartyMembers,
 }: CenterScreenMapViewProps) {
@@ -163,6 +166,7 @@ export function CenterScreenMapView({
   const [tokenRows, setTokenRows] = useState(initialTokens)
   const [areaRows, setAreaRows] = useState(initialRevealedAreas)
   const [roomRows, setRoomRows] = useState(initialRoomRegions)
+  const [wallRows, setWallRows] = useState(initialWalls)
   const [travelParties, setTravelParties] = useState(initialTravelParties)
   const [travelPartyMembers, setTravelPartyMembers] = useState(initialTravelPartyMembers)
   const [chromeHidden, setChromeHidden] = useState(normalizeCenterCastSettings(map.cast_settings).hideChromeByDefault)
@@ -214,6 +218,18 @@ export function CenterScreenMapView({
         { event: 'UPDATE', schema: 'public', table: 'maps', filter: `id=eq.${map.id}` },
         (payload) => {
           setMapState(payload.new as GameMap)
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'map_walls', filter: `map_id=eq.${map.id}` },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const oldRow = payload.old as { id?: string }
+            if (oldRow.id) setWallRows((current) => current.filter((row) => row.id !== oldRow.id))
+            return
+          }
+          setWallRows((current) => mergeById(current, payload.new as MapWall))
         },
       )
       .on(
@@ -357,6 +373,21 @@ export function CenterScreenMapView({
     }))
   }, [revealOverride, roomRows, settings.showFog])
 
+  const displayWalls: RenderWall[] = useMemo(() => {
+    return wallRows.map((wall) => ({
+      id: wall.id,
+      name: wall.name,
+      shape_type: wall.shape_type,
+      x: wall.x,
+      y: wall.y,
+      width: wall.width,
+      height: wall.height,
+      points: wall.points,
+      border_style: wall.border_style,
+      border_color: wall.border_color,
+    }))
+  }, [wallRows])
+
   const firstGroup = visibleGroups[0] ?? null
   const statusLabel =
     firstGroup && visibleGroups.length === 1
@@ -497,6 +528,7 @@ export function CenterScreenMapView({
               canDragToken={() => false}
               revealedAreas={displayAreas}
               roomRegions={displayRooms}
+              walls={displayWalls}
               fogEnabled={globalFogEnabled}
               fogStyle={mapState.fog_style ?? 'blackout'}
               followTarget={followLeader ? group.focus : null}

@@ -2,12 +2,14 @@ import type {
   PrepImportantLink,
   PrepLinkType,
   PreparedMapRoomRegion,
+  PreparedMapWallRegion,
   PrepNote,
   PrepNoteVisibility,
   RoomBorderStyle,
   RoomMaskStyle,
   RoomRegionShapeType,
   RoomRevealMode,
+  WallBorderStyle,
 } from '@/lib/types/adventure'
 
 const LINK_TYPES: PrepLinkType[] = ['wiki', 'dnd_beyond', 'srd', 'roll20', 'custom']
@@ -15,6 +17,7 @@ const ROOM_SHAPES: RoomRegionShapeType[] = ['rectangle', 'polygon']
 const ROOM_REVEAL_MODES: RoomRevealMode[] = ['manual', 'auto', 'manual_auto']
 const ROOM_MASK_STYLES: RoomMaskStyle[] = ['blackout', 'dim', 'outline_only']
 const ROOM_BORDER_STYLES: RoomBorderStyle[] = ['door', 'dashed', 'solid', 'glow']
+const WALL_BORDER_STYLES: WallBorderStyle[] = ['solid', 'double', 'thick']
 /** Max vertices kept per polygon room/fog region (safety bound, not a UX cap). */
 export const MAX_ROOM_POINTS = 1000
 
@@ -239,4 +242,56 @@ export function normalizePreparedRoomRegion(value: unknown): PreparedMapRoomRegi
 export function normalizePreparedRoomRegions(values: unknown): PreparedMapRoomRegion[] {
   if (!Array.isArray(values)) return []
   return values.slice(0, 100).map(normalizePreparedRoomRegion)
+}
+
+export function createPreparedWallRegion(input?: Partial<PreparedMapWallRegion>): PreparedMapWallRegion {
+  return normalizePreparedWallRegion({
+    id: crypto.randomUUID(),
+    name: 'New wall',
+    shape_type: 'rectangle',
+    x: 0,
+    y: 0,
+    width: 120,
+    height: 120,
+    points: [],
+    border_style: 'solid',
+    ...input,
+  })
+}
+
+export function normalizePreparedWallRegion(value: unknown): PreparedMapWallRegion {
+  const raw = asRecord(value)
+  const shape = ROOM_SHAPES.includes(raw.shape_type as RoomRegionShapeType)
+    ? (raw.shape_type as RoomRegionShapeType)
+    : 'rectangle'
+  const borderStyle = WALL_BORDER_STYLES.includes(raw.border_style as WallBorderStyle)
+    ? (raw.border_style as WallBorderStyle)
+    : 'solid'
+  const borderColor =
+    typeof raw.border_color === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw.border_color)
+      ? raw.border_color
+      : null
+  const doorTokenIds = Array.isArray(raw.door_token_ids)
+    ? Array.from(new Set(raw.door_token_ids.map((value) => String(value)).filter(Boolean))).slice(0, 50)
+    : []
+  const points = normalizeRoomPoints(raw.points)
+  return {
+    id: String(raw.id ?? crypto.randomUUID()),
+    name: String(raw.name ?? 'Wall').trim().slice(0, 80) || 'Wall',
+    shape_type: shape,
+    x: Math.max(0, Math.round(finiteNumber(raw.x))),
+    y: Math.max(0, Math.round(finiteNumber(raw.y))),
+    width: shape === 'rectangle' ? Math.max(8, Math.round(finiteNumber(raw.width, 120))) : null,
+    height: shape === 'rectangle' ? Math.max(8, Math.round(finiteNumber(raw.height, 120))) : null,
+    points,
+    border_style: borderStyle,
+    border_color: borderColor,
+    door_token_ids: doorTokenIds,
+    dm_notes: String(raw.dm_notes ?? '').slice(0, 2000),
+  }
+}
+
+export function normalizePreparedWallRegions(values: unknown): PreparedMapWallRegion[] {
+  if (!Array.isArray(values)) return []
+  return values.slice(0, 100).map(normalizePreparedWallRegion)
 }

@@ -297,6 +297,28 @@ export interface MapRoomRegion {
   updated_at: string
 }
 
+export type WallBorderStyle = 'solid' | 'double' | 'thick'
+
+export interface MapWall {
+  id: string
+  campaign_id: string
+  map_id: string
+  source_prepared_wall_id: string | null
+  name: string
+  shape_type: RoomRegionShapeType
+  x: number
+  y: number
+  width: number | null
+  height: number | null
+  points: RoomRegionPoint[]
+  border_style: WallBorderStyle
+  border_color: string | null
+  door_token_ids: string[]
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
 export interface MapTravelParty {
   id: string
   campaign_id: string
@@ -1343,6 +1365,7 @@ export type Database = {
           fog_mode: FogMode
           fog_style: FogStyle
           fog_regions: Record<string, unknown>[]
+          wall_regions: Record<string, unknown>[]
           created_at: string
           updated_at: string
         }
@@ -1368,6 +1391,7 @@ export type Database = {
           fog_mode?: FogMode
           fog_style?: FogStyle
           fog_regions?: Record<string, unknown>[]
+          wall_regions?: Record<string, unknown>[]
           created_at?: string
           updated_at?: string
         }
@@ -1393,6 +1417,7 @@ export type Database = {
           fog_mode?: FogMode
           fog_style?: FogStyle
           fog_regions?: Record<string, unknown>[]
+          wall_regions?: Record<string, unknown>[]
           created_at?: string
           updated_at?: string
         }
@@ -2213,6 +2238,43 @@ export type Database = {
           auto_reveal_distance_feet?: number
           is_revealed?: boolean
           visible_to_players?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      map_walls: {
+        Row: MapWall & Record<string, unknown>
+        Insert: {
+          id?: string
+          campaign_id: string
+          map_id: string
+          source_prepared_wall_id?: string | null
+          name?: string
+          shape_type?: RoomRegionShapeType
+          x?: number
+          y?: number
+          width?: number | null
+          height?: number | null
+          points?: RoomRegionPoint[]
+          border_style?: WallBorderStyle
+          border_color?: string | null
+          door_token_ids?: string[]
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          source_prepared_wall_id?: string | null
+          name?: string
+          shape_type?: RoomRegionShapeType
+          x?: number
+          y?: number
+          width?: number | null
+          height?: number | null
+          points?: RoomRegionPoint[]
+          border_style?: WallBorderStyle
+          border_color?: string | null
+          door_token_ids?: string[]
           updated_at?: string
         }
         Relationships: []

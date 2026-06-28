@@ -30,7 +30,8 @@ import {
   WandSparkles,
   X,
 } from 'lucide-react'
-import { MapCanvas, type RenderArea, type RenderRoomRegion, type RenderToken } from './MapCanvas'
+import { MapCanvas, type RenderArea, type RenderRoomRegion, type RenderToken, type RenderWall } from './MapCanvas'
+import { movementCrossesWall, type WallForCollision } from '@/lib/utils/wall-collision'
 import { useTokenRealtime } from '@/lib/hooks/useTokenRealtime'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import {
@@ -73,6 +74,7 @@ import {
   type InventoryItem,
   type MapRevealedArea,
   type MapRoomRegion,
+  type MapWall,
   type MapTransportConfirmation,
   type MapTravelParty,
   type MapTravelPartyMember,
@@ -146,6 +148,7 @@ interface PlayerMapViewProps {
   initialTokens: Token[]
   initialAreas: MapRevealedArea[]
   initialRooms: MapRoomRegion[]
+  initialWalls?: MapWall[]
   currentUserId: string
   // speed by character id, for tokens this player controls
   characterSpeeds: Record<string, number>
@@ -388,6 +391,7 @@ export function PlayerMapView({
   initialTokens,
   initialAreas,
   initialRooms,
+  initialWalls = [],
   currentUserId,
   characterSpeeds,
   myCharacters,
@@ -407,6 +411,7 @@ export function PlayerMapView({
     removeDuplicateAreas(initialAreas),
   )
   const [rooms, setRooms] = useState<MapRoomRegion[]>(initialRooms)
+  const [walls, setWalls] = useState<MapWall[]>(initialWalls)
   const [mapState, setMapState] = useState(map)
   const [mapLocked, setMapLocked] = useState(map.player_movement_locked)
   const [travelParties, setTravelParties] = useState<MapTravelParty[]>(initialTravelParties)
@@ -524,6 +529,8 @@ export function PlayerMapView({
     onAreaDelete: (id) => setAreas((prev) => prev.filter((a) => a.id !== id)),
     onRoomUpsert: (room) => setRooms((prev) => mergeRoomList(prev, room)),
     onRoomDelete: (id) => setRooms((prev) => prev.filter((room) => room.id !== id)),
+    onWallUpsert: (wall) => setWalls((prev) => { const next = prev.filter((w) => w.id !== wall.id); next.push(wall); return next }),
+    onWallDelete: (id) => setWalls((prev) => prev.filter((w) => w.id !== id)),
   })
 
   useEffect(() => {
@@ -665,6 +672,33 @@ export function PlayerMapView({
     }
   })
 
+  const renderWalls: RenderWall[] = walls.map((wall) => ({
+    id: wall.id,
+    name: wall.name,
+    shape_type: wall.shape_type,
+    x: wall.x,
+    y: wall.y,
+    width: wall.width,
+    height: wall.height,
+    points: wall.points,
+    border_style: wall.border_style,
+    border_color: wall.border_color,
+  }))
+
+  const wallsForCollision: WallForCollision[] = walls.map((wall) => ({
+    name: wall.name,
+    shape_type: wall.shape_type,
+    x: wall.x,
+    y: wall.y,
+    width: wall.width,
+    height: wall.height,
+    points: wall.points,
+    door_positions: wall.door_token_ids
+      .map((doorId) => tokens.find((t) => t.id === doorId))
+      .filter((t): t is Token => t != null)
+      .map((t) => ({ x: t.x, y: t.y })),
+  }))
+
   // ─── Fog × room-mask interaction ──────────────────────────────────────────
   // Two independent reveal systems can apply to a player's map:
   //   • map_revealed_areas (legacy) drives the GLOBAL blackout fog — the whole
@@ -721,6 +755,13 @@ export function PlayerMapView({
     if (!prev) return false
     const prevX = prev.x
     const prevY = prev.y
+
+    const blockedBy = movementCrossesWall(wallsForCollision, prevX, prevY, x, y, mapState.grid_size)
+    if (blockedBy) {
+      setWarning(`Path blocked by wall: ${blockedBy}`)
+      setTimeout(() => setWarning(null), 4000)
+      return false
+    }
 
     // optimistic
     setTokens((p) => p.map((t) => (t.id === id ? { ...t, x, y } : t)))
@@ -1712,6 +1753,7 @@ export function PlayerMapView({
           onTokenMovePreview={combatMovementActive ? handleTokenMovePreview : undefined}
           revealedAreas={renderAreas}
           roomRegions={renderRooms}
+          walls={renderWalls}
           fogEnabled={globalFogEnabled}
           fogStyle={fogStyle}
         />

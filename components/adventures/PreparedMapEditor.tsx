@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MapCanvas, type RenderRoomRegion, type RenderToken, type RoomDrawTool } from '@/components/maps/MapCanvas'
+import { MapCanvas, type RenderRoomRegion, type RenderToken, type RenderWall, type RoomDrawTool } from '@/components/maps/MapCanvas'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -22,6 +22,7 @@ import type {
   PreparedMapNote,
   PreparedMapRoomRegion,
   PreparedMapToken,
+  PreparedMapWallRegion,
 } from '@/lib/types/adventure'
 import type { CampaignDoc, CampaignDocLink, FogMode, FogStyle } from '@/lib/types/database'
 import {
@@ -33,7 +34,9 @@ import {
   createPrepLink,
   createPrepNote,
   createPreparedRoomRegion,
+  createPreparedWallRegion,
   normalizePreparedRoomRegions,
+  normalizePreparedWallRegions,
   normalizePrepLinks,
   normalizePrepNotes,
   normalizeTags,
@@ -115,7 +118,7 @@ export function PreparedMapEditor({
   const [draftRoomPolygonPoints, setDraftRoomPolygonPoints] = useState<{ x: number; y: number }[]>([])
   const [roomEditMode, setRoomEditMode] = useState(false)
   // Whether the current draw / selection targets a sub-location room or a fog mask.
-  const [drawTarget, setDrawTarget] = useState<'room' | 'fog'>('room')
+  const [drawTarget, setDrawTarget] = useState<'room' | 'fog' | 'wall'>('room')
   // ─── Fog controls (base fog + painted fog masks) ───
   const [fogRegions, setFogRegions] = useState<PreparedMapRoomRegion[]>(() =>
     normalizePreparedRoomRegions(map.fog_regions ?? []),
@@ -124,6 +127,12 @@ export function PreparedMapEditor({
   const [fogStyle, setFogStyle] = useState<FogStyle>(map.fog_style ?? 'blackout')
   const [fogOpen, setFogOpen] = useState(false)
   const [selectedFogId, setSelectedFogId] = useState<string | null>(null)
+  // ─── Wall controls (movement-blocking dungeon walls) ───
+  const [wallRegions, setWallRegions] = useState<PreparedMapWallRegion[]>(() =>
+    normalizePreparedWallRegions(map.wall_regions ?? []),
+  )
+  const [wallsOpen, setWallsOpen] = useState(false)
+  const [selectedWallId, setSelectedWallId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -179,6 +188,23 @@ export function PreparedMapEditor({
         visible_to_players: room.visible_to_players,
       })),
     [roomRegions, fogRegions],
+  )
+
+  const renderWalls: RenderWall[] = useMemo(
+    () =>
+      wallRegions.map((wall) => ({
+        id: wall.id,
+        name: wall.name,
+        shape_type: wall.shape_type,
+        x: wall.x,
+        y: wall.y,
+        width: wall.width ?? null,
+        height: wall.height ?? null,
+        points: wall.points,
+        border_style: wall.border_style,
+        border_color: wall.border_color ?? null,
+      })),
+    [wallRegions],
   )
 
   function touch() {
@@ -421,6 +447,29 @@ export function PreparedMapEditor({
     | { shape_type: 'polygon'; points: { x: number; y: number }[] },
   ) {
     const id = crypto.randomUUID()
+
+    if (drawTarget === 'wall') {
+      const wall = createPreparedWallRegion({
+        id,
+        name: `Wall ${wallRegions.length + 1}`,
+        shape_type: shape.shape_type,
+        x: shape.shape_type === 'rectangle' ? shape.x : shape.points[0]?.x ?? Math.round(map.width / 2),
+        y: shape.shape_type === 'rectangle' ? shape.y : shape.points[0]?.y ?? Math.round(map.height / 2),
+        width: shape.shape_type === 'rectangle' ? shape.width : null,
+        height: shape.shape_type === 'rectangle' ? shape.height : null,
+        points: shape.shape_type === 'polygon' ? shape.points : [],
+      })
+      setWallRegions((prev) => [...prev, wall])
+      setSelectedWallId(id)
+      setSelectedRoomId(null)
+      setSelectedFogId(null)
+      setSelectedTokenId(null)
+      setRoomDrawTool(null)
+      setDraftRoomPolygonPoints([])
+      touch()
+      return
+    }
+
     const isFog = drawTarget === 'fog'
     const region = createPreparedRoomRegion({
       id,
@@ -470,6 +519,47 @@ export function PreparedMapEditor({
       setRoomEditMode(false)
     }
     touch()
+  }
+
+  function updateWall(id: string, patch: Partial<PreparedMapWallRegion>) {
+    setWallRegions((prev) => prev.map((wall) => (wall.id === id ? { ...wall, ...patch } : wall)))
+    touch()
+  }
+
+  function removeWall(id: string) {
+    setWallRegions((prev) => prev.filter((wall) => wall.id !== id))
+    if (selectedWallId === id) {
+      setSelectedWallId(null)
+      setRoomEditMode(false)
+    }
+    touch()
+  }
+
+  function handleWallGeometryChange(
+    id: string,
+    geometry:
+      | { shape_type: 'rectangle'; x: number; y: number; width: number; height: number }
+      | { shape_type: 'polygon'; points: { x: number; y: number }[] },
+  ) {
+    if (geometry.shape_type === 'polygon') {
+      updateWall(id, {
+        shape_type: 'polygon',
+        points: geometry.points,
+        x: geometry.points[0]?.x ?? 0,
+        y: geometry.points[0]?.y ?? 0,
+        width: null,
+        height: null,
+      })
+    } else {
+      updateWall(id, {
+        shape_type: 'rectangle',
+        x: geometry.x,
+        y: geometry.y,
+        width: geometry.width,
+        height: geometry.height,
+        points: [],
+      })
+    }
   }
 
   // Commit a border-handle drag from the canvas. Keeps the shape kind in sync
@@ -535,6 +625,7 @@ export function PreparedMapEditor({
         tokens,
         room_regions: roomRegions,
         fog_regions: fogRegions,
+        wall_regions: wallRegions,
         fog_mode: fogMode,
         fog_style: fogStyle,
         notes,
@@ -735,8 +826,22 @@ export function PreparedMapEditor({
                   setError(null)
                 }}
                 onRoomRegionDrawn={addRegion}
-                roomEditEnabled={roomEditMode && !!(selectedRoomId || selectedFogId) && !roomDrawTool}
+                roomEditEnabled={roomEditMode && !!(selectedRoomId || selectedFogId) && drawTarget !== 'wall' && !roomDrawTool}
                 onRoomGeometryChange={handleRoomGeometryChange}
+                walls={renderWalls}
+                selectedWallId={selectedWallId}
+                onSelectWall={(id) => {
+                  if (!id) {
+                    setSelectedWallId(null)
+                    return
+                  }
+                  setSelectedTokenId(null)
+                  setSelectedRoomId(null)
+                  setSelectedFogId(null)
+                  setSelectedWallId(id)
+                }}
+                wallEditEnabled={roomEditMode && !!selectedWallId && drawTarget === 'wall' && !roomDrawTool}
+                onWallGeometryChange={handleWallGeometryChange}
               />
               <SubLocationsPanel
                 open={subLocationsOpen}
@@ -750,6 +855,7 @@ export function PreparedMapEditor({
                 onToggle={() => {
                   setSubLocationsOpen((open) => !open)
                   setFogOpen(false)
+                  setWallsOpen(false)
                   setSelectedTokenId(null)
                 }}
                 onAddPortal={addTransportToken}
@@ -807,6 +913,7 @@ export function PreparedMapEditor({
                 onToggle={() => {
                   setFogOpen((open) => !open)
                   setSubLocationsOpen(false)
+                  setWallsOpen(false)
                   setSelectedTokenId(null)
                 }}
                 onChangeMode={(mode) => {
@@ -850,6 +957,67 @@ export function PreparedMapEditor({
                 }}
                 onUpdateFog={updateRoom}
                 onRemoveFog={removeRoom}
+              />
+              <WallsPanel
+                open={wallsOpen}
+                walls={wallRegions}
+                selectedWall={wallRegions.find((w) => w.id === selectedWallId) ?? null}
+                doors={doorTokens}
+                roomDrawTool={drawTarget === 'wall' ? roomDrawTool : null}
+                draftPointCount={draftRoomPolygonPoints.length}
+                editBordersActive={roomEditMode && drawTarget === 'wall' && !!selectedWallId}
+                onToggle={() => {
+                  setWallsOpen((open) => !open)
+                  setSubLocationsOpen(false)
+                  setFogOpen(false)
+                  setSelectedTokenId(null)
+                }}
+                onStartRectangle={() => {
+                  setWallsOpen(true)
+                  setRoomEditMode(false)
+                  setDrawTarget('wall')
+                  setRoomDrawTool((tool) => (tool === 'rectangle' && drawTarget === 'wall' ? null : 'rectangle'))
+                  setDraftRoomPolygonPoints([])
+                }}
+                onStartPolygon={() => {
+                  setWallsOpen(true)
+                  setRoomEditMode(false)
+                  setDrawTarget('wall')
+                  setRoomDrawTool((tool) => (tool === 'polygon' && drawTarget === 'wall' ? null : 'polygon'))
+                  setDraftRoomPolygonPoints([])
+                }}
+                onToggleEditBorders={() => {
+                  const wasEditingThis = roomEditMode && drawTarget === 'wall'
+                  setRoomDrawTool(null)
+                  setDraftRoomPolygonPoints([])
+                  setDrawTarget('wall')
+                  setRoomEditMode(!wasEditingThis)
+                }}
+                onFinishPolygon={finishPolygonRoom}
+                onUndoPolygonPoint={() => setDraftRoomPolygonPoints((prev) => prev.slice(0, -1))}
+                onCancelDraw={() => {
+                  setRoomDrawTool(null)
+                  setDraftRoomPolygonPoints([])
+                }}
+                onSelectWall={(id) => {
+                  setSelectedWallId(id)
+                  if (id) {
+                    setSelectedRoomId(null)
+                    setSelectedFogId(null)
+                  }
+                }}
+                onUpdateWall={updateWall}
+                onRemoveWall={removeWall}
+                onLinkDoor={(wallId, doorId) => {
+                  updateWall(wallId, {
+                    door_token_ids: [...(wallRegions.find((w) => w.id === wallId)?.door_token_ids ?? []), doorId],
+                  })
+                }}
+                onUnlinkDoor={(wallId, doorId) => {
+                  updateWall(wallId, {
+                    door_token_ids: (wallRegions.find((w) => w.id === wallId)?.door_token_ids ?? []).filter((id) => id !== doorId),
+                  })
+                }}
               />
             </>
           ) : (
@@ -1119,6 +1287,7 @@ export function PreparedMapEditor({
               gridSize={gridSize}
               tokens={previewTokens}
               roomRegions={renderRooms}
+              walls={renderWalls}
               mode="player"
             />
           </div>
@@ -1795,6 +1964,245 @@ function FogControlsPanel({
                     </label>
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function WallsPanel({
+  open,
+  walls,
+  selectedWall,
+  doors,
+  roomDrawTool,
+  draftPointCount,
+  editBordersActive,
+  onToggle,
+  onStartRectangle,
+  onStartPolygon,
+  onToggleEditBorders,
+  onFinishPolygon,
+  onUndoPolygonPoint,
+  onCancelDraw,
+  onSelectWall,
+  onUpdateWall,
+  onRemoveWall,
+  onLinkDoor,
+  onUnlinkDoor,
+}: {
+  open: boolean
+  walls: PreparedMapWallRegion[]
+  selectedWall: PreparedMapWallRegion | null
+  doors: PreparedMapToken[]
+  roomDrawTool: RoomDrawTool
+  draftPointCount: number
+  editBordersActive: boolean
+  onToggle: () => void
+  onStartRectangle: () => void
+  onStartPolygon: () => void
+  onToggleEditBorders: () => void
+  onFinishPolygon: () => void
+  onUndoPolygonPoint: () => void
+  onCancelDraw: () => void
+  onSelectWall: (id: string | null) => void
+  onUpdateWall: (id: string, patch: Partial<PreparedMapWallRegion>) => void
+  onRemoveWall: (id: string) => void
+  onLinkDoor: (wallId: string, doorId: string) => void
+  onUnlinkDoor: (wallId: string, doorId: string) => void
+}) {
+  const linkedDoorIds = new Set(selectedWall?.door_token_ids ?? [])
+  const unlinkedDoors = doors.filter((d) => !linkedDoorIds.has(d.id))
+  return (
+    <div className="absolute bottom-3 left-[9.5rem] z-30 flex items-end gap-3">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`flex h-14 w-14 items-center justify-center rounded-full border text-zinc-50 shadow-2xl backdrop-blur transition ${
+          open
+            ? 'border-amber-300 bg-amber-500/25 shadow-amber-950/50'
+            : 'border-zinc-700 bg-zinc-950/90 hover:border-amber-300/70 hover:bg-zinc-900'
+        }`}
+        aria-label="Walls"
+        title="Walls & Borders"
+      >
+        <svg className="h-8 w-8" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <rect x="8" y="8" width="48" height="48" rx="4" stroke="currentColor" strokeWidth="5" />
+          <line x1="32" y1="8" x2="32" y2="56" stroke="currentColor" strokeWidth="4" />
+          <line x1="8" y1="32" x2="56" y2="32" stroke="currentColor" strokeWidth="4" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          className="flex max-h-[min(42rem,calc(100dvh-6rem))] w-[min(24rem,calc(100vw-6rem))] flex-col overflow-hidden rounded-xl border border-amber-300/30 bg-zinc-950/96 shadow-2xl shadow-amber-950/35 backdrop-blur"
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerMove={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
+          onWheel={(event) => event.stopPropagation()}
+          onTouchMove={(event) => event.stopPropagation()}
+        >
+          <div className="border-b border-zinc-800 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-300">Movement</p>
+            <h2 className="mt-1 text-base font-semibold text-zinc-50">Walls &amp; Borders</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Draw impassable walls. Link doors to create openings players can pass through.
+            </p>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 [touch-action:pan-y]">
+            <div className="grid gap-3">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onStartRectangle}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                    roomDrawTool === 'rectangle'
+                      ? 'border-amber-400 bg-amber-500/20 text-amber-200'
+                      : 'border-zinc-700 text-zinc-400 hover:border-amber-400/50 hover:text-amber-300'
+                  }`}
+                >
+                  {roomDrawTool === 'rectangle' ? 'Drawing rectangle…' : '▭ Rectangle'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onStartPolygon}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                    roomDrawTool === 'polygon'
+                      ? 'border-amber-400 bg-amber-500/20 text-amber-200'
+                      : 'border-zinc-700 text-zinc-400 hover:border-amber-400/50 hover:text-amber-300'
+                  }`}
+                >
+                  {roomDrawTool === 'polygon' ? `Polygon (${draftPointCount} pts)` : '⬡ Polygon'}
+                </button>
+              </div>
+              {roomDrawTool === 'polygon' && draftPointCount >= 3 && (
+                <div className="flex gap-2">
+                  <button type="button" onClick={onFinishPolygon} className="flex-1 rounded-lg border border-amber-400 bg-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-200">Finish polygon</button>
+                  <button type="button" onClick={onUndoPolygonPoint} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-400">Undo point</button>
+                  <button type="button" onClick={onCancelDraw} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-400">Cancel</button>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={onToggleEditBorders}
+                className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                  editBordersActive
+                    ? 'border-amber-400 bg-amber-500/20 text-amber-200'
+                    : 'border-zinc-700 text-zinc-400 hover:border-amber-400/50 hover:text-amber-300'
+                }`}
+              >
+                {editBordersActive ? 'Editing borders — drag handles to reshape' : 'Edit borders'}
+              </button>
+
+              {walls.length > 0 && (
+                <div className="grid gap-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Walls ({walls.length})</p>
+                  {walls.map((wall) => (
+                    <div
+                      key={wall.id}
+                      className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition cursor-pointer ${
+                        selectedWall?.id === wall.id
+                          ? 'border-amber-400 bg-amber-500/15 text-amber-100'
+                          : 'border-zinc-800 text-zinc-300 hover:border-amber-400/40'
+                      }`}
+                      onClick={() => onSelectWall(wall.id)}
+                    >
+                      <span className="truncate">{wall.name || 'Wall'}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onRemoveWall(wall.id) }}
+                        className="ml-2 text-zinc-600 hover:text-red-400"
+                        aria-label="Remove wall"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedWall && (
+                <div className="grid gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                  <Input
+                    label="Name"
+                    value={selectedWall.name}
+                    onChange={(e) => onUpdateWall(selectedWall.id, { name: e.target.value })}
+                  />
+                  <Select
+                    label="Border style"
+                    value={selectedWall.border_style}
+                    onChange={(e) => onUpdateWall(selectedWall.id, { border_style: e.target.value as PreparedMapWallRegion['border_style'] })}
+                  >
+                    <option value="solid">Solid</option>
+                    <option value="double">Double</option>
+                    <option value="thick">Thick</option>
+                  </Select>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Border colour</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={selectedWall.border_color ?? '#b45309'}
+                        onChange={(e) => onUpdateWall(selectedWall.id, { border_color: e.target.value })}
+                        className="h-8 w-8 rounded border border-zinc-700 bg-transparent"
+                      />
+                      {selectedWall.border_color && (
+                        <button
+                          type="button"
+                          onClick={() => onUpdateWall(selectedWall.id, { border_color: null })}
+                          className="text-xs text-zinc-500 hover:text-zinc-300"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-amber-200 mb-1">Doors (passable gaps)</p>
+                    {(selectedWall.door_token_ids ?? []).length > 0 ? (
+                      <div className="grid gap-1">
+                        {(selectedWall.door_token_ids ?? []).map((doorId) => {
+                          const door = doors.find((d) => d.id === doorId)
+                          return (
+                            <div key={doorId} className="flex items-center justify-between rounded border border-amber-500/20 px-2 py-1 text-xs text-amber-100">
+                              <span>{door?.name || 'Door'}</span>
+                              <button type="button" onClick={() => onUnlinkDoor(selectedWall.id, doorId)} className="text-zinc-500 hover:text-red-400">✕</button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-zinc-600">No doors linked — this wall blocks all movement through it.</p>
+                    )}
+                    {unlinkedDoors.length > 0 && (
+                      <div className="mt-2 grid gap-1">
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Available doors</p>
+                        {unlinkedDoors.map((door) => (
+                          <button
+                            key={door.id}
+                            type="button"
+                            onClick={() => onLinkDoor(selectedWall.id, door.id)}
+                            className="flex items-center gap-1 rounded border border-zinc-800 px-2 py-1 text-xs text-zinc-400 hover:border-amber-400/40 hover:text-amber-300"
+                          >
+                            <span>+</span> {door.name || 'Door'}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {walls.length === 0 && (
+                <p className="text-xs text-zinc-600 text-center py-4">
+                  No walls yet. Draw a rectangle or polygon to add a wall region.
+                </p>
               )}
             </div>
           </div>

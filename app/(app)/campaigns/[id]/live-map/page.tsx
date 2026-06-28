@@ -15,6 +15,7 @@ import {
   MAP_TRANSPORT_CONFIRMATION_COLUMNS,
   MAP_TRAVEL_PARTY_COLUMNS,
   MAP_TRAVEL_PARTY_MEMBER_COLUMNS,
+  MAP_WALL_COLUMNS,
 } from '@/lib/maps/live-map'
 import type {
   CampaignDocLinkPublication,
@@ -28,6 +29,7 @@ import type {
   MapTransportConfirmation,
   MapTravelParty,
   MapTravelPartyMember,
+  MapWall,
   PlayerToken,
   PlayerVisibleCampaignDoc,
   Profile,
@@ -119,6 +121,7 @@ export default async function MapsPage({ params }: PageProps) {
       { data: characters },
       { data: areas },
       { data: rooms },
+      { data: walls },
       { data: members },
       { data: playerCodexDocs },
       { data: playerCodexLinks },
@@ -131,6 +134,7 @@ export default async function MapsPage({ params }: PageProps) {
       // RLS returns only player-visible areas on the active map.
       supabase.from('map_revealed_areas').select(MAP_REVEALED_AREA_COLUMNS).eq('map_id', activeMap.id),
       supabase.from('map_room_regions').select(MAP_ROOM_REGION_COLUMNS).eq('map_id', activeMap.id),
+      supabase.from('map_walls').select(MAP_WALL_COLUMNS).eq('map_id', activeMap.id),
       supabase
         .from('campaign_members')
         .select('user_id, role, profiles ( id, display_name, avatar_url, created_at )')
@@ -231,6 +235,7 @@ export default async function MapsPage({ params }: PageProps) {
             initialTokens={playerTokens as PlayerToken[]}
             initialAreas={(areas ?? []) as unknown as MapRevealedArea[]}
             initialRooms={(rooms ?? []) as unknown as MapRoomRegion[]}
+            initialWalls={(walls ?? []) as unknown as MapWall[]}
             currentUserId={user.id}
             characterSpeeds={characterSpeeds}
             myCharacters={ownedCharacters.map((c) => ({ id: c.id, name: c.name }))}

@@ -62,6 +62,19 @@ export interface RenderRoomRegion {
   visible_to_players: boolean
 }
 
+export interface RenderWall {
+  id: string
+  name: string
+  shape_type: 'rectangle' | 'polygon'
+  x: number
+  y: number
+  width?: number | null
+  height?: number | null
+  points?: { x: number; y: number }[] | null
+  border_style: 'solid' | 'double' | 'thick'
+  border_color?: string | null
+}
+
 interface MapCanvasProps {
   imageUrl: string
   width: number
@@ -110,6 +123,11 @@ interface MapCanvasProps {
   // handle reshapes the room and commits the new geometry via
   // onRoomGeometryChange. Polygon vertices are preserved — they're moved, not
   // rebuilt.
+  walls?: RenderWall[]
+  selectedWallId?: string | null
+  onSelectWall?: (id: string | null) => void
+  wallEditEnabled?: boolean
+  onWallGeometryChange?: (id: string, geometry: RoomGeometryEdit) => void
   roomEditEnabled?: boolean
   onRoomGeometryChange?: (id: string, geometry: RoomGeometryEdit) => void
   // Presentation mode: keep a world coordinate centered in the viewport when it changes.
@@ -202,6 +220,11 @@ export function MapCanvas({
   draftRoomPolygonPoints = [],
   onRoomPolygonPoint,
   onRoomRegionDrawn,
+  walls = [],
+  selectedWallId = null,
+  onSelectWall,
+  wallEditEnabled = false,
+  onWallGeometryChange,
   roomEditEnabled = false,
   onRoomGeometryChange,
   followTarget = null,
@@ -226,6 +249,13 @@ export function MapCanvas({
   // pointer-up). Null when no handle is being dragged.
   const [roomGeomPreview, setRoomGeomPreview] = useState<{ id: string; geometry: RoomGeometryEdit } | null>(null)
   const roomHandleDrag = useRef<{
+    id: string
+    kind: 'vertex' | 'corner' | 'edge'
+    index: number
+    start: RoomGeometryEdit
+  } | null>(null)
+  const [wallGeomPreview, setWallGeomPreview] = useState<{ id: string; geometry: RoomGeometryEdit } | null>(null)
+  const wallHandleDrag = useRef<{
     id: string
     kind: 'vertex' | 'corner' | 'edge'
     index: number
@@ -378,6 +408,44 @@ export function MapCanvas({
     return 'rgba(0,0,0,0.94)'
   }
 
+  // ─── Wall styling ──────────────────────────────────────────────────────────
+  function wallPath(wall: RenderWall) {
+    if (wall.shape_type === 'rectangle') {
+      const w = wall.width ?? 0
+      const h = wall.height ?? 0
+      return `M ${wall.x} ${wall.y} H ${wall.x + w} V ${wall.y + h} H ${wall.x} Z`
+    }
+    const points = wall.points ?? []
+    if (points.length < 2) return ''
+    return `${points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')} Z`
+  }
+
+  function wallStroke(wall: RenderWall, selected: boolean) {
+    if (selected) return '#f59e0b'
+    if (wall.border_color) return wall.border_color
+    return '#b45309'
+  }
+
+  function wallStrokeWidth(wall: RenderWall) {
+    if (wall.border_style === 'thick') return 5
+    if (wall.border_style === 'double') return 3
+    return 2.5
+  }
+
+  function wallToGeometry(wall: RenderWall): RoomGeometryEdit {
+    if (wall.shape_type === 'polygon') {
+      return { shape_type: 'polygon', points: (wall.points ?? []).map((p) => ({ x: p.x, y: p.y })) }
+    }
+    return { shape_type: 'rectangle', x: wall.x, y: wall.y, width: wall.width ?? 0, height: wall.height ?? 0 }
+  }
+
+  function wallWithGeometry(wall: RenderWall, geometry: RoomGeometryEdit): RenderWall {
+    if (geometry.shape_type === 'polygon') {
+      return { ...wall, points: geometry.points }
+    }
+    return { ...wall, x: geometry.x, y: geometry.y, width: geometry.width, height: geometry.height }
+  }
+
   // ─── Room border editing geometry ──────────────────────────────────────────
   const ROOM_HANDLE_MIN = 8 // smallest allowed rectangle side, in image px
   function roomToGeometry(room: RenderRoomRegion): RoomGeometryEdit {
@@ -436,7 +504,7 @@ export function MapCanvas({
 
   // Interaction tracking (refs avoid re-render churn during a gesture)
   const interaction = useRef<{
-    kind: 'none' | 'pan' | 'token' | 'draw' | 'pinch' | 'roomHandle'
+    kind: 'none' | 'pan' | 'token' | 'draw' | 'pinch' | 'roomHandle' | 'wallHandle'
     pointerId: number
     startClientX: number
     startClientY: number
@@ -635,6 +703,7 @@ export function MapCanvas({
     const target = e.target as HTMLElement
     const tokenEl = target.closest('[data-token-id]') as HTMLElement | null
     const roomHandleEl = target.closest('[data-room-handle]') as HTMLElement | null
+    const wallHandleEl = target.closest('[data-wall-handle]') as HTMLElement | null
     const vp = viewportRef.current
     if (!vp) return
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
@@ -663,6 +732,21 @@ export function MapCanvas({
           start: roomToGeometry(room),
         }
         i.kind = 'roomHandle'
+        return
+      }
+    }
+
+    if (wallEditEnabled && wallHandleEl && onWallGeometryChange) {
+      const id = wallHandleEl.dataset.wallId!
+      const wall = (walls ?? []).find((w) => w.id === id)
+      if (wall) {
+        wallHandleDrag.current = {
+          id,
+          kind: wallHandleEl.dataset.handleKind as 'vertex' | 'corner' | 'edge',
+          index: Number(wallHandleEl.dataset.handleIndex ?? 0),
+          start: wallToGeometry(wall),
+        }
+        i.kind = 'wallHandle'
         return
       }
     }
@@ -731,6 +815,14 @@ export function MapCanvas({
       return
     }
 
+    if (i.kind === 'wallHandle' && wallHandleDrag.current) {
+      const drag = wallHandleDrag.current
+      const w = clientToWorld(e.clientX, e.clientY)
+      const geometry = computeRoomGeometry(drag, clampWorld(w.x, width), clampWorld(w.y, height))
+      setWallGeomPreview({ id: drag.id, geometry })
+      return
+    }
+
     if (i.kind === 'pan') {
       setOffset({ x: i.startOffsetX + dx, y: i.startOffsetY + dy })
     } else if (i.kind === 'token' && i.tokenId) {
@@ -783,6 +875,18 @@ export function MapCanvas({
       i.kind = 'none'
       if (drag && preview && i.moved) {
         onRoomGeometryChange?.(drag.id, roundRoomGeometry(preview.geometry))
+      }
+      return
+    }
+
+    if (i.kind === 'wallHandle') {
+      const drag = wallHandleDrag.current
+      const preview = wallGeomPreview
+      wallHandleDrag.current = null
+      setWallGeomPreview(null)
+      i.kind = 'none'
+      if (drag && preview && i.moved) {
+        onWallGeometryChange?.(drag.id, roundRoomGeometry(preview.geometry))
       }
       return
     }
@@ -1108,6 +1212,94 @@ export function MapCanvas({
                   </g>
                 )
               })}
+              {(walls ?? []).map((wall) => {
+                const wallGeom =
+                  wallGeomPreview && wallGeomPreview.id === wall.id
+                    ? wallWithGeometry(wall, wallGeomPreview.geometry)
+                    : wall
+                const wPath = wallPath(wallGeom)
+                if (!wPath) return null
+                const wSelected = selectedWallId === wall.id
+                const sw = wallStrokeWidth(wall)
+                return (
+                  <g key={wall.id}>
+                    {wall.border_style === 'double' && (
+                      <path
+                        d={wPath}
+                        fill="none"
+                        stroke={wallStroke(wall, wSelected)}
+                        strokeWidth={(sw + 4) / scale}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity={0.4}
+                        style={{ pointerEvents: 'none' }}
+                      />
+                    )}
+                    <path
+                      d={wPath}
+                      fill="none"
+                      stroke={wallStroke(wall, wSelected)}
+                      strokeWidth={sw / scale}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ pointerEvents: mode === 'dm' ? 'auto' : 'none', cursor: mode === 'dm' ? 'pointer' : 'default' }}
+                      onPointerDown={(event) => {
+                        if (mode !== 'dm') return
+                        event.stopPropagation()
+                        onSelectWall?.(wall.id)
+                      }}
+                    />
+                  </g>
+                )
+              })}
+              {wallEditEnabled && selectedWallId && (() => {
+                const sel = (walls ?? []).find((w) => w.id === selectedWallId)
+                if (!sel) return null
+                const g =
+                  wallGeomPreview && wallGeomPreview.id === sel.id
+                    ? wallGeomPreview.geometry
+                    : wallToGeometry(sel)
+                const handles: { x: number; y: number; kind: 'vertex' | 'corner' | 'edge'; index: number }[] = []
+                if (g.shape_type === 'polygon') {
+                  g.points.forEach((p, index) => handles.push({ x: p.x, y: p.y, kind: 'vertex', index }))
+                } else {
+                  const { x, y, width, height } = g
+                  const r = x + width
+                  const b = y + height
+                  handles.push(
+                    { x, y, kind: 'corner', index: 0 },
+                    { x: r, y, kind: 'corner', index: 1 },
+                    { x: r, y: b, kind: 'corner', index: 2 },
+                    { x, y: b, kind: 'corner', index: 3 },
+                    { x: x + width / 2, y, kind: 'edge', index: 0 },
+                    { x: r, y: y + height / 2, kind: 'edge', index: 1 },
+                    { x: x + width / 2, y: b, kind: 'edge', index: 2 },
+                    { x, y: y + height / 2, kind: 'edge', index: 3 },
+                  )
+                }
+                const hr = Math.max(7, safeGridSize * 0.16)
+                return (
+                  <g>
+                    {handles.map((h) => (
+                      <circle
+                        key={`wall-${h.kind}-${h.index}`}
+                        data-wall-handle="1"
+                        data-wall-id={sel.id}
+                        data-handle-kind={h.kind}
+                        data-handle-index={h.index}
+                        cx={h.x}
+                        cy={h.y}
+                        r={hr}
+                        fill={h.kind === 'edge' ? '#f59e0b' : '#d97706'}
+                        stroke="#0a0a0a"
+                        strokeWidth={2}
+                        vectorEffect="non-scaling-stroke"
+                        style={{ pointerEvents: 'auto', cursor: 'grab', touchAction: 'none' }}
+                      />
+                    ))}
+                  </g>
+                )
+              })()}
               {roomEditEnabled && selectedRoomRegionId && (() => {
                 const sel = roomRegions.find((r) => r.id === selectedRoomRegionId)
                 if (!sel) return null

@@ -123,6 +123,8 @@ export type PreparedMap = {
   room_regions: PreparedMapRoomRegion[]
   /** Author-painted fog masks; deploy into map_room_regions like room masks. */
   fog_regions: PreparedMapRoomRegion[]
+  /** Dungeon walls that block player movement; deploy into map_walls. */
+  wall_regions: PreparedMapWallRegion[]
   /** Base (whole-map) fog applied to players when deployed. */
   fog_mode: FogMode
   fog_style: FogStyle
@@ -167,6 +169,23 @@ export type PreparedMapRoomRegion = {
   auto_reveal_distance_feet: number
   is_revealed_by_default: boolean
   visible_to_players: boolean
+  dm_notes?: string
+}
+
+export type WallBorderStyle = 'solid' | 'double' | 'thick'
+
+export type PreparedMapWallRegion = {
+  id: string
+  name: string
+  shape_type: RoomRegionShapeType
+  x: number
+  y: number
+  width?: number | null
+  height?: number | null
+  points: RoomRegionPoint[]
+  border_style: WallBorderStyle
+  border_color?: string | null
+  door_token_ids?: string[]
   dm_notes?: string
 }
 

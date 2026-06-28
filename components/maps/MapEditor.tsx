@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MapCanvas, type AreaDrawTool, type RenderArea, type RenderRoomRegion, type RenderToken } from './MapCanvas'
+import { MapCanvas, type AreaDrawTool, type RenderArea, type RenderRoomRegion, type RenderToken, type RenderWall } from './MapCanvas'
 import { PartyPlayersPanel } from './PartyPlayersPanel'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -23,6 +23,7 @@ import {
   type GameMap,
   type MapRevealedArea,
   type MapRoomRegion,
+  type MapWall,
   type MapTravelParty,
   type MapTravelPartyMember,
   type Token,
@@ -298,6 +299,7 @@ interface MapEditorProps {
   initialDmNotes: Record<string, string>
   initialAreas: MapRevealedArea[]
   initialRooms: MapRoomRegion[]
+  initialWalls?: MapWall[]
   characters: { id: string; name: string; speed: number }[]
   /** Target token ids with an active action request — seed for the "!" badge. */
   initialAlertTokenIds?: string[]
@@ -317,6 +319,7 @@ export function MapEditor({
   initialDmNotes,
   initialAreas,
   initialRooms,
+  initialWalls = [],
   characters,
   initialAlertTokenIds = [],
   codexDocs = [],
@@ -333,6 +336,7 @@ export function MapEditor({
   const [dmNotes, setDmNotes] = useState<Record<string, string>>(initialDmNotes)
   const [areas, setAreas] = useState<MapRevealedArea[]>(initialAreas)
   const [rooms, setRooms] = useState<MapRoomRegion[]>(initialRooms)
+  const [walls, setWalls] = useState<MapWall[]>(initialWalls)
   const [drawTool, setDrawTool] = useState<AreaDrawTool>(null)
   const [areaBusy, setAreaBusy] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -509,6 +513,8 @@ export function MapEditor({
     onAreaDelete: (id) => setAreas((prev) => prev.filter((a) => a.id !== id)),
     onRoomUpsert: (room) => setRooms((prev) => mergeRoomList(prev, room)),
     onRoomDelete: (id) => setRooms((prev) => prev.filter((room) => room.id !== id)),
+    onWallUpsert: (wall) => setWalls((prev) => { const next = prev.filter((w) => w.id !== wall.id); next.push(wall); return next }),
+    onWallDelete: (id) => setWalls((prev) => prev.filter((w) => w.id !== id)),
     onStatus: setMapRealtimeStatus,
   })
 
@@ -582,6 +588,23 @@ export function MapEditor({
         visible_to_players: room.visible_to_players,
       })),
     [rooms],
+  )
+
+  const renderWalls: RenderWall[] = useMemo(
+    () =>
+      walls.map((wall) => ({
+        id: wall.id,
+        name: wall.name,
+        shape_type: wall.shape_type,
+        x: wall.x,
+        y: wall.y,
+        width: wall.width,
+        height: wall.height,
+        points: wall.points,
+        border_style: wall.border_style,
+        border_color: wall.border_color,
+      })),
+    [walls],
   )
 
   async function handleRevealAll() {
@@ -1294,6 +1317,7 @@ export function MapEditor({
             onMoveToken={handleMove}
             revealedAreas={renderAreas}
             roomRegions={renderRooms}
+            walls={renderWalls}
             fogEnabled={false}
             drawTool={drawTool}
             onAreaDrawn={handleAreaDrawn}

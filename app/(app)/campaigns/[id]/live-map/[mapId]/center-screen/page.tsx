@@ -11,8 +11,9 @@ import {
   MAP_ROOM_REGION_COLUMNS,
   MAP_TRAVEL_PARTY_COLUMNS,
   MAP_TRAVEL_PARTY_MEMBER_COLUMNS,
+  MAP_WALL_COLUMNS,
 } from '@/lib/maps/live-map'
-import type { GameMap, MapRevealedArea, MapRoomRegion, MapTravelParty, MapTravelPartyMember, Token } from '@/lib/types/database'
+import type { GameMap, MapRevealedArea, MapRoomRegion, MapTravelParty, MapTravelPartyMember, MapWall, Token } from '@/lib/types/database'
 
 interface PageProps {
   params: Promise<{ id: string; mapId: string }>
@@ -53,7 +54,7 @@ export default async function CenterScreenPage({ params }: PageProps) {
     })
   }
 
-  const [{ data: tokens }, { data: areas }, { data: rooms }, { data: parties }, { data: partyMembers }] = await Promise.all([
+  const [{ data: tokens }, { data: areas }, { data: rooms }, { data: walls }, { data: parties }, { data: partyMembers }] = await Promise.all([
     supabase
       .from('tokens')
       .select(CENTER_SCREEN_TOKEN_COLUMNS)
@@ -70,6 +71,11 @@ export default async function CenterScreenPage({ params }: PageProps) {
       .select(MAP_ROOM_REGION_COLUMNS)
       .eq('map_id', mapId)
       .eq('visible_to_players', true)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('map_walls')
+      .select(MAP_WALL_COLUMNS)
+      .eq('map_id', mapId)
       .order('created_at', { ascending: true }),
     supabase
       .from('map_travel_parties')
@@ -106,6 +112,7 @@ export default async function CenterScreenPage({ params }: PageProps) {
         initialTokens={(tokens ?? []) as unknown as Token[]}
         initialRevealedAreas={(areas ?? []) as unknown as MapRevealedArea[]}
         initialRoomRegions={(rooms ?? []) as unknown as MapRoomRegion[]}
+        initialWalls={(walls ?? []) as unknown as MapWall[]}
         initialTravelParties={(parties ?? []) as unknown as MapTravelParty[]}
         initialTravelPartyMembers={(partyMembers ?? []) as unknown as MapTravelPartyMember[]}
       />

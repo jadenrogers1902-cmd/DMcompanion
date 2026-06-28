@@ -4,7 +4,7 @@
 // (service-role admin client). Server-only logic — never imported by the client.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { AdventureStatus, PreparedMap, PreparedMapRoomRegion, PreparedMapToken } from '@/lib/types/adventure'
+import type { AdventureStatus, PreparedMap, PreparedMapRoomRegion, PreparedMapToken, PreparedMapWallRegion } from '@/lib/types/adventure'
 import type { Database } from '@/lib/types/database'
 import {
   MAX_ROOM_POINTS,
@@ -80,6 +80,39 @@ export function sanitizeRoomRegions(roomRegions: PreparedMapRoomRegion[]): Prepa
         .slice(0, MAX_ROOM_POINTS),
       auto_reveal_distance_feet: Math.max(0, Math.round(room.auto_reveal_distance_feet)),
       dm_notes: (room.dm_notes ?? '').slice(0, 2000),
+    }
+  })
+}
+
+const MAX_WALL_REGIONS = 100
+const WALL_BORDER_STYLES: PreparedMapWallRegion['border_style'][] = ['solid', 'double', 'thick']
+
+export function sanitizeWallRegions(wallRegions: PreparedMapWallRegion[]): PreparedMapWallRegion[] {
+  return wallRegions.slice(0, MAX_WALL_REGIONS).map((raw) => {
+    const id = typeof raw.id === 'string' && raw.id ? raw.id : crypto.randomUUID()
+    const shapeType = raw.shape_type === 'polygon' ? 'polygon' : 'rectangle'
+    return {
+      id,
+      name: (typeof raw.name === 'string' ? raw.name : 'Wall').slice(0, 80),
+      shape_type: shapeType,
+      x: Math.round(Number(raw.x) || 0),
+      y: Math.round(Number(raw.y) || 0),
+      width: raw.width == null ? null : Math.max(8, Math.round(Number(raw.width))),
+      height: raw.height == null ? null : Math.max(8, Math.round(Number(raw.height))),
+      points: (Array.isArray(raw.points) ? raw.points : [])
+        .map((p: { x?: number; y?: number }) => ({
+          x: Math.round(Number(p?.x) || 0),
+          y: Math.round(Number(p?.y) || 0),
+        }))
+        .slice(0, MAX_ROOM_POINTS),
+      border_style: WALL_BORDER_STYLES.includes(raw.border_style as PreparedMapWallRegion['border_style'])
+        ? (raw.border_style as PreparedMapWallRegion['border_style'])
+        : 'solid',
+      border_color: typeof raw.border_color === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw.border_color)
+        ? raw.border_color
+        : null,
+      door_token_ids: Array.isArray(raw.door_token_ids) ? raw.door_token_ids.filter((id: unknown) => typeof id === 'string') : [],
+      dm_notes: (typeof raw.dm_notes === 'string' ? raw.dm_notes : '').slice(0, 2000),
     }
   })
 }
@@ -231,6 +264,36 @@ export async function instantiatePreparedMap(
     if (roomError) {
       return {
         error: `Live map "${prepared.title}" was created, but room regions failed to copy: ${roomError.message}`,
+      }
+    }
+  }
+
+  // Deploy wall regions — movement-blocking boundaries with door gaps.
+  const wallRegions = sanitizeWallRegions(prepared.wall_regions ?? [])
+  if (wallRegions.length > 0) {
+    const { error: wallError } = await client.from('map_walls').insert(
+      wallRegions.map((wall) => ({
+        campaign_id: campaignId,
+        map_id: liveMap.id,
+        source_prepared_wall_id: wall.id,
+        name: wall.name,
+        shape_type: wall.shape_type,
+        x: wall.x,
+        y: wall.y,
+        width: wall.width ?? null,
+        height: wall.height ?? null,
+        points: wall.points,
+        border_style: wall.border_style,
+        border_color: wall.border_color ?? null,
+        door_token_ids: (wall.door_token_ids ?? [])
+          .map((prepId) => prepToLiveTokenId.get(prepId))
+          .filter((id): id is string => Boolean(id)),
+        created_by: createdBy,
+      })),
+    )
+    if (wallError) {
+      return {
+        error: `Live map "${prepared.title}" was created, but wall regions failed to copy: ${wallError.message}`,
       }
     }
   }

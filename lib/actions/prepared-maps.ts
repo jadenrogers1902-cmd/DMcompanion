@@ -11,14 +11,16 @@ import type {
   PreparedMapNote,
   PreparedMapRoomRegion,
   PreparedMapToken,
+  PreparedMapWallRegion,
 } from '@/lib/types/adventure'
 import {
   normalizePreparedRoomRegions,
+  normalizePreparedWallRegions,
   normalizePrepLinks,
   normalizePrepNotes,
   normalizeTags,
 } from '@/components/adventures/prep-metadata'
-import { instantiatePreparedMap, sanitizeRoomRegions, sanitizeTokens } from '@/lib/maps/deploy'
+import { instantiatePreparedMap, sanitizeRoomRegions, sanitizeTokens, sanitizeWallRegions } from '@/lib/maps/deploy'
 
 type PreparedMapUpdate = Database['public']['Tables']['prepared_maps']['Update']
 
@@ -47,6 +49,10 @@ function sanitizeLinks(links: PreparedMapLink[]): PreparedMapLink[] {
 
 function sanitizePreparedRoomRegions(roomRegions: PreparedMapRoomRegion[]): PreparedMapRoomRegion[] {
   return sanitizeRoomRegions(normalizePreparedRoomRegions(roomRegions)).slice(0, MAX_ROOM_REGIONS)
+}
+
+function sanitizePreparedWallRegions(wallRegions: PreparedMapWallRegion[]): PreparedMapWallRegion[] {
+  return sanitizeWallRegions(normalizePreparedWallRegions(wallRegions)).slice(0, MAX_ROOM_REGIONS)
 }
 
 export async function createPreparedMap(
@@ -98,6 +104,7 @@ export async function savePreparedMap(
     tokens?: PreparedMapToken[]
     room_regions?: PreparedMapRoomRegion[]
     fog_regions?: PreparedMapRoomRegion[]
+    wall_regions?: PreparedMapWallRegion[]
     fog_mode?: FogMode
     fog_style?: FogStyle
     notes?: PreparedMapNote[]
@@ -127,6 +134,7 @@ export async function savePreparedMap(
   if (input.tokens !== undefined) update.tokens = sanitizeTokens(input.tokens)
   if (input.room_regions !== undefined) update.room_regions = sanitizePreparedRoomRegions(input.room_regions)
   if (input.fog_regions !== undefined) update.fog_regions = sanitizePreparedRoomRegions(input.fog_regions)
+  if (input.wall_regions !== undefined) update.wall_regions = sanitizePreparedWallRegions(input.wall_regions)
   if (input.fog_mode !== undefined) {
     update.fog_mode = (['none', 'rooms', 'hidden'] as FogMode[]).includes(input.fog_mode)
       ? input.fog_mode

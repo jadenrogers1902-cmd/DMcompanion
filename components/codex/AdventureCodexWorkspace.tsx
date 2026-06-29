@@ -5,7 +5,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Card, CardDescription, CardEyebrow, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import {
@@ -221,10 +221,11 @@ function PlayerRevealedInfo({ docs }: { docs: PlayerVisibleCampaignDoc[] }) {
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
+          <CardEyebrow>Codex</CardEyebrow>
           <h1 className="text-2xl font-bold text-zinc-100">Revealed Info</h1>
-          <p className="mt-1 text-sm text-zinc-500">
+          <CardDescription className="mt-1 text-sm">
             Campaign details your DM has marked safe or revealed.
-          </p>
+          </CardDescription>
         </div>
         <div className="w-full sm:w-80">
           <Input
@@ -243,7 +244,7 @@ function PlayerRevealedInfo({ docs }: { docs: PlayerVisibleCampaignDoc[] }) {
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {filtered.map((doc) => (
-            <Card key={doc.id}>
+            <Card key={doc.id} tone="panel">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">

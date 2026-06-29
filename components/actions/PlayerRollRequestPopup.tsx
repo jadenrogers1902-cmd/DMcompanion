@@ -22,6 +22,7 @@ import type {
 } from '@/lib/types/database'
 import { getRollOutcomeVariant, type RollOutcomeVariant } from '@/lib/utils/roll-outcome-display'
 import { PlayerRollOutcomePanel, type PlayerRollOutcomeData } from '@/components/actions/RollOutcomeEffects'
+import { Card, CardDescription, CardEyebrow } from '@/components/ui/Card'
 
 type RollPopupItem = ActionRollRequest & {
   actionSummary: string
@@ -524,9 +525,9 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
         <>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">
-                {isAttackRoll ? 'Attack Roll Requested' : 'Roll Requested'}
-              </p>
+              <CardEyebrow className="text-amber-300">
+                {isAttackRoll ? 'Attack roll requested' : 'Roll requested'}
+              </CardEyebrow>
               <h2 className="mt-1 text-base font-semibold text-zinc-100">{item.actionSummary}</h2>
               {item.characterName && <p className="mt-0.5 text-xs text-zinc-500">{item.characterName}</p>}
             </div>
@@ -534,16 +535,16 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
           </div>
 
           {!outcome && (
-            <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+            <Card tone="panel" rounded="lg" padding="xs" className="mt-3">
               <p className="text-sm text-zinc-200">{item.label}</p>
-              <p className="mt-1 text-xs text-zinc-500">
+              <CardDescription className="mt-1">
                 {isHpEffectRoll
                   ? `${hpEffect?.kind === 'healing' ? 'Healing' : 'Damage'} ${hpEffect?.formula}`
                   : `d20 ${formatModifier(item.modifier)}`}
                 {!isAttackRoll && !isHpEffectRoll && item.target_number !== null ? ` / Target ${item.target_number}` : ''}
-              </p>
-              <p className="mt-1 text-xs capitalize text-zinc-500">{item.advantage_state.replace('_', ' ')}</p>
-              {item.locationName && <p className="mt-1 text-xs text-zinc-600">Location: {item.locationName}</p>}
+              </CardDescription>
+              <CardDescription className="mt-1 capitalize">{item.advantage_state.replace('_', ' ')}</CardDescription>
+              {item.locationName && <CardDescription className="mt-1 text-zinc-600">Location: {item.locationName}</CardDescription>}
               {((item.modifier_breakdown ?? []).length > 0 || (item.modifier_notes ?? []).length > 0 || (item.modifier_warnings ?? []).length > 0) && (
                 <details className="mt-2 rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-1.5">
                   <summary className="cursor-pointer text-[11px] text-zinc-400">
@@ -562,7 +563,7 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
                   )}
                 </details>
               )}
-            </div>
+            </Card>
           )}
         </>
       )}
@@ -570,7 +571,7 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
       {!item && outcome && (
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">Roll Result</p>
+            <CardEyebrow className="text-amber-300">Roll result</CardEyebrow>
             <h2 className="mt-1 text-base font-semibold text-zinc-100">{outcome.title}</h2>
           </div>
           {!realtimeReady && <span className="text-[10px] text-zinc-600">Polling</span>}

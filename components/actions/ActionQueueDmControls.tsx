@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { Card, CardDescription, CardEyebrow } from '@/components/ui/Card'
 import { Textarea } from '@/components/ui/Input'
 import {
   updateActionIntentStatus,
@@ -303,10 +304,8 @@ export function ActionQueueDmControls({
         )}
       </div>
 
-      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          Roll request
-        </p>
+      <Card tone="subtle" rounded="lg" padding="xs">
+        <CardEyebrow>Roll request</CardEyebrow>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 text-xs text-zinc-400 sm:col-span-2">
             Roll label
@@ -598,7 +597,7 @@ export function ActionQueueDmControls({
             </div>
           ) : null}
         </div>
-      </div>
+      </Card>
 
       <div className={`grid grid-cols-1 gap-2 ${compact ? '' : 'sm:grid-cols-3'}`}>
         <Button
@@ -628,23 +627,11 @@ export function ActionQueueDmControls({
         </Button>
       </div>
 
-      {hasRollResult && !FINAL_STATUSES.includes(status) && (
-        <Button
-          size="sm"
-          variant="secondary"
-          loading={busyStatus === 'needs_roll'}
-          disabled={Boolean(busyStatus)}
-          onClick={() => requestRoll('needs_roll')}
-        >
-          Request Another Roll
-        </Button>
-      )}
-
-      <p className="text-[11px] leading-relaxed text-zinc-600">
+      <CardDescription className="text-[11px] leading-relaxed text-zinc-600">
         Dismissal and popup controls never mark a request resolved by themselves. Approve resolves
-        without a roll; Request Roll asks the player to roll first. Reviewing an outcome? Resolve
-        Result completes it, Request Another Roll rerolls it, and Deny cancels it.
-      </p>
+        without a roll; Request Roll asks the player for a roll or reroll. Reviewing an outcome?
+        Resolve Result completes it, and Deny cancels it.
+      </CardDescription>
     </div>
   )
 }

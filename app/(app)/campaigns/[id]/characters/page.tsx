@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { Card, CardDescription } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { DMCharacterDashboard } from '@/components/characters/DMCharacterDashboard'
 import { hpColor } from '@/lib/utils/character'
@@ -27,30 +28,29 @@ function CharacterMiniCard({
   editable: boolean
 }) {
   return (
-    <Link
-      href={`/campaigns/${campaignId}/characters/${character.id}`}
-      className="block p-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-600 transition-colors"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-semibold text-zinc-100">{character.name}</p>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            {[character.race, character.class && `${character.class} ${character.level}`]
-              .filter(Boolean)
-              .join(' · ') || `Level ${character.level}`}
-          </p>
+    <Link href={`/campaigns/${campaignId}/characters/${character.id}`}>
+      <Card className="h-full transition-colors hover:border-zinc-600" padding="sm">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-semibold text-zinc-100">{character.name}</p>
+            <CardDescription className="mt-0.5">
+              {[character.race, character.class && `${character.class} ${character.level}`]
+                .filter(Boolean)
+                .join(' - ') || `Level ${character.level}`}
+            </CardDescription>
+          </div>
+          <div className="shrink-0 text-right">
+            <span className={`font-bold ${hpColor(character.current_hp, character.max_hp)}`}>
+              {character.current_hp}
+            </span>
+            <span className="text-sm text-zinc-600">/{character.max_hp}</span>
+            <p className="text-xs text-zinc-600">AC {character.armor_class}</p>
+          </div>
         </div>
-        <div className="text-right shrink-0">
-          <span className={`font-bold ${hpColor(character.current_hp, character.max_hp)}`}>
-            {character.current_hp}
-          </span>
-          <span className="text-sm text-zinc-600">/{character.max_hp}</span>
-          <p className="text-xs text-zinc-600">AC {character.armor_class}</p>
-        </div>
-      </div>
-      {editable && (
-        <span className="inline-block mt-3 text-xs text-amber-400">Edit →</span>
-      )}
+        {editable && (
+          <span className="mt-3 inline-block text-xs text-amber-400">Edit -&gt;</span>
+        )}
+      </Card>
     </Link>
   )
 }
@@ -81,7 +81,6 @@ export default async function CharactersPage({ params }: PageProps) {
 
   const isDM = myMembership.role === 'dm'
 
-  // Fetch all characters in the campaign (RLS allows members to read)
   const { data: charsRaw } = await supabase
     .from('characters')
     .select('*')
@@ -93,19 +92,18 @@ export default async function CharactersPage({ params }: PageProps) {
   const backLink = (
     <Link
       href={`/campaigns/${id}`}
-      className="text-sm text-zinc-500 hover:text-zinc-300 flex items-center gap-1.5 mb-4"
+      className="mb-4 flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300"
     >
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
       </svg>
       {campaign.name}
     </Link>
   )
 
-  // ─── DM VIEW: quick-glance dashboard of all characters ───
   if (isDM) {
-    const userIds = [...new Set(characters.map((c) => c.user_id))]
-    const charIds = characters.map((c) => c.id)
+    const userIds = [...new Set(characters.map((character) => character.user_id))]
+    const charIds = characters.map((character) => character.id)
 
     const { data: profiles } = userIds.length
       ? await supabase.from('profiles').select('*').in('id', userIds)
@@ -116,17 +114,19 @@ export default async function CharactersPage({ params }: PageProps) {
       : { data: [] as Condition[] }
 
     const profileMap: Record<string, Profile> = {}
-    ;(profiles ?? []).forEach((p) => (profileMap[p.id] = p))
-
-    const condMap: Record<string, Condition[]> = {}
-    ;(conditions ?? []).forEach((c) => {
-      ;(condMap[c.character_id] ??= []).push(c)
+    ;(profiles ?? []).forEach((profile) => {
+      profileMap[profile.id] = profile
     })
 
-    const dashboardChars: CharacterWithOwner[] = characters.map((c) => ({
-      ...c,
-      profiles: profileMap[c.user_id] ?? null,
-      character_conditions: condMap[c.id] ?? [],
+    const conditionMap: Record<string, Condition[]> = {}
+    ;(conditions ?? []).forEach((condition) => {
+      ;(conditionMap[condition.character_id] ??= []).push(condition)
+    })
+
+    const dashboardChars: CharacterWithOwner[] = characters.map((character) => ({
+      ...character,
+      profiles: profileMap[character.user_id] ?? null,
+      character_conditions: conditionMap[character.id] ?? [],
     }))
 
     return (
@@ -139,7 +139,7 @@ export default async function CharactersPage({ params }: PageProps) {
                 <h1 className="text-2xl font-bold text-zinc-100">Party Dashboard</h1>
                 <Badge variant="dm">DM</Badge>
               </div>
-              <p className="text-sm text-zinc-500 mt-1">
+              <p className="mt-1 text-sm text-zinc-500">
                 Quick glance at every character in the campaign.
               </p>
             </div>
@@ -158,18 +158,17 @@ export default async function CharactersPage({ params }: PageProps) {
     )
   }
 
-  // ─── PLAYER VIEW: own characters + party roster ───
-  const myChars = characters.filter((c) => c.user_id === user.id)
-  const partyChars = characters.filter((c) => c.user_id !== user.id)
+  const myChars = characters.filter((character) => character.user_id === user.id)
+  const partyChars = characters.filter((character) => character.user_id !== user.id)
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <div className="mb-8">
         {backLink}
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-zinc-100">Characters</h1>
-            <p className="text-sm text-zinc-500 mt-1">Manage your characters in this campaign.</p>
+            <p className="mt-1 text-sm text-zinc-500">Manage your characters in this campaign.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={`/campaigns/${id}/characters/templates`}>
@@ -184,27 +183,27 @@ export default async function CharactersPage({ params }: PageProps) {
 
       {myChars.length === 0 ? (
         <EmptyState
-          icon={
-            <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+          icon={(
+            <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
-          }
+          )}
           title="No characters yet"
           description="Choose a starter template or create a blank character to start tracking HP, stats, inventory, and more."
-          action={
+          action={(
             <Link href={`/campaigns/${id}/characters/templates`}>
               <Button>Choose starter template</Button>
             </Link>
-          }
+          )}
         />
       ) : (
         <section className="mb-8">
-          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             Your Characters
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {myChars.map((c) => (
-              <CharacterMiniCard key={c.id} campaignId={id} character={c} editable />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {myChars.map((character) => (
+              <CharacterMiniCard key={character.id} campaignId={id} character={character} editable />
             ))}
           </div>
         </section>
@@ -212,12 +211,12 @@ export default async function CharactersPage({ params }: PageProps) {
 
       {partyChars.length > 0 && (
         <section>
-          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             Party
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {partyChars.map((c) => (
-              <CharacterMiniCard key={c.id} campaignId={id} character={c} editable={false} />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {partyChars.map((character) => (
+              <CharacterMiniCard key={character.id} campaignId={id} character={character} editable={false} />
             ))}
           </div>
         </section>

@@ -57,12 +57,12 @@ export function Sidebar({ profile }: SidebarProps) {
         ...(role === 'dm'
           ? [{ href: `/campaigns/${campaignId}/codex/sync`, label: 'Table Sync', short: 'N' }]
           : []),
-        { href: `/campaigns/${campaignId}/characters`, label: 'Players', short: 'P' },
+        { href: `/campaigns/${campaignId}/characters`, label: role === 'dm' ? 'Players' : 'Characters', short: 'P' },
         ...(role === 'dm'
           ? [{ href: `/campaigns/${campaignId}/actions`, label: 'Requests', short: 'R' }]
           : []),
         { href: `/campaigns/${campaignId}/encounters`, label: 'Encounters', short: 'E' },
-        { href: `/campaigns/${campaignId}/story`, label: 'Story', short: 'S' },
+        { href: `/campaigns/${campaignId}/story`, label: role === 'dm' ? 'Story' : 'Journal', short: 'S' },
         { href: `/campaigns/${campaignId}/settings`, label: 'Settings', short: 'G' },
       ]
     : []

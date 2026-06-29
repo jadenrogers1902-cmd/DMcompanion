@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useSyncExternalStore, useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
+import { Card, CardDescription, CardEyebrow, CardTitle } from '@/components/ui/Card'
 
 function subscribe(callback: () => void) {
   window.addEventListener('online', callback)
@@ -61,48 +62,55 @@ export function DMUtilityPanel({
 
   return (
     <aside className={`hidden xl:block ${className}`}>
-      <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-950/95 p-4 shadow-xl">
+      <Card
+        tone="subtle"
+        rounded="xl"
+        padding="sm"
+        className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto bg-zinc-950/95 shadow-xl"
+      >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wide text-zinc-600">DM Utility</p>
-            <h2 className="truncate text-sm font-semibold text-zinc-100">{campaignName}</h2>
+            <CardEyebrow className="text-zinc-600">DM Utility</CardEyebrow>
+            <CardTitle className="truncate text-sm">{campaignName}</CardTitle>
           </div>
           <button
             type="button"
             onClick={() => setCollapsed(true)}
             className="rounded-md px-2 py-1 text-xs text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200"
           >
-            Hide
+            Hide panel
           </button>
         </div>
 
         <div className="grid gap-2">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+          <Card tone="panel" rounded="lg" padding="xs">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm text-zinc-300">Sync</span>
+              <span className="text-sm text-zinc-300">Realtime</span>
               <Badge variant={online ? 'success' : 'warning'}>{online ? 'Live' : 'Offline'}</Badge>
             </div>
-            <p className="mt-1 text-xs text-zinc-600">
+            <CardDescription className="mt-1 text-zinc-600">
               Realtime views refetch when subscribed campaign rows change.
-            </p>
-          </div>
+            </CardDescription>
+          </Card>
 
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-            <p className="text-xs text-zinc-500">Active scene</p>
+          <Card tone="panel" rounded="lg" padding="xs">
+            <CardDescription>Active scene</CardDescription>
             <p className="mt-1 truncate text-sm font-medium text-zinc-100">
               {activeMapName || 'No active map'}
             </p>
-          </div>
+          </Card>
 
           <Link
             href={`/campaigns/${campaignId}/actions`}
-            className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 transition hover:border-amber-500/60"
+            className="transition hover:border-amber-500/60"
           >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-zinc-100">Action requests</span>
-              <Badge variant={pendingRequests > 0 ? 'warning' : 'default'}>{pendingRequests}</Badge>
-            </div>
-            <p className="mt-1 text-xs text-zinc-600">Approve, deny, ask for rolls, or resolve.</p>
+            <Card tone="panel" rounded="lg" padding="xs" className="transition hover:border-amber-500/60">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-zinc-100">Action requests</span>
+                <Badge variant={pendingRequests > 0 ? 'warning' : 'default'}>{pendingRequests}</Badge>
+              </div>
+              <CardDescription className="mt-1 text-zinc-600">Approve, deny, ask for rolls, or resolve.</CardDescription>
+            </Card>
           </Link>
         </div>
 
@@ -120,21 +128,21 @@ export function DMUtilityPanel({
           <QuickLink href={`/campaigns/${campaignId}/adventures`} label="Adventure Maker" />
           <QuickLink href={`/campaigns/${campaignId}/characters`} label="Player Stats" />
           <QuickLink href={`/campaigns/${campaignId}/encounters`} label="Encounters" />
-          <QuickLink href={`/campaigns/${campaignId}/story`} label="Notes / Journal" />
+          <QuickLink href={`/campaigns/${campaignId}/story`} label="Story Tools" />
           <QuickLink href={`/campaigns/${campaignId}/export`} label="Export Backup" />
           <QuickLink href={`/campaigns/${campaignId}/settings`} label="Campaign Settings" />
         </div>
-      </div>
+      </Card>
     </aside>
   )
 }
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+    <Card tone="panel" rounded="lg" padding="xs">
       <p className="text-lg font-semibold text-zinc-100">{value}</p>
-      <p className="text-xs text-zinc-600">{label}</p>
-    </div>
+      <CardDescription className="text-zinc-600">{label}</CardDescription>
+    </Card>
   )
 }
 

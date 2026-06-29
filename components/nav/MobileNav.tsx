@@ -48,7 +48,7 @@ export function MobileNav({ profile }: MobileNavProps) {
         { href: `/campaigns/${campaignId}`, label: 'Home', icon: navItems[0].icon },
         {
           href: `/campaigns/${campaignId}/characters`,
-          label: 'Sheet',
+          label: 'Characters',
           icon: (
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.75h-9A2.25 2.25 0 005.25 6v12A2.25 2.25 0 007.5 20.25h9A2.25 2.25 0 0018.75 18V6a2.25 2.25 0 00-2.25-2.25zM8.25 8.25h7.5M8.25 12h7.5M8.25 15.75h4.5" />

@@ -280,18 +280,18 @@ export default async function CampaignPage({ params }: PageProps) {
             <PlayerTabletopCard campaignId={id} />
             <FeatureCard
               href={`/campaigns/${id}/encounters`}
-              title="Encounter View"
-              description="See active combat state shared by the DM."
-            />
-            <FeatureCard
-              href={`/campaigns/${id}/actions`}
-              title="Actions"
-              description="Submit intent when your character is near something."
+              title="Encounters"
+              description="See combat state, initiative, and encounter progress shared by the DM."
             />
             <FeatureCard
               href={`/campaigns/${id}/story`}
               title="Party Journal"
               description="Read shared quests, NPC notes, locations, handouts, and recaps."
+            />
+            <FeatureCard
+              href={`/campaigns/${id}/codex`}
+              title="Revealed Info"
+              description="Review player-safe lore, discoveries, and revealed campaign details."
             />
           </div>
         </div>

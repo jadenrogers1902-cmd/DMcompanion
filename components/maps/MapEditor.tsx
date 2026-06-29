@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { MapCanvas, type AreaDrawTool, type RenderArea, type RenderRoomRegion, type RenderToken, type RenderWall } from './MapCanvas'
 import { PartyPlayersPanel } from './PartyPlayersPanel'
 import { Button } from '@/components/ui/Button'
+import { Card, CardEyebrow } from '@/components/ui/Card'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Select } from '@/components/ui/Select'
@@ -1452,7 +1453,7 @@ export function MapEditor({
                   onTypeChange={setTokenTypeFilter}
                   onVisibilityChange={setTokenVisibilityFilter}
                 />
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+                <Card tone="panel" rounded="lg" padding="xs">
                   <h3 className="text-sm font-semibold text-zinc-200">Token Editing</h3>
                   <p className="mt-2 text-xs text-zinc-500">
                     Use the floating + on the map to add tokens. Select any token for quick actions
@@ -1477,8 +1478,8 @@ export function MapEditor({
                     Nothing selected. Click a token to manage it, or click the + bubble.
                   </p>
             )}
-                </div>
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+                </Card>
+                <Card tone="panel" rounded="lg" padding="xs">
                   <h3 className="text-sm font-semibold text-zinc-200">Movement</h3>
                   <p className="mt-2 text-xs text-zinc-500">
                     Use selected-token quick controls to lock, reset movement, or reset position.
@@ -1499,7 +1500,7 @@ export function MapEditor({
                       </Button>
                     </div>
                   )}
-                </div>
+                </Card>
                 {selected && (
                   <DMLinkedCodexDocsPanel
                     campaignId={campaignId}
@@ -1516,7 +1517,7 @@ export function MapEditor({
 
           {/* Revealed areas (fog layer) */}
           {mapToolTab === 'reveal' && (
-          <div className="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+          <Card tone="panel" rounded="lg" padding="xs" className="flex flex-col gap-3">
             <h3 className="text-sm font-semibold text-zinc-200">Visibility</h3>
             <p className="text-xs text-zinc-500">
               Control the map-level reveal override, painted reveals, and room masks. Temporary
@@ -1657,12 +1658,12 @@ export function MapEditor({
                 </ul>
               )}
             </div>
-          </div>
+          </Card>
           )}
 
           {/* Grid settings */}
           {mapToolTab === 'grid' && (
-          <div className="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+          <Card tone="panel" rounded="lg" padding="xs" className="flex flex-col gap-3">
             <div>
               <h3 className="text-sm font-semibold text-zinc-200">Grid</h3>
               <p className="mt-1 text-xs text-zinc-500">
@@ -1760,7 +1761,7 @@ export function MapEditor({
             <Button size="sm" variant="secondary" onClick={handleSaveGrid} loading={savingGrid}>
               Save grid settings
             </Button>
-          </div>
+          </Card>
           )}
           </div>
         </div>
@@ -1911,7 +1912,7 @@ function LiveMapHealthPanel({
           <div>
             <div className="mb-2 flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold text-zinc-100">Live map health</h2>
-              <span className="text-[11px] uppercase tracking-wide text-zinc-500">DM diagnostics</span>
+              <CardEyebrow>Session diagnostics</CardEyebrow>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <HealthItem label="Active map" value={isActive ? 'Active' : 'Inactive'} ok={isActive} />
@@ -1932,7 +1933,7 @@ function LiveMapHealthPanel({
               />
             </div>
           </div>
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+          <Card tone="panel" rounded="lg" padding="xs">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Migration/status diagnostics</p>
@@ -1955,7 +1956,7 @@ function LiveMapHealthPanel({
                 ok={realtimeHealthy(travelRealtimeStatus)}
               />
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>
@@ -1964,13 +1965,13 @@ function LiveMapHealthPanel({
 
 function HealthItem({ label, value, ok }: { label: string; value: string; ok: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2">
+    <Card tone="panel" rounded="lg" padding="xs" className="flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{label}</p>
+        <CardEyebrow className="truncate">{label}</CardEyebrow>
         <p className="mt-0.5 truncate text-xs text-zinc-200">{value}</p>
       </div>
       <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${ok ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]' : 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.6)]'}`} />
-    </div>
+    </Card>
   )
 }
 
@@ -1994,7 +1995,7 @@ function TokenFilterPanel({
   onVisibilityChange: (value: TokenVisibilityFilter) => void
 }) {
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+    <Card tone="panel" rounded="lg" padding="xs">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-zinc-200">Token search</h3>
         <span className="text-xs text-zinc-500">{shown}/{total} shown</span>
@@ -2041,7 +2042,7 @@ function TokenFilterPanel({
           Clear filters
         </button>
       )}
-    </div>
+    </Card>
   )
 }
 

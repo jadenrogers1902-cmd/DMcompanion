@@ -52,6 +52,7 @@ import {
 import { getRollOutcomeVariant } from '@/lib/utils/roll-outcome-display'
 import { PlayerRollOutcomePanel, type PlayerRollOutcomeData } from '@/components/actions/RollOutcomeEffects'
 import { PlayerLinkedCodexDocsPanel } from '@/components/codex/CodexLinkedDocsPanel'
+import { Card, CardDescription, CardEyebrow } from '@/components/ui/Card'
 import { buildPrivateMapImageUrl } from '@/lib/maps/live-map'
 import { createClient } from '@/lib/supabase/client'
 import { actionsForToken, authorizePlayerActionTarget, distanceFeet } from '@/lib/utils/actions'
@@ -2603,25 +2604,6 @@ function InteractionMenu({
   sendWhisper: () => void
   onTakeAction: () => void
 }) {
-  const actionPanel = (
-    <div className="grid gap-2">
-      <MenuItem
-        title="Take an Action"
-        description="Open the guided action request flow for DM review."
-        icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}
-        onClick={onTakeAction}
-        trailing={false}
-      />
-      <MenuItem
-        title="Requests"
-        description="Open your action requests and draft selected-token actions."
-        icon={<Hand className="h-4 w-4" aria-hidden="true" />}
-        onClick={() => setSection('requests')}
-        trailing={false}
-      />
-    </div>
-  )
-
   const talkPanel = (
     <div className="grid gap-2">
       <MenuItem
@@ -2686,10 +2668,10 @@ function InteractionMenu({
         </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+      <Card tone="panel" rounded="lg" padding="xs">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Current mode</p>
+            <CardEyebrow>Current mode</CardEyebrow>
             <p className="mt-1 text-sm font-medium text-zinc-100">
               {map.travel_mode === 'group_party'
                 ? 'Group Party'
@@ -2739,10 +2721,10 @@ function InteractionMenu({
             </button>
           </div>
         )}
-      </div>
+      </Card>
 
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Create Party</p>
+      <Card tone="panel" rounded="lg" padding="xs">
+        <CardEyebrow>Create party</CardEyebrow>
         <label className="mt-3 block text-xs text-zinc-400">
           Party name
           <input
@@ -2785,11 +2767,11 @@ function InteractionMenu({
           <Users className="h-4 w-4" aria-hidden="true" />
           {travelBusy === 'create' ? 'Creating...' : 'Create Party'}
         </button>
-      </div>
+      </Card>
 
       {(myInviteRows.length > 0 || myParties.length > 0) && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Party status</p>
+        <Card tone="panel" rounded="lg" padding="xs">
+          <CardEyebrow>Party status</CardEyebrow>
           {activeParty && (
             <p className="mt-2 text-xs text-emerald-300">
               Active party: {activeParty.name}, led by {playerName(activeParty.leader_user_id)}
@@ -2838,7 +2820,7 @@ function InteractionMenu({
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {travelFeedback && (
@@ -2852,11 +2834,29 @@ function InteractionMenu({
   const requestsPanel = (
     <div className="grid gap-3">
       <div>
-        <p className="text-sm font-semibold text-zinc-100">Requests</p>
-        <p className="mt-0.5 text-xs text-zinc-500">View your current requests and submit quick actions to the DM.</p>
+        <p className="text-sm font-semibold text-zinc-100">Action Center</p>
+        <p className="mt-0.5 text-xs text-zinc-500">Submit actions from the map and keep track of your open requests here.</p>
       </div>
+      <Card tone="panel" rounded="lg" padding="xs">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardEyebrow>Guided request</CardEyebrow>
+            <p className="mt-1 text-sm font-medium text-zinc-100">Take an action</p>
+            <CardDescription className="mt-1">
+              Open the guided action request flow for DM review.
+            </CardDescription>
+          </div>
+          <button
+            type="button"
+            onClick={onTakeAction}
+            className="inline-flex min-h-10 items-center justify-center rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+          >
+            Open
+          </button>
+        </div>
+      </Card>
       {selected && contextualActions.length > 0 ? (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+        <Card tone="panel" rounded="lg" padding="xs">
           <p className="text-xs font-medium text-zinc-300">Selected: {selected.name || selected.token_type}</p>
           <p className="mt-1 text-[11px] text-zinc-500">
             {nearestActor ? `${nearestActor.distance} ft away` : 'Link a character to a token to act.'}
@@ -2876,14 +2876,14 @@ function InteractionMenu({
           <p className="mt-3 text-xs text-zinc-500">
             Choosing an action opens the request card before anything is sent to the DM.
           </p>
-        </div>
+        </Card>
       ) : (
-        <p className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-500">
+        <CardDescription className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-500">
           Select an interactable token on the map to submit a quick action request.
-        </p>
+        </CardDescription>
       )}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">My Requests</p>
+      <Card tone="panel" rounded="lg" padding="xs">
+        <CardEyebrow>My requests</CardEyebrow>
         <div className="mt-2 grid gap-2">
           {requestsLoading ? (
             <p className="text-xs text-zinc-500">Loading requests...</p>
@@ -2903,7 +2903,7 @@ function InteractionMenu({
             ))
           )}
         </div>
-      </div>
+      </Card>
     </div>
   )
 
@@ -2960,7 +2960,7 @@ function InteractionMenu({
   )
 
   const detailPanel =
-    section === 'action' ? actionPanel :
+    section === 'action' ? requestsPanel :
     section === 'requests' ? requestsPanel :
     section === 'talk' ? talkPanel :
     section === 'travel' ? travelPanel :
@@ -2992,7 +2992,7 @@ function InteractionMenu({
           </div>
           {section === 'root' ? (
             <div className="grid gap-2">
-              <MenuItem title="Action" description="Request actions, rolls, and DM review." icon={<Hand className="h-4 w-4" />} onClick={() => setSection('action')} />
+              <MenuItem title="Action Center" description="Request actions, review open requests, and respond to rolls." icon={<Hand className="h-4 w-4" />} onClick={() => setSection('action')} />
               <MenuItem title="Talk" description="Communicate with the party." icon={<MessageCircle className="h-4 w-4" />} onClick={() => setSection('talk')} />
               <MenuItem title="Travel Options" description="Create a party and choose travel mode." icon={<Users className="h-4 w-4" />} onClick={() => setSection('travel')} />
             </div>
@@ -3009,7 +3009,7 @@ function InteractionMenu({
             </button>
           </div>
           <div className="grid gap-2">
-            <MenuItem title="Action" description="Request actions, rolls, and DM review." icon={<Hand className="h-4 w-4" />} active={section === 'action' || section === 'requests'} onMouseEnter={() => setSection('action')} onClick={() => setSection('action')} />
+            <MenuItem title="Action Center" description="Request actions, review open requests, and respond to rolls." icon={<Hand className="h-4 w-4" />} active={section === 'action' || section === 'requests'} onMouseEnter={() => setSection('action')} onClick={() => setSection('action')} />
             <MenuItem title="Talk" description="Communicate with the party." icon={<MessageCircle className="h-4 w-4" />} active={section === 'talk' || section === 'whisper' || section === 'announcement'} onMouseEnter={() => setSection('talk')} onClick={() => setSection('talk')} />
             <MenuItem title="Travel Options" description="Create a party and choose travel mode." icon={<Users className="h-4 w-4" />} active={section === 'travel'} onMouseEnter={() => setSection('travel')} onClick={() => setSection('travel')} />
           </div>

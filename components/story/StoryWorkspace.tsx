@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Tabs } from '@/components/ui/Tabs'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Card, CardDescription, CardEyebrow, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Checkbox } from '@/components/ui/Checkbox'
@@ -190,10 +190,11 @@ function PlayerJournal({ quests, npcs, locations, notes, handouts, recaps }: Sto
   return (
     <div className="flex flex-col gap-5">
       <div>
+        <CardEyebrow>Journal</CardEyebrow>
         <h1 className="text-2xl font-bold text-zinc-100">Party Journal</h1>
-        <p className="text-sm text-zinc-500 mt-1">
+        <CardDescription className="mt-1 text-sm">
           Shared campaign notes, discoveries, handouts, and session recaps.
-        </p>
+        </CardDescription>
       </div>
 
       <Tabs
@@ -274,7 +275,7 @@ function JournalCard({
   children: React.ReactNode
 }) {
   return (
-    <Card>
+    <Card tone="panel">
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
         {badge}

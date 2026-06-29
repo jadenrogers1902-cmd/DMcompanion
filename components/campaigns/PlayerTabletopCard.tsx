@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Card } from '@/components/ui/Card'
+import { Card, CardDescription } from '@/components/ui/Card'
 import { useActiveSession } from '@/lib/hooks/useActiveSession'
 
 /**
@@ -44,11 +44,11 @@ export function PlayerTabletopCard({ campaignId }: { campaignId: string }) {
             </svg>
           )}
         </div>
-        <p className={`text-xs ${live ? 'text-red-300/90' : 'text-zinc-500'}`}>
+        <CardDescription className={live ? 'text-red-300/90' : 'text-zinc-500'}>
           {live
             ? 'Your session is live — jump in to the active scene, move your token, and act.'
             : "Jump into the live map, move your token, and act on what's around you."}
-        </p>
+        </CardDescription>
       </Card>
     </Link>
   )

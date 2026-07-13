@@ -57,7 +57,9 @@ export default async function EncounterPage({ params }: PageProps) {
       .from('encounter_participants')
       .select('*, encounter_conditions (*)')
       .eq('encounter_id', encounterId),
-    supabase.from('maps').select('*').eq('campaign_id', id),
+    isDM
+      ? supabase.from('maps').select('*').eq('campaign_id', id)
+      : Promise.resolve({ data: [] }),
     isDM
       ? supabase.from('characters').select('*').eq('campaign_id', id)
       : Promise.resolve({ data: [] }),

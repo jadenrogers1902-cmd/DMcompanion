@@ -39,16 +39,24 @@ export function segmentsIntersect(
   return false
 }
 
-function pointToSegmentDistance(
-  px: number, py: number,
-  sx1: number, sy1: number, sx2: number, sy2: number,
-): number {
-  const dx = sx2 - sx1
-  const dy = sy2 - sy1
-  const lenSq = dx * dx + dy * dy
-  if (lenSq === 0) return Math.hypot(px - sx1, py - sy1)
-  const t = Math.max(0, Math.min(1, ((px - sx1) * dx + (py - sy1) * dy) / lenSq))
-  return Math.hypot(px - (sx1 + t * dx), py - (sy1 + t * dy))
+function segmentIntersectionPoint(
+  ax1: number, ay1: number, ax2: number, ay2: number,
+  bx1: number, by1: number, bx2: number, by2: number,
+): { x: number; y: number } | null {
+  const rx = ax2 - ax1
+  const ry = ay2 - ay1
+  const sx = bx2 - bx1
+  const sy = by2 - by1
+  const denominator = rx * sy - ry * sx
+
+  // Parallel/collinear overlap has no single safe doorway crossing. The caller
+  // treats it as blocked rather than guessing a permissive point.
+  if (Math.abs(denominator) < 1e-9) return null
+
+  const qpx = bx1 - ax1
+  const qpy = by1 - ay1
+  const t = (qpx * sy - qpy * sx) / denominator
+  return { x: ax1 + t * rx, y: ay1 + t * ry }
 }
 
 function edgeCrossesWithDoorCheck(
@@ -58,8 +66,12 @@ function edgeCrossesWithDoorCheck(
   doorThreshold: number,
 ): boolean {
   if (!segmentsIntersect(oldX, oldY, newX, newY, ex1, ey1, ex2, ey2)) return false
+  const crossing = segmentIntersectionPoint(oldX, oldY, newX, newY, ex1, ey1, ex2, ey2)
+  if (!crossing) return true
   for (const door of doorPositions) {
-    if (pointToSegmentDistance(door.x, door.y, ex1, ey1, ex2, ey2) <= doorThreshold) {
+    // A linked door opens only the nearby crossing, not the entire wall edge
+    // or a shallow path that merely passes near the door before crossing later.
+    if (Math.hypot(door.x - crossing.x, door.y - crossing.y) <= doorThreshold) {
       return false
     }
   }

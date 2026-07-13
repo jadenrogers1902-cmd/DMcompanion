@@ -69,7 +69,7 @@ export function Sidebar({ profile }: SidebarProps) {
 
   return (
     <aside
-      className={`hidden h-screen shrink-0 flex-col border-r border-border bg-shell/95 shadow-[12px_0_44px_rgb(0_0_0/0.16)] backdrop-blur-xl transition-[width] duration-200 md:flex ${
+      className={`hidden h-dvh shrink-0 flex-col border-r border-border bg-shell/95 shadow-[12px_0_44px_rgb(0_0_0/0.16)] backdrop-blur-xl transition-[width] duration-200 md:flex ${
         collapsed ? 'w-16' : 'w-60'
       }`}
     >
@@ -146,7 +146,7 @@ export function Sidebar({ profile }: SidebarProps) {
                   >
                     {itemLive && (
                       <span className="relative flex h-2 w-2 shrink-0">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-70" />
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-70 motion-reduce:animate-none" />
                         <span className="relative inline-flex h-2 w-2 rounded-full bg-live" />
                       </span>
                     )}

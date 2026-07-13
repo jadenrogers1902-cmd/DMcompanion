@@ -3,6 +3,7 @@
 import { randomUUID } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type {
   ActionRollRequest,
   AdvantageState,
@@ -469,16 +470,20 @@ export async function markRollRequestRolling(campaignId: string, rollRequestId: 
   if (rollRequest.player_id !== user.id) return { error: 'This roll request is not assigned to you.' }
   if (rollRequest.status !== 'waiting_for_player') return { success: true }
 
-  const [{ error: requestError }, { error: intentError }] = await Promise.all([
-    supabase.from('action_roll_requests').update({ status: 'waiting_for_player' }).eq('id', rollRequestId),
-    supabase
-      .from('action_intents')
-      .update({ status: 'rolling', resolver_status: 'rolling' })
-      .eq('id', rollRequest.action_intent_id),
-  ])
+  const admin = createAdminClient()
+  if (!admin) return { error: 'Roll resolution is not configured on the server.' }
 
-  if (requestError) return { error: requestError.message }
+  const { data: updatedIntent, error: intentError } = await admin
+    .from('action_intents')
+    .update({ status: 'rolling', resolver_status: 'rolling' })
+    .eq('id', rollRequest.action_intent_id)
+    .eq('campaign_id', campaignId)
+    .eq('actor_user_id', user.id)
+    .in('status', ['approved_waiting_for_roll', 'rolling'])
+    .select('id')
+    .maybeSingle()
   if (intentError) return { error: intentError.message }
+  if (!updatedIntent) return { error: 'Action request is no longer waiting for this roll.' }
 
   revalidatePath(ACTIONS_PATH(campaignId))
   return { success: true }
@@ -508,6 +513,9 @@ export async function submitRollResult(
   if (rollRequest.player_id !== user.id) return { error: 'This roll request is not assigned to you.' }
   if (rollRequest.status !== 'waiting_for_player') return { error: 'This roll request is no longer waiting for a roll.' }
 
+  const admin = createAdminClient()
+  if (!admin) return { error: 'Roll resolution is not configured on the server.' }
+
   const naturalRoll = int(input.naturalRoll)
   const secondNaturalRoll = input.secondNaturalRoll === null || input.secondNaturalRoll === undefined
     ? null
@@ -524,7 +532,21 @@ export async function submitRollResult(
   const total = usedNaturalRoll + rollRequest.modifier
   const result = rollResult(usedNaturalRoll, total, rollRequest.target_number)
 
-  const { error: resultError } = await supabase.from('action_roll_results').insert({
+  const { data: claimedRequest, error: claimError } = await admin
+    .from('action_roll_requests')
+    .update({ status: 'rolled' })
+    .eq('id', rollRequest.id)
+    .eq('campaign_id', campaignId)
+    .eq('player_id', user.id)
+    .eq('status', 'waiting_for_player')
+    .select('id')
+    .maybeSingle()
+  if (claimError) return { error: claimError.message }
+  if (!claimedRequest) return { error: 'This roll request is no longer waiting for a roll.' }
+
+  const rollResultId = randomUUID()
+  const { error: resultError } = await admin.from('action_roll_results').insert({
+    id: rollResultId,
     roll_request_id: rollRequest.id,
     action_intent_id: rollRequest.action_intent_id,
     campaign_id: rollRequest.campaign_id,
@@ -540,18 +562,31 @@ export async function submitRollResult(
     result,
   })
 
-  if (resultError) return { error: resultError.message }
+  if (resultError) {
+    await admin
+      .from('action_roll_requests')
+      .update({ status: 'waiting_for_player' })
+      .eq('id', rollRequest.id)
+      .eq('status', 'rolled')
+    return { error: resultError.message }
+  }
 
-  const [{ error: requestError }, { error: intentError }] = await Promise.all([
-    supabase.from('action_roll_requests').update({ status: 'rolled' }).eq('id', rollRequest.id),
-    supabase
-      .from('action_intents')
-      .update({ status: 'rolled_waiting_for_dm', resolver_status: 'manual' })
-      .eq('id', rollRequest.action_intent_id),
-  ])
-
-  if (requestError) return { error: requestError.message }
-  if (intentError) return { error: intentError.message }
+  const { data: updatedIntent, error: intentError } = await admin
+    .from('action_intents')
+    .update({ status: 'rolled_waiting_for_dm', resolver_status: 'manual' })
+    .eq('id', rollRequest.action_intent_id)
+    .eq('campaign_id', campaignId)
+    .eq('actor_user_id', user.id)
+    .in('status', ['approved_waiting_for_roll', 'rolling'])
+    .select('id')
+    .maybeSingle()
+  if (intentError || !updatedIntent) {
+    await Promise.all([
+      admin.from('action_roll_results').delete().eq('id', rollResultId),
+      admin.from('action_roll_requests').update({ status: 'waiting_for_player' }).eq('id', rollRequest.id).eq('status', 'rolled'),
+    ])
+    return { error: intentError?.message ?? 'Action request is no longer waiting for this roll.' }
+  }
 
   revalidatePath(ACTIONS_PATH(campaignId))
   return { success: true, total, result }
@@ -603,6 +638,8 @@ export async function submitAttackRollResult(
   if (rollRequest.roll_type !== 'weapon_attack' && rollRequest.roll_type !== 'attack') {
     return { error: 'This is not an attack roll request.' }
   }
+  const admin = createAdminClient()
+  if (!admin) return { error: 'Roll resolution is not configured on the server.' }
 
   const naturalRoll = int(input.naturalRoll)
   const secondNaturalRoll = input.secondNaturalRoll === null || input.secondNaturalRoll === undefined
@@ -623,10 +660,12 @@ export async function submitAttackRollResult(
   ])
   if (!intentRaw) return { error: 'Action request not found.' }
 
-  const { data: targetRaw } = await supabase
+  const { data: targetRaw } = await admin
     .from('tokens')
     .select('id, name, token_type, armor_class, current_hp, max_hp, temp_hp, is_defeated, object_state')
     .eq('id', String(intentRaw.target_token_id))
+    .eq('campaign_id', campaignId)
+    .eq('map_id', String(intentRaw.map_id))
     .maybeSingle()
 
   const revealTargetAc = contextBoolean(context, 'revealTargetACToPlayers', ATTACK_SETTINGS.revealTargetACToPlayers)
@@ -711,8 +750,20 @@ export async function submitAttackRollResult(
     damageType,
   })
 
+  const { data: claimedRequest, error: claimError } = await admin
+    .from('action_roll_requests')
+    .update({ status: 'rolled' })
+    .eq('id', rollRequest.id)
+    .eq('campaign_id', campaignId)
+    .eq('player_id', user.id)
+    .eq('status', 'waiting_for_player')
+    .select('id')
+    .maybeSingle()
+  if (claimError) return { error: claimError.message }
+  if (!claimedRequest) return { error: 'This roll request is no longer waiting for a roll.' }
+
   const attackResultId = randomUUID()
-  const { error: attackError } = await supabase
+  const { error: attackError } = await admin
     .from('action_attack_results')
     .insert({
       id: attackResultId,
@@ -742,9 +793,16 @@ export async function submitAttackRollResult(
       revealed_to_player: !requireDmReview,
     })
 
-  if (attackError) return { error: attackError.message }
+  if (attackError) {
+    await admin
+      .from('action_roll_requests')
+      .update({ status: 'waiting_for_player' })
+      .eq('id', rollRequest.id)
+      .eq('status', 'rolled')
+    return { error: attackError.message }
+  }
 
-  const { error: detailsError } = await supabase.from('action_attack_result_dm_details').insert({
+  const { error: detailsError } = await admin.from('action_attack_result_dm_details').insert({
     attack_result_id: attackResultId,
     campaign_id: rollRequest.campaign_id,
     target_ac: targetAc,
@@ -752,7 +810,13 @@ export async function submitAttackRollResult(
     dm_summary: dmSummary,
   })
 
-  if (detailsError) return { error: detailsError.message }
+  if (detailsError) {
+    await Promise.all([
+      admin.from('action_attack_results').delete().eq('id', attackResultId),
+      admin.from('action_roll_requests').update({ status: 'waiting_for_player' }).eq('id', rollRequest.id).eq('status', 'rolled'),
+    ])
+    return { error: detailsError.message }
+  }
 
   // Phase 4: when the attack lands damage on a known token, suggest a
   // map-state update for the DM to review instead of mutating HP directly.
@@ -783,7 +847,7 @@ export async function submitAttackRollResult(
       ? `${targetName} takes ${damageLabel} damage and is reduced to 0 HP (defeated).`
       : `${targetName} takes ${damageLabel} damage.`
 
-    const { error: pendingError } = await supabase.from('pending_state_updates').insert({
+    const { error: pendingError } = await admin.from('pending_state_updates').insert({
       campaign_id: rollRequest.campaign_id,
       action_intent_id: rollRequest.action_intent_id,
       roll_result_id: attackResultId,
@@ -797,19 +861,32 @@ export async function submitAttackRollResult(
       status: 'pending_dm_review',
     })
 
-    if (pendingError) return { error: pendingError.message }
+    if (pendingError) {
+      await Promise.all([
+        admin.from('action_attack_results').delete().eq('id', attackResultId),
+        admin.from('action_roll_requests').update({ status: 'waiting_for_player' }).eq('id', rollRequest.id).eq('status', 'rolled'),
+      ])
+      return { error: pendingError.message }
+    }
   }
 
-  const [{ error: requestError }, { error: intentError }] = await Promise.all([
-    supabase.from('action_roll_requests').update({ status: 'rolled' }).eq('id', rollRequest.id),
-    supabase
-      .from('action_intents')
-      .update({ status: 'rolled_waiting_for_dm', resolver_status: 'manual' })
-      .eq('id', rollRequest.action_intent_id),
-  ])
-
-  if (requestError) return { error: requestError.message }
-  if (intentError) return { error: intentError.message }
+  const { data: updatedIntent, error: intentError } = await admin
+    .from('action_intents')
+    .update({ status: 'rolled_waiting_for_dm', resolver_status: 'manual' })
+    .eq('id', rollRequest.action_intent_id)
+    .eq('campaign_id', campaignId)
+    .eq('actor_user_id', user.id)
+    .in('status', ['approved_waiting_for_roll', 'rolling'])
+    .select('id')
+    .maybeSingle()
+  if (intentError || !updatedIntent) {
+    await admin.from('pending_state_updates').delete().eq('roll_result_id', attackResultId)
+    await Promise.all([
+      admin.from('action_attack_results').delete().eq('id', attackResultId),
+      admin.from('action_roll_requests').update({ status: 'waiting_for_player' }).eq('id', rollRequest.id).eq('status', 'rolled'),
+    ])
+    return { error: intentError?.message ?? 'Action request is no longer waiting for this roll.' }
+  }
 
   revalidatePath(ACTIONS_PATH(campaignId))
   return {
@@ -858,6 +935,8 @@ export async function submitHpEffectRollResult(
   if (!rollRequest) return { error: 'Roll request not found.' }
   if (rollRequest.player_id !== user.id) return { error: 'This roll request is not assigned to you.' }
   if (rollRequest.status !== 'waiting_for_player') return { error: 'This roll request is no longer waiting for a roll.' }
+  const admin = createAdminClient()
+  if (!admin) return { error: 'Roll resolution is not configured on the server.' }
 
   const effect = hpEffectContext(rollRequest.roll_context ?? {})
   if (!effect) return { error: 'This roll request does not include a healing or damage effect.' }
@@ -877,11 +956,12 @@ export async function submitHpEffectRollResult(
   if (!intentRaw) return { error: 'Action request not found.' }
 
   const targetId = effect.targetId ?? String(intentRaw.target_token_id)
-  const { data: liveTargetRaw } = await supabase
+  const { data: liveTargetRaw } = await admin
     .from('tokens')
     .select('id, name, token_type, current_hp, max_hp, temp_hp, is_defeated')
     .eq('id', targetId)
     .eq('campaign_id', campaignId)
+    .eq('map_id', String(intentRaw.map_id))
     .maybeSingle()
   const targetRaw = liveTargetRaw
   if (!targetRaw) return { error: 'Target token no longer exists.' }
@@ -901,8 +981,20 @@ export async function submitHpEffectRollResult(
   const noun = effect.kind === 'healing' ? 'healing' : 'damage'
   const summary = `${targetName} ${verb} ${roll.total} ${noun}.`
 
+  const { data: claimedRequest, error: claimError } = await admin
+    .from('action_roll_requests')
+    .update({ status: 'rolled' })
+    .eq('id', rollRequest.id)
+    .eq('campaign_id', campaignId)
+    .eq('player_id', user.id)
+    .eq('status', 'waiting_for_player')
+    .select('id')
+    .maybeSingle()
+  if (claimError) return { error: claimError.message }
+  if (!claimedRequest) return { error: 'This roll request is no longer waiting for a roll.' }
+
   const effectResultId = randomUUID()
-  const { error: resultError } = await supabase.from('action_hp_effect_results').insert({
+  const { error: resultError } = await admin.from('action_hp_effect_results').insert({
     id: effectResultId,
     action_intent_id: rollRequest.action_intent_id,
     roll_request_id: rollRequest.id,
@@ -919,9 +1011,16 @@ export async function submitHpEffectRollResult(
     roll_mode: input.rollMode,
     player_visible_summary: summary,
   })
-  if (resultError) return { error: resultError.message }
+  if (resultError) {
+    await admin
+      .from('action_roll_requests')
+      .update({ status: 'waiting_for_player' })
+      .eq('id', rollRequest.id)
+      .eq('status', 'rolled')
+    return { error: resultError.message }
+  }
 
-  const { error: pendingError } = await supabase.from('pending_state_updates').insert({
+  const { error: pendingError } = await admin.from('pending_state_updates').insert({
     campaign_id: rollRequest.campaign_id,
     action_intent_id: rollRequest.action_intent_id,
     roll_result_id: effectResultId,
@@ -950,18 +1049,31 @@ export async function submitHpEffectRollResult(
     summary,
     status: 'pending_dm_review',
   })
-  if (pendingError) return { error: pendingError.message }
+  if (pendingError) {
+    await Promise.all([
+      admin.from('action_hp_effect_results').delete().eq('id', effectResultId),
+      admin.from('action_roll_requests').update({ status: 'waiting_for_player' }).eq('id', rollRequest.id).eq('status', 'rolled'),
+    ])
+    return { error: pendingError.message }
+  }
 
-  const [{ error: requestError }, { error: intentError }] = await Promise.all([
-    supabase.from('action_roll_requests').update({ status: 'rolled' }).eq('id', rollRequest.id),
-    supabase
-      .from('action_intents')
-      .update({ status: 'rolled_waiting_for_dm', resolver_status: 'manual' })
-      .eq('id', rollRequest.action_intent_id),
-  ])
-
-  if (requestError) return { error: requestError.message }
-  if (intentError) return { error: intentError.message }
+  const { data: updatedIntent, error: intentError } = await admin
+    .from('action_intents')
+    .update({ status: 'rolled_waiting_for_dm', resolver_status: 'manual' })
+    .eq('id', rollRequest.action_intent_id)
+    .eq('campaign_id', campaignId)
+    .eq('actor_user_id', user.id)
+    .in('status', ['approved_waiting_for_roll', 'rolling'])
+    .select('id')
+    .maybeSingle()
+  if (intentError || !updatedIntent) {
+    await admin.from('pending_state_updates').delete().eq('roll_result_id', effectResultId)
+    await Promise.all([
+      admin.from('action_hp_effect_results').delete().eq('id', effectResultId),
+      admin.from('action_roll_requests').update({ status: 'waiting_for_player' }).eq('id', rollRequest.id).eq('status', 'rolled'),
+    ])
+    return { error: intentError?.message ?? 'Action request is no longer waiting for this roll.' }
+  }
 
   revalidatePath(ACTIONS_PATH(campaignId))
   return { success: true, total: roll.total, summary }

@@ -15,7 +15,7 @@ import {
   type NpcProfile,
   type NpcRevealPayload,
 } from '@/lib/notion/npc-profile'
-import type { ActionIntent, ActionIntentStatus, CampaignDoc, CharacterAttack, Token } from '@/lib/types/database'
+import type { ActionIntent, ActionIntentStatus, CampaignDoc, CharacterAttack, PlayerLiveMapSnapshot, Token } from '@/lib/types/database'
 import { authorizePlayerActionTarget, distanceFeet } from '@/lib/utils/actions'
 
 const ACTIONS_PATH = (campaignId: string) => `/campaigns/${campaignId}/actions`
@@ -222,34 +222,39 @@ export async function submitActionIntent(
   const { supabase, user } = await getClientAndUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const [{ data: actor }, { data: target }, { data: map }, { data: encounter }] =
-    await Promise.all([
-      supabase
-        .from('tokens')
-        .select('*')
-        .eq('map_id', mapId)
-        .eq('linked_character_id', actorCharacterId)
-        .eq('controlled_by_user_id', user.id)
-        .maybeSingle(),
-      supabase
-        .from('tokens')
-        .select('*')
-        .eq('id', targetTokenId)
-        .eq('map_id', mapId)
-        .eq('visible_to_players', true)
-        .single(),
-      supabase.from('maps').select('*').eq('id', mapId).single(),
-      supabase
-        .from('encounters')
-        .select('id')
-        .eq('campaign_id', campaignId)
-        .eq('status', 'active')
-        .maybeSingle(),
-    ])
+  const [{ data: snapshotRaw }, { data: encounter }, { data: actorCharacter }] = await Promise.all([
+    supabase.rpc('get_player_live_map_snapshot', { p_map_id: mapId }),
+    supabase
+      .from('encounters')
+      .select('id')
+      .eq('campaign_id', campaignId)
+      .eq('status', 'active')
+      .maybeSingle(),
+    supabase
+      .from('characters')
+      .select('id')
+      .eq('id', actorCharacterId)
+      .eq('campaign_id', campaignId)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  ])
+  const snapshot = (snapshotRaw ?? null) as PlayerLiveMapSnapshot | null
+  const actor = snapshot?.tokens.find(
+    (token) =>
+      token.linked_character_id === actorCharacterId &&
+      token.controlled_by_user_id === user.id,
+  ) ?? null
+  const target = snapshot?.tokens.find(
+    (token) => token.id === targetTokenId && token.visible_to_players,
+  ) ?? null
+  const map = snapshot?.map ?? null
 
+  if (!map || map.id !== mapId || map.campaign_id !== campaignId || !map.is_active) {
+    return { error: 'The active map is no longer available.' }
+  }
+  if (!actorCharacter) return { error: 'That character is not available in this campaign.' }
   if (!actor) return { error: 'You do not control that character token.' }
   if (!target) return { error: 'Target is not available.' }
-  if (!map) return { error: 'Map not found.' }
   if (target.id === actor.id) return { error: 'Choose a different target.' }
 
   const targetToken = target as Token
@@ -271,7 +276,13 @@ export async function submitActionIntent(
     return { error: `${targetToken.name || 'Target'} is ${distance} ft away; range is ${range} ft.` }
   }
 
-  const { data: intent, error } = await supabase.from('action_intents').insert({
+  // The browser role has no direct INSERT policy. Use the service client only
+  // after every actor, map, target, action, and range check above has passed so
+  // a direct PostgREST call cannot fabricate a privileged queue entry.
+  const admin = createAdminClient()
+  if (!admin) return { error: 'Action requests are not configured on the server.' }
+
+  const { data: intent, error } = await admin.from('action_intents').insert({
     campaign_id: campaignId,
     map_id: mapId,
     encounter_id: encounter?.id ?? null,
@@ -310,14 +321,32 @@ export async function cancelActionIntent(campaignId: string, intentId: string) {
   const { supabase, user } = await getClientAndUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { error } = await supabase
+  const { data: intent } = await supabase
     .from('action_intents')
-    .update({ status: 'cancelled' })
+    .select('id, campaign_id, actor_user_id, status')
     .eq('id', intentId)
+    .eq('campaign_id', campaignId)
     .eq('actor_user_id', user.id)
     .eq('status', 'pending')
+    .maybeSingle()
+
+  if (!intent) return { error: 'Action request is no longer pending.' }
+
+  const admin = createAdminClient()
+  if (!admin) return { error: 'Action cancellation is not configured on the server.' }
+
+  const { data: cancelledIntent, error } = await admin
+    .from('action_intents')
+    .update({ status: 'cancelled' })
+    .eq('id', intent.id)
+    .eq('campaign_id', campaignId)
+    .eq('actor_user_id', user.id)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle()
 
   if (error) return { error: error.message }
+  if (!cancelledIntent) return { error: 'Action request is no longer pending.' }
   revalidatePath(ACTIONS_PATH(campaignId))
   return { success: true }
 }
@@ -383,6 +412,7 @@ export async function updateActionIntentStatus(
     .single()
 
   if (!intent) return { error: 'Action request not found.' }
+  if (intent.campaign_id !== campaignId) return { error: 'Action request not found.' }
 
   if (status === 'approved' && intent.resolver_type === 'attack') {
     const { error } = await supabase
@@ -574,14 +604,24 @@ export async function resolveAttackIntent(
 
   if (!intent) return { error: 'Action request not found.' }
   if (intent.actor_user_id !== user.id) return { error: 'You can only resolve your own attack request.' }
+  if (intent.campaign_id !== campaignId) return { error: 'Action request not found.' }
   if (intent.action_type !== 'Attack') return { error: 'This request is not an attack.' }
   if (intent.status !== 'approved' || intent.resolver_status !== 'pending_player') {
     return { error: 'The DM has not approved this attack yet.' }
   }
 
+  const admin = createAdminClient()
+  if (!admin) return { error: 'Attack resolution is not configured on the server.' }
+
   const [{ data: character }, { data: target }] = await Promise.all([
     supabase.from('characters').select('*').eq('id', intent.actor_character_id).single(),
-    supabase.from('tokens').select('*').eq('id', intent.target_token_id).single(),
+    admin
+      .from('tokens')
+      .select('*')
+      .eq('id', intent.target_token_id)
+      .eq('campaign_id', intent.campaign_id)
+      .eq('map_id', intent.map_id)
+      .single(),
   ])
 
   if (!character) return { error: 'Character not found.' }
@@ -612,13 +652,13 @@ export async function resolveAttackIntent(
     is_defeated: target.is_defeated,
   }
 
-  await supabase
+  await admin
     .from('action_intents')
     .update({ status: 'resolving', resolver_status: 'rolling' })
     .eq('id', intent.id)
 
   if (hit) {
-    const { error: tokenError } = await supabase
+    const { error: tokenError } = await admin
       .from('tokens')
       .update({
         current_hp: hpAfter.current_hp,
@@ -631,10 +671,10 @@ export async function resolveAttackIntent(
   }
 
   const summary = hit
-    ? `Hit! ${attackTotal} vs AC ${target.armor_class}. ${totalDamage} ${attack?.damage_type ?? ''} damage.`
-    : `Miss. ${attackTotal} vs AC ${target.armor_class}.`
+    ? `Hit! Attack total ${attackTotal}. ${totalDamage} ${attack?.damage_type ?? ''} damage.`
+    : `Miss. Attack total ${attackTotal}.`
 
-  const { error: logError } = await supabase.from('combat_logs').insert({
+  const { error: logError } = await admin.from('combat_logs').insert({
     campaign_id: intent.campaign_id,
     map_id: intent.map_id,
     encounter_id: intent.encounter_id,
@@ -659,7 +699,7 @@ export async function resolveAttackIntent(
   })
   if (logError) return { error: logError.message }
 
-  const { error: resultError } = await supabase.from('action_results').insert({
+  const { error: resultError } = await admin.from('action_results').insert({
     action_intent_id: intent.id,
     campaign_id: intent.campaign_id,
     map_id: intent.map_id,
@@ -675,7 +715,7 @@ export async function resolveAttackIntent(
   })
   if (resultError) return { error: resultError.message }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('action_intents')
     .update({
       status: 'resolved',

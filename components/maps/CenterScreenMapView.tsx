@@ -15,6 +15,7 @@ import type {
 } from '@/lib/types/database'
 import { normalizeCenterCastSettings, type CenterCastSettings } from '@/lib/utils/cast-settings'
 import { createClient } from '@/lib/supabase/client'
+import { usePlayerSafeMapRealtime } from '@/lib/hooks/usePlayerSafeMapRealtime'
 
 export interface CenterScreenViewGroup {
   id: string
@@ -35,10 +36,6 @@ interface CenterScreenMapViewProps {
   initialWalls: MapWall[]
   initialTravelParties: MapTravelParty[]
   initialTravelPartyMembers: MapTravelPartyMember[]
-}
-
-function mergeById<T extends { id: string }>(rows: T[], next: T) {
-  return [...rows.filter((row) => row.id !== next.id), next]
 }
 
 function distanceFeet(a: Token, b: Token, map: GameMap) {
@@ -173,97 +170,17 @@ export function CenterScreenMapView({
   const [followLeader, setFollowLeader] = useState(true)
   const [rotatingIndex, setRotatingIndex] = useState(0)
 
-  useEffect(() => {
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`center-screen-live-${campaignId}-${map.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'tokens', filter: `map_id=eq.${map.id}` },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            const oldRow = payload.old as { id?: string }
-            if (oldRow.id) setTokenRows((current) => current.filter((row) => row.id !== oldRow.id))
-            return
-          }
-          setTokenRows((current) => mergeById(current, payload.new as Token))
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'map_revealed_areas', filter: `map_id=eq.${map.id}` },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            const oldRow = payload.old as { id?: string }
-            if (oldRow.id) setAreaRows((current) => current.filter((row) => row.id !== oldRow.id))
-            return
-          }
-          setAreaRows((current) => mergeById(current, payload.new as MapRevealedArea))
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'map_room_regions', filter: `map_id=eq.${map.id}` },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            const oldRow = payload.old as { id?: string }
-            if (oldRow.id) setRoomRows((current) => current.filter((row) => row.id !== oldRow.id))
-            return
-          }
-          setRoomRows((current) => mergeById(current, payload.new as MapRoomRegion))
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'maps', filter: `id=eq.${map.id}` },
-        (payload) => {
-          setMapState(payload.new as GameMap)
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'map_walls', filter: `map_id=eq.${map.id}` },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            const oldRow = payload.old as { id?: string }
-            if (oldRow.id) setWallRows((current) => current.filter((row) => row.id !== oldRow.id))
-            return
-          }
-          setWallRows((current) => mergeById(current, payload.new as MapWall))
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            const oldRow = payload.old as { id?: string }
-            if (oldRow.id) setTravelParties((current) => current.filter((row) => row.id !== oldRow.id))
-            return
-          }
-          setTravelParties((current) => mergeById(current, payload.new as MapTravelParty))
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'map_travel_party_members', filter: `map_id=eq.${map.id}` },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            const oldRow = payload.old as { id?: string }
-            if (oldRow.id) {
-              setTravelPartyMembers((current) => current.filter((row) => row.id !== oldRow.id))
-            }
-            return
-          }
-          setTravelPartyMembers((current) => mergeById(current, payload.new as MapTravelPartyMember))
-        },
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [campaignId, map.id])
+  usePlayerSafeMapRealtime(campaignId, map.id, {
+    onSnapshot: (snapshot) => {
+      setMapState(snapshot.map)
+      setTokenRows(snapshot.tokens)
+      setAreaRows(snapshot.areas)
+      setRoomRows(snapshot.rooms)
+      setWallRows(snapshot.walls)
+      setTravelParties(snapshot.travel_parties)
+      setTravelPartyMembers(snapshot.travel_party_members)
+    },
+  })
 
   useEffect(() => {
     const supabase = createClient()
@@ -287,8 +204,8 @@ export function CenterScreenMapView({
 
   const settings = normalizeCenterCastSettings(mapState.cast_settings)
   const stableImageUrl = useMemo(
-    () => buildPrivateMapImageUrl(campaignId, mapState.id, mapState.updated_at),
-    [campaignId, mapState.id, mapState.updated_at],
+    () => buildPrivateMapImageUrl(campaignId, mapState.id, mapState.storage_path),
+    [campaignId, mapState.id, mapState.storage_path],
   )
   const effectiveImageUrl = stableImageUrl || imageUrl
   const castSafeTokens = useMemo(

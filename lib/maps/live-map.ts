@@ -152,9 +152,13 @@ export const MAP_TRANSPORT_CONFIRMATION_COLUMNS = [
   'updated_at',
 ].join(',')
 
-export function buildPrivateMapImageUrl(campaignId: string, mapId: string, version?: string | null) {
+export function buildPrivateMapImageUrl(
+  campaignId: string,
+  mapId: string,
+  storagePath?: string | null,
+) {
   const params = new URLSearchParams()
-  if (version) params.set('v', version)
+  if (storagePath) params.set('v', storagePath)
   const query = params.toString()
   return `/api/campaigns/${campaignId}/maps/${mapId}/image${query ? `?${query}` : ''}`
 }

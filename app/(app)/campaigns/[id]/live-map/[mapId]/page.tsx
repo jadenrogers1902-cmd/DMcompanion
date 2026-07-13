@@ -57,7 +57,7 @@ export default async function MapEditorPage({ params }: PageProps) {
     .single<GameMap>()
   if (!map) notFound()
 
-  const stableImageUrl = buildPrivateMapImageUrl(id, map.id, map.updated_at)
+  const stableImageUrl = buildPrivateMapImageUrl(id, map.id, map.storage_path)
   if (process.env.NODE_ENV !== 'production') {
     console.info('[live-map] dm route using stable map image url', {
       campaignId: id,

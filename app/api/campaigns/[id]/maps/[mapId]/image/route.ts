@@ -1,6 +1,7 @@
-import { Buffer } from 'node:buffer'
+import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(
   request: Request,
@@ -28,18 +29,29 @@ export async function GET(
     return new NextResponse('Forbidden', { status: 403 })
   }
 
-  const { data: map } = await supabase
+  const admin = createAdminClient()
+  if (!admin) {
+    return new NextResponse('Map storage is not configured', { status: 503 })
+  }
+
+  // Membership is established above. Source map metadata is DM-only, so the
+  // service client is used only after authorization and no source fields are
+  // returned to the browser.
+  const { data: map } = await admin
     .from('maps')
-    .select('id,campaign_id,storage_path,updated_at')
+    .select('id,campaign_id,storage_path,created_at,is_active')
     .eq('id', mapId)
     .eq('campaign_id', id)
     .maybeSingle()
 
-  if (!map?.storage_path) {
+  // Players may load only the campaign's active live map. DMs retain access
+  // to inactive maps for setup and preview workflows.
+  if (!map?.storage_path || (membership.role !== 'dm' && !map.is_active)) {
     return new NextResponse('Not found', { status: 404 })
   }
 
-  const etag = `W/"${Buffer.from(`${map.storage_path}:${map.updated_at}`).toString('base64url')}"`
+  const storageVersion = createHash('sha256').update(map.storage_path).digest('base64url')
+  const etag = `W/"${storageVersion}"`
   if (request.headers.get('if-none-match') === etag) {
     return new NextResponse(null, {
       status: 304,
@@ -51,7 +63,7 @@ export async function GET(
     })
   }
 
-  const { data: file, error } = await supabase.storage.from('maps').download(map.storage_path)
+  const { data: file, error } = await admin.storage.from('maps').download(map.storage_path)
   if (error || !file) {
     return new NextResponse('Not found', { status: 404 })
   }
@@ -61,7 +73,7 @@ export async function GET(
       campaignId: id,
       mapId,
       storagePath: map.storage_path,
-      updatedAt: map.updated_at,
+      createdAt: map.created_at,
     })
   }
 
@@ -72,7 +84,7 @@ export async function GET(
       'Content-Length': String(file.size),
       'Cache-Control': 'private, max-age=3600, stale-while-revalidate=86400',
       ETag: etag,
-      'Last-Modified': new Date(map.updated_at).toUTCString(),
+      'Last-Modified': new Date(map.created_at).toUTCString(),
       Vary: 'Cookie',
     },
   })

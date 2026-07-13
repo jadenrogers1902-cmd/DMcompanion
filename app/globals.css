@@ -244,7 +244,10 @@ main h1 {
   .roll-fx-flame,
   .roll-fx-shake-once,
   .action-alert-badge,
-  .action-nudge-highlight {
+  .action-nudge-highlight,
+  .animate-spin,
+  .animate-pulse,
+  .animate-ping {
     animation: none !important;
   }
 }

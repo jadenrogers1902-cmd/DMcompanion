@@ -97,14 +97,19 @@ export function StoryWorkspace(props: StoryWorkspaceProps) {
   // reach the party journal (and the DM's own other sessions/devices) live.
   // RLS scopes what each subscriber actually receives — players are only
   // notified about rows their SELECT policy already allows them to read.
-  useRealtimeRefresh(`story-${props.campaignId}`, [
-    { table: 'quests', filter: `campaign_id=eq.${props.campaignId}` },
-    { table: 'npcs', filter: `campaign_id=eq.${props.campaignId}` },
-    { table: 'locations', filter: `campaign_id=eq.${props.campaignId}` },
-    { table: 'notes', filter: `campaign_id=eq.${props.campaignId}` },
-    { table: 'handouts', filter: `campaign_id=eq.${props.campaignId}` },
-    { table: 'session_recaps', filter: `campaign_id=eq.${props.campaignId}` },
-  ])
+  useRealtimeRefresh(
+    `story-${props.campaignId}-${props.isDM ? 'dm' : 'player'}`,
+    props.isDM
+      ? [
+          { table: 'quests', filter: `campaign_id=eq.${props.campaignId}` },
+          { table: 'npcs', filter: `campaign_id=eq.${props.campaignId}` },
+          { table: 'locations', filter: `campaign_id=eq.${props.campaignId}` },
+          { table: 'notes', filter: `campaign_id=eq.${props.campaignId}` },
+          { table: 'handouts', filter: `campaign_id=eq.${props.campaignId}` },
+          { table: 'session_recaps', filter: `campaign_id=eq.${props.campaignId}` },
+        ]
+      : [{ table: 'player_safe_story_events', filter: `campaign_id=eq.${props.campaignId}` }],
+  )
 
   return props.isDM ? <DMStoryWorkspace {...props} /> : <PlayerJournal {...props} />
 }

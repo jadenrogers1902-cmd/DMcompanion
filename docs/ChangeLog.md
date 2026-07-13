@@ -1,5 +1,36 @@
 # Adventure Codex + Notion Bridge — Change Log
 
+## Full App Audit Hardening (2026-07-13)
+
+### Security and Realtime
+
+- Added `supabase/migrations/20260713041904_player_safe_live_projections.sql` with payload-free player event streams and sanitized snapshot RPCs for Live Map and Story data.
+- Player and Center Screen clients no longer subscribe to mixed-privacy source rows. The migration makes the Live Map source tables DM-only, removes direct player reads from Story source tables, and keeps player reads behind explicit safe projections.
+- Restricted map Storage source reads to DMs. Players receive an authorized active-map image only through the protected proxy route; revealed handout files remain reveal-scoped.
+- Removed direct player writes to action intents, roll results, travel parties, travel-party members, and transport confirmations. Validated server actions/RPCs now own those mutations, including conditional roll claims and compensating rollback on partial failures.
+- Hardened legacy travel and movement RPCs with active-map/current-membership checks, atomic map activation, fixed search paths, internal-only reveal/wall helpers, and generic collision errors.
+
+### Cost and Request Reduction
+
+- Narrowed `proxy.ts` to authenticated UI surfaces, switched its session check to `getClaims()`, and preserved Supabase auth cookies plus no-store headers across redirects.
+- Versioned private map-image URLs and response validators from the immutable Storage object path instead of general map updates, preventing grid, fog, and token changes from invalidating the same large image.
+- Moved player token movement directly to the guarded Supabase `move_player_token` RPC so drag/drop no longer consumes a Vercel Server Action invocation.
+- Batched handout URL signing into one Storage request per Story render and shortened signed URL lifetime to five minutes.
+- Added capped exponential backoff with jitter for player/Center snapshot and channel recovery so persistent outages do not create a fixed retry storm.
+- Removed redundant success-path `router.refresh()` calls where Server Action revalidation or local state already updates the screen. Error-recovery refreshes remain.
+
+### Usability and Verification
+
+- Added a shared accessible modal shell with focus trapping, Escape/backdrop close, focus restoration, labels/descriptions, and alert semantics. Adventure creation and clear-board dialogs now use it.
+- Hardened mobile shell/sidebar behavior, roll-popup/dialog sizing and scrolling, and 44px-equivalent tap targets on affected controls.
+- Added focused unit contracts for player-safe SQL projections, Proxy matching, and immutable private map-image caching under `npm.cmd run test:unit`.
+
+### Release Status
+
+- This entry records implementation in the working tree, not a production deployment. The application code and migration `20260713041904` must be staged as one atomic release unit; see `DEPLOYMENT.md`.
+- The originating [40-feature full app/code audit](QA_Reports/FULL_APP_CODE_AUDIT_2026-07-12.md) remains the evidence baseline. Authenticated multi-role, deployed migration, visual, and usage-dashboard proof still require a controlled runtime pass.
+- Release ownership and blocked runtime evidence are summarized in [the audit hardening handoff](AUDIT_HARDENING_HANDOFF_2026-07-13.md).
+
 ## Option 3 - Moonlit Grimoire Theme Revamp (2026-07-12)
 
 ### Added

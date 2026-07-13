@@ -47,11 +47,12 @@ export async function travelThroughTransport(
   // Load the transport token (service role — players cannot read all columns).
   const { data: token } = await admin
     .from('tokens')
-    .select('id, campaign_id, map_id, token_type, destination_prepared_map_id')
+    .select('id, campaign_id, map_id, token_type, destination_prepared_map_id, visible_to_players')
     .eq('id', tokenId)
     .maybeSingle()
   if (!token || token.campaign_id !== campaignId) return { error: 'Transport not found.' }
   if (token.token_type !== 'portal') return { error: 'That token is not a transport.' }
+  if (!isDm && !token.visible_to_players) return { error: 'Transport not found.' }
   if (!token.destination_prepared_map_id) {
     return { error: 'This transport has no destination set yet.' }
   }
@@ -313,12 +314,13 @@ async function activateLiveMap(
 ): Promise<{ liveMapId: string } | { error: string }> {
   // Activate it only after the destination is ready. Players refresh as soon as
   // the active map changes, so token carry/reveal work must happen first.
-  await admin.from('maps').update({ is_active: false }).eq('campaign_id', campaignId).eq('is_active', true)
-  const { error: activateError } = await admin
-    .from('maps')
-    .update({ is_active: true })
-    .eq('id', liveMapId)
-    .eq('campaign_id', campaignId)
+  // The RPC changes old + new active rows in one database transaction. Two
+  // separate REST updates briefly leave the campaign without an active map and
+  // can strand player clients on the empty state between realtime events.
+  const { error: activateError } = await admin.rpc('set_active_map', {
+    p_campaign_id: campaignId,
+    p_map_id: liveMapId,
+  })
   if (activateError) return { error: `Could not activate the destination map: ${activateError.message}` }
 
   return { liveMapId }
@@ -375,9 +377,30 @@ export async function clearTransportConfirmation(campaignId: string, mapId: stri
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { error } = await supabase
+  const { data: membership } = await supabase
+    .from('campaign_members')
+    .select('role')
+    .eq('campaign_id', campaignId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!membership) return { error: 'You are not a member of this campaign.' }
+
+  const admin = createAdminClient()
+  if (!admin) return { error: 'Travel is not configured on the server.' }
+  const { data: map } = await admin
+    .from('maps')
+    .select('id, is_active')
+    .eq('id', mapId)
+    .eq('campaign_id', campaignId)
+    .maybeSingle()
+  if (!map || (membership.role !== 'dm' && !map.is_active)) {
+    return { error: 'Map not found.' }
+  }
+
+  const { error } = await admin
     .from('map_transport_confirmations')
     .delete()
+    .eq('campaign_id', campaignId)
     .eq('map_id', mapId)
     .eq('user_id', user.id)
   if (error) return { error: error.message }

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
+import { ModalDialog } from '@/components/ui/ModalDialog'
 import { createPreparedMap } from '@/lib/actions/prepared-maps'
 
 interface CreatePreparedMapButtonProps {
@@ -62,26 +63,25 @@ export function CreatePreparedMapButton({
       </Button>
 
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6"
-          onClick={close}
+        <ModalDialog
+          labelledBy="create-prepared-map-title"
+          describedBy="create-prepared-map-description"
+          onClose={close}
+          overlayClassName="z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6"
+          panelClassName="w-full max-h-[90dvh] overflow-y-auto rounded-t-2xl border border-border bg-canvas p-5 shadow-2xl sm:max-w-md sm:rounded-2xl"
         >
-          <div
-            className="w-full max-h-[90dvh] overflow-y-auto rounded-t-2xl border border-border bg-canvas p-5 shadow-2xl sm:max-w-md sm:rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-content">New Prepared Map</h2>
-                <p className="mt-0.5 text-sm text-faint">
+                <h2 id="create-prepared-map-title" className="text-lg font-semibold text-content">New Prepared Map</h2>
+                <p id="create-prepared-map-description" className="mt-0.5 text-sm text-faint">
                   A premade scene for this chapter — add the image, tokens, and notes next.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={close}
-                className="rounded-md p-1 text-faint hover:bg-panel-raised hover:text-content"
-                aria-label="Close"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-faint hover:bg-panel-raised hover:text-content"
+                aria-label="Close new prepared map dialog"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -97,6 +97,7 @@ export function CreatePreparedMapButton({
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={120}
                 autoFocus
+                data-dialog-initial-focus
               />
               <Textarea
                 label="Description"
@@ -108,7 +109,7 @@ export function CreatePreparedMapButton({
               />
 
               {error && (
-                <p className="rounded-lg border border-red-800/60 bg-red-900/20 px-3 py-2 text-sm text-red-300">
+                <p role="alert" className="rounded-lg border border-red-800/60 bg-red-900/20 px-3 py-2 text-sm text-red-300">
                   {error}
                 </p>
               )}
@@ -122,8 +123,7 @@ export function CreatePreparedMapButton({
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
+        </ModalDialog>
       )}
     </>
   )

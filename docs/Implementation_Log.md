@@ -1,5 +1,38 @@
 # Implementation Log
 
+## Full App Audit Remediation
+
+Date: 2026-07-13
+
+Status: Implemented in the working tree; coordinated migration/deployment and authenticated runtime verification remain pending.
+
+### What Changed
+
+- Added migration `20260713041904_player_safe_live_projections.sql`:
+  - `player_safe_map_events` and `player_safe_story_events` publish revision-only notifications rather than private gameplay rows.
+  - `get_player_live_map_snapshot`, `get_player_active_live_map_snapshot`, and `get_player_story_snapshot` return sanitized, role-checked JSON snapshots.
+  - Mixed-privacy map/token/fog/room/wall/transport/combat source reads are DM-only, and direct player Story policies are removed in favor of the safe snapshot.
+  - Map Storage source objects are DM-only; players receive the active image through the membership-checked protected proxy. Revealed handout objects remain reveal-scoped.
+  - Direct player mutation policies for action intents, roll results, travel parties/members, and transport confirmations are removed. Validated server actions/RPCs own those writes.
+- Rewired player Live Map and Story state to the safe event/snapshot model. Live Map uses a short client-side debounce and direct Supabase snapshot fetches without route-refresh payload fan-out; lower-frequency Story reveal events still use a route refresh to render the safe Story snapshot.
+- Changed player movement to call the guarded `move_player_token` RPC directly from the authenticated Supabase browser client, removing a high-frequency Vercel Server Action hop while enforcing current membership and active-map state.
+- Added capped exponential retry backoff with jitter. Snapshot errors retry on the existing channel; only channel failures recreate the channel.
+- Made active-map switching transactional through `set_active_map`, hardened travel-party creation/approval boundaries, and made internal wall/reveal helpers unavailable to browser roles.
+- Updated Proxy auth handling to `getClaims()`, retained Supabase refresh cookies/no-store response headers on redirects, and limited matching to `/`, `/login`, `/register`, `/dashboard/:path*`, `/campaigns/:path*`, and `/join/:path*`.
+- Made private map-image cache identity depend on immutable `storage_path` (with `created_at` for Last-Modified) instead of mutable `maps.updated_at`; all DM, player, and Center Screen callers use the stable image version.
+- Replaced per-handout signing calls with one batched Storage request per Story render and a five-minute signed URL lifetime.
+- Removed clearly redundant success-path route refreshes from map settings/reveal/travel/cast/party actions and action-board clearing while preserving explicit failure recovery.
+- Added `ModalDialog` and applied focus trapping, Escape/backdrop close, focus restoration, accessible labelling/descriptions, alert semantics, narrow-screen scrolling, mobile sidebar hardening, and minimum touch targets to the affected UI.
+- Added Node unit contracts for the safe SQL boundary, installed Next Proxy matcher behavior, and private map-image cache stability.
+
+### Release and QA Boundary
+
+- `npm.cmd run test:unit`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, and `npm.cmd run build` passed during the implementation pass.
+- No deployed Supabase migration, Vercel release, authenticated DM/player/Center Screen flow, visual regression, or usage-meter result is claimed here.
+- Code and `20260713041904_player_safe_live_projections.sql` are a single release unit because the code requires the new event/RPC contract and the migration removes player access to old mixed-privacy source rows. Follow the atomic procedure in `DEPLOYMENT.md`.
+- See the [40-feature full app/code audit](QA_Reports/FULL_APP_CODE_AUDIT_2026-07-12.md) for the audited baseline, evidence labels, cost caps, and remaining external proof.
+- Continue from [the audit hardening handoff](AUDIT_HARDENING_HANDOFF_2026-07-13.md) and read the other app docs before release work.
+
 ## Option 3 - Moonlit Grimoire Theme Revamp (2026-07-12)
 
 ### What Changed

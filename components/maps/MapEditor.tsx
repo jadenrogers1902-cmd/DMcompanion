@@ -613,7 +613,6 @@ export function MapEditor({
     const result = await revealEntireMap(campaignId, map.id)
     if (!result?.error) setRevealOverride('reveal_all')
     setAreaBusy(false)
-    router.refresh()
   }
 
   async function handleHideAll() {
@@ -621,7 +620,6 @@ export function MapEditor({
     const result = await hideEntireMap(campaignId, map.id)
     if (!result?.error) setRevealOverride('hide_all')
     setAreaBusy(false)
-    router.refresh()
   }
 
   async function handleUsePlannedReveals() {
@@ -629,7 +627,6 @@ export function MapEditor({
     const result = await clearMapRevealOverride(campaignId, map.id)
     if (!result?.error) setRevealOverride('normal')
     setAreaBusy(false)
-    router.refresh()
   }
 
   async function handleAreaDrawn(
@@ -857,7 +854,6 @@ export function MapEditor({
       setGridSaveError(result.error)
       return
     }
-    router.refresh()
   }
 
   useEffect(() => {
@@ -886,7 +882,6 @@ export function MapEditor({
         setGridSaveError(result.error)
         return
       }
-      router.refresh()
     }, 700)
 
     return () => window.clearTimeout(timer)
@@ -903,21 +898,21 @@ export function MapEditor({
     gridSize,
     gridSubdivisions,
     map.id,
-    router,
   ])
 
   async function handleSetActive() {
     setBusy(true)
-    await setActiveMap(campaignId, map.id)
-    setIsActive(true)
+    const result = await setActiveMap(campaignId, map.id)
+    if (result?.error) showToast(result.error, 'error')
+    else setIsActive(true)
     setBusy(false)
-    router.refresh()
   }
 
   async function handleToggleMapLock() {
     const next = !mapLocked
-    setMapLocked(next)
-    await setMapMovementLock(campaignId, map.id, next)
+    const result = await setMapMovementLock(campaignId, map.id, next)
+    if (result?.error) showToast(result.error, 'error')
+    else setMapLocked(next)
   }
 
   async function handleTravelOptionUpdate(input: {
@@ -929,35 +924,35 @@ export function MapEditor({
   }) {
     setPartyBusy('travel')
     setPartyFeedback(null)
-    if (input.travelMode) setTravelMode(input.travelMode)
-    if (input.partyOptionsLocked !== undefined) setPartyOptionsLocked(input.partyOptionsLocked)
-    if (input.groupMovementUnlimited !== undefined) setGroupMovementUnlimited(input.groupMovementUnlimited)
-    if (input.freeroamMovementUnlimited !== undefined) setFreeroamMovementUnlimited(input.freeroamMovementUnlimited)
-    if (input.playerVisionRadiusFeet !== undefined) setPlayerVisionRadiusFeet(input.playerVisionRadiusFeet)
-    if (input.travelMode === 'combat') {
-      setMapLocked(true)
-      setPartyOptionsLocked(true)
-    }
     const result = await setMapTravelOptions(campaignId, map.id, input)
     if (result?.error) setPartyFeedback(result.error)
-    else setPartyFeedback('Travel options updated.')
+    else {
+      if (input.travelMode) setTravelMode(input.travelMode)
+      if (input.partyOptionsLocked !== undefined) setPartyOptionsLocked(input.partyOptionsLocked)
+      if (input.groupMovementUnlimited !== undefined) setGroupMovementUnlimited(input.groupMovementUnlimited)
+      if (input.freeroamMovementUnlimited !== undefined) setFreeroamMovementUnlimited(input.freeroamMovementUnlimited)
+      if (input.playerVisionRadiusFeet !== undefined) setPlayerVisionRadiusFeet(input.playerVisionRadiusFeet)
+      if (input.travelMode === 'combat') {
+        setMapLocked(true)
+        setPartyOptionsLocked(true)
+      }
+      setPartyFeedback('Travel options updated.')
+    }
     setPartyBusy(null)
-    router.refresh()
   }
 
   async function handleCastSettingsUpdate(patch: Partial<CenterCastSettings>) {
     const next = normalizeCenterCastSettings({ ...castSettings, ...patch })
-    setCastSettings(next)
     setCastSettingsBusy(true)
     setCastSettingsFeedback(null)
     const result = await updateMapCastSettings(campaignId, map.id, next)
     if (result?.error) {
       setCastSettingsFeedback(result.error)
     } else {
+      setCastSettings(next)
       setCastSettingsFeedback('Cast settings updated.')
     }
     setCastSettingsBusy(false)
-    router.refresh()
   }
 
   async function handleReviewParty(partyId: string, approved: boolean) {
@@ -969,7 +964,6 @@ export function MapEditor({
       setPartyFeedback(approved ? 'Party approved.' : 'Party denied.')
     }
     setPartyBusy(null)
-    router.refresh()
   }
 
   function patchToken(id: string, patch: Partial<Token>) {

@@ -7,16 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { PlayerMapView } from '@/components/maps/PlayerMapView'
 import { RemoveLiveMapButton } from '@/components/maps/RemoveLiveMapButton'
 import { DMUtilityPanel } from '@/components/nav/DMUtilityPanel'
-import {
-  buildPrivateMapImageUrl,
-  LIVE_MAP_COLUMNS,
-  MAP_REVEALED_AREA_COLUMNS,
-  MAP_ROOM_REGION_COLUMNS,
-  MAP_TRANSPORT_CONFIRMATION_COLUMNS,
-  MAP_TRAVEL_PARTY_COLUMNS,
-  MAP_TRAVEL_PARTY_MEMBER_COLUMNS,
-  MAP_WALL_COLUMNS,
-} from '@/lib/maps/live-map'
+import { buildPrivateMapImageUrl } from '@/lib/maps/live-map'
 import type {
   CampaignDocLinkPublication,
   Ability,
@@ -30,6 +21,7 @@ import type {
   MapTravelParty,
   MapTravelPartyMember,
   MapWall,
+  PlayerLiveMapSnapshot,
   PlayerToken,
   PlayerVisibleCampaignDoc,
   Profile,
@@ -86,14 +78,18 @@ export default async function MapsPage({ params }: PageProps) {
 
   // ─── PLAYER VIEW: the active map, read-only ───
   if (!isDM) {
-    const { data: activeMap } = await supabase
-      .from('maps')
-      .select(LIVE_MAP_COLUMNS)
-      .eq('campaign_id', id)
-      .eq('is_active', true)
-      .maybeSingle<GameMap>()
+    const { data: snapshotRaw, error: snapshotError } = await supabase.rpc(
+      'get_player_active_live_map_snapshot',
+      { p_campaign_id: id },
+    )
+    const snapshot = (snapshotRaw ?? null) as PlayerLiveMapSnapshot | null
+    const activeMap = snapshot?.map ?? null
 
-    if (!activeMap) {
+    if (snapshotError) {
+      console.error('[live-map] player-safe snapshot failed', snapshotError.message)
+    }
+
+    if (!snapshot || !activeMap) {
       return (
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
           {backLink(id, campaign.name)}
@@ -107,7 +103,7 @@ export default async function MapsPage({ params }: PageProps) {
       )
     }
 
-    const stableImageUrl = buildPrivateMapImageUrl(id, activeMap.id, activeMap.updated_at)
+    const stableImageUrl = buildPrivateMapImageUrl(id, activeMap.id, activeMap.storage_path)
     if (process.env.NODE_ENV !== 'production') {
       console.info('[live-map] player route using stable map image url', {
         campaignId: id,
@@ -117,24 +113,12 @@ export default async function MapsPage({ params }: PageProps) {
     }
 
     const [
-      { data: tokens, error: tokensError },
       { data: characters },
-      { data: areas },
-      { data: rooms },
-      { data: walls },
       { data: members },
       { data: playerCodexDocs },
       { data: playerCodexLinks },
-      { data: travelParties },
-      { data: travelPartyMembers },
-      { data: transportConfirmations },
     ] = await Promise.all([
-      supabase.rpc('get_player_live_map_tokens', { p_map_id: activeMap.id }),
       supabase.from('characters').select('*').eq('campaign_id', id).eq('user_id', user.id),
-      // RLS returns only player-visible areas on the active map.
-      supabase.from('map_revealed_areas').select(MAP_REVEALED_AREA_COLUMNS).eq('map_id', activeMap.id),
-      supabase.from('map_room_regions').select(MAP_ROOM_REGION_COLUMNS).eq('map_id', activeMap.id),
-      supabase.from('map_walls').select(MAP_WALL_COLUMNS).eq('map_id', activeMap.id),
       supabase
         .from('campaign_members')
         .select('user_id, role, profiles ( id, display_name, avatar_url, created_at )')
@@ -144,43 +128,10 @@ export default async function MapsPage({ params }: PageProps) {
         .from('campaign_doc_link_publications')
         .select('*')
         .eq('campaign_id', id),
-      supabase
-        .from('map_travel_parties')
-        .select(MAP_TRAVEL_PARTY_COLUMNS)
-        .eq('map_id', activeMap.id)
-        .order('updated_at', { ascending: false }),
-      supabase
-        .from('map_travel_party_members')
-        .select(MAP_TRAVEL_PARTY_MEMBER_COLUMNS)
-        .eq('map_id', activeMap.id)
-        .order('created_at', { ascending: true }),
-      supabase
-        .from('map_transport_confirmations')
-        .select(MAP_TRANSPORT_CONFIRMATION_COLUMNS)
-        .eq('map_id', activeMap.id),
     ])
 
-    // The player token RPC redacts hidden/discoverable tokens server-side and
-    // emits player-safe hint markers. If it's unavailable (e.g. migration 051
-    // not applied, or a transient error), we fall back to a direct RLS-guarded
-    // select so the map still loads — RLS still hides non-visible tokens, so no
-    // hidden data leaks — but discoverable hint markers are lost. That's a
-    // DEGRADED state, so surface it loudly in the server logs instead of failing
-    // silently. See QA Phase 4.
-    if (tokensError) {
-      console.error(
-        '[live-map] get_player_live_map_tokens RPC failed — falling back to a ' +
-          'direct token select (RLS still enforced, but discoverable-token hint ' +
-          `markers are unavailable). Apply migration 051 / check the RPC. Cause: ${
-            tokensError.message ?? tokensError
-          }`,
-      )
-    }
-    const fallbackTokens =
-      tokensError
-        ? await supabase.from('tokens').select('*').eq('map_id', activeMap.id)
-        : { data: null }
-    const playerTokens = tokens ?? fallbackTokens.data ?? []
+    // Player map data is fail-closed: this route never falls back to a mixed
+    // source table when the sanitized snapshot is unavailable.
     const ownedCharacters = (characters ?? []) as Character[]
     const ownedCharacterIds = ownedCharacters.map((character) => character.id)
     const [{ data: ownedInventory }, { data: ownedSpells }, { data: ownedAbilities }, { data: ownedConditions }] =
@@ -232,10 +183,10 @@ export default async function MapsPage({ params }: PageProps) {
             campaignId={id}
             map={activeMap}
             imageUrl={stableImageUrl}
-            initialTokens={playerTokens as PlayerToken[]}
-            initialAreas={(areas ?? []) as unknown as MapRevealedArea[]}
-            initialRooms={(rooms ?? []) as unknown as MapRoomRegion[]}
-            initialWalls={(walls ?? []) as unknown as MapWall[]}
+            initialTokens={snapshot.tokens as PlayerToken[]}
+            initialAreas={snapshot.areas as MapRevealedArea[]}
+            initialRooms={snapshot.rooms as MapRoomRegion[]}
+            initialWalls={snapshot.walls as MapWall[]}
             currentUserId={user.id}
             characterSpeeds={characterSpeeds}
             myCharacters={ownedCharacters.map((c) => ({ id: c.id, name: c.name }))}
@@ -247,9 +198,9 @@ export default async function MapsPage({ params }: PageProps) {
             }))}
             playerCodexDocs={(playerCodexDocs ?? []) as PlayerVisibleCampaignDoc[]}
             playerCodexLinks={(playerCodexLinks ?? []) as CampaignDocLinkPublication[]}
-            initialTravelParties={(travelParties ?? []) as unknown as MapTravelParty[]}
-            initialTravelPartyMembers={(travelPartyMembers ?? []) as unknown as MapTravelPartyMember[]}
-            initialTransportConfirmations={(transportConfirmations ?? []) as unknown as MapTransportConfirmation[]}
+            initialTravelParties={snapshot.travel_parties as MapTravelParty[]}
+            initialTravelPartyMembers={snapshot.travel_party_members as MapTravelPartyMember[]}
+            initialTransportConfirmations={snapshot.transport_confirmations as MapTransportConfirmation[]}
           />
         ) : (
           <EmptyState title="Map image unavailable" description="The map file could not be loaded." />

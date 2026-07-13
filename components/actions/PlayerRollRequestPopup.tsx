@@ -17,6 +17,7 @@ import type {
   AttackOutcome,
   Character,
   GameMap,
+  PlayerLiveMapSnapshot,
   RollResultValue,
   Token,
 } from '@/lib/types/database'
@@ -181,10 +182,12 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
       supabase.from('characters').select('id, name').eq('id', request.character_id).maybeSingle(),
     ])
     const intent = (intentRaw ?? null) as ActionIntent | null
-    const [{ data: targetRaw }, { data: mapRaw }] = await Promise.all([
-      intent ? supabase.from('tokens').select('id, name, token_type').eq('id', intent.target_token_id).maybeSingle() : Promise.resolve({ data: null }),
-      intent ? supabase.from('maps').select('id, name').eq('id', intent.map_id).maybeSingle() : Promise.resolve({ data: null }),
-    ])
+    const { data: mapSnapshotRaw } = intent
+      ? await supabase.rpc('get_player_live_map_snapshot', { p_map_id: intent.map_id })
+      : { data: null }
+    const mapSnapshot = mapSnapshotRaw as PlayerLiveMapSnapshot | null
+    const targetRaw = mapSnapshot?.tokens.find((token) => token.id === intent?.target_token_id) ?? null
+    const mapRaw = mapSnapshot?.map ?? null
     const character = (characterRaw ?? null) as Pick<Character, 'id' | 'name'> | null
     const target = (targetRaw ?? null) as Pick<Token, 'id' | 'name' | 'token_type'> | null
     const map = (mapRaw ?? null) as Pick<GameMap, 'id' | 'name'> | null
@@ -520,7 +523,7 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
   }
 
   return (
-    <aside className="fixed inset-x-3 bottom-24 z-50 mx-auto max-w-sm rounded-xl border border-accent/30 bg-canvas p-4 shadow-2xl shadow-black/40 md:bottom-5 md:left-[16.5rem] md:right-auto md:mx-0 md:w-80 md:max-h-[calc(100vh-2.5rem)] md:overflow-y-auto">
+    <aside className="fixed inset-x-3 bottom-24 z-50 mx-auto max-h-[calc(100dvh-7rem)] max-w-sm overflow-y-auto overscroll-contain rounded-xl border border-accent/30 bg-canvas p-4 shadow-2xl shadow-black/40 md:bottom-5 md:left-[16.5rem] md:right-auto md:mx-0 md:w-80 md:max-h-[calc(100dvh-2.5rem)]">
       {item && (
         <>
           <div className="flex items-start justify-between gap-3">
@@ -603,7 +606,7 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
 
       {item && mode === 'rolling' && (
         <div className="mt-4 flex items-center justify-center rounded-lg border border-accent/30 bg-accent/10 py-6">
-          <div className="h-16 w-16 animate-pulse rounded-xl border border-accent/50 bg-canvas text-center text-3xl font-bold leading-[4rem] text-accent">
+          <div className="h-16 w-16 animate-pulse rounded-xl border border-accent/50 bg-canvas text-center text-3xl font-bold leading-[4rem] text-accent motion-reduce:animate-none">
             {animationNumber ?? '?'}
           </div>
         </div>

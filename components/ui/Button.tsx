@@ -43,7 +43,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={`
-          inline-flex cursor-pointer items-center justify-center gap-2 transition-[color,background-color,border-color,box-shadow]
+          inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-2 transition-[color,background-color,border-color,box-shadow]
           disabled:cursor-not-allowed
           ${variantClasses[variant]} ${sizeClasses[size]} ${className}
         `.trim()}
@@ -51,7 +51,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {loading && (
           <svg
-            className="animate-spin h-4 w-4 shrink-0"
+            className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
             fill="none"
             viewBox="0 0 24 24"
           >

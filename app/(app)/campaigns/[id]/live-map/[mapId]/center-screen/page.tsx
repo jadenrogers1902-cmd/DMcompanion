@@ -3,17 +3,8 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { CenterScreenMapView } from '@/components/maps/CenterScreenMapView'
 import { EmptyState } from '@/components/ui/EmptyState'
-import {
-  buildPrivateMapImageUrl,
-  CENTER_SCREEN_TOKEN_COLUMNS,
-  LIVE_MAP_COLUMNS,
-  MAP_REVEALED_AREA_COLUMNS,
-  MAP_ROOM_REGION_COLUMNS,
-  MAP_TRAVEL_PARTY_COLUMNS,
-  MAP_TRAVEL_PARTY_MEMBER_COLUMNS,
-  MAP_WALL_COLUMNS,
-} from '@/lib/maps/live-map'
-import type { GameMap, MapRevealedArea, MapRoomRegion, MapTravelParty, MapTravelPartyMember, MapWall, Token } from '@/lib/types/database'
+import { buildPrivateMapImageUrl } from '@/lib/maps/live-map'
+import type { PlayerLiveMapSnapshot } from '@/lib/types/database'
 
 interface PageProps {
   params: Promise<{ id: string; mapId: string }>
@@ -37,15 +28,14 @@ export default async function CenterScreenPage({ params }: PageProps) {
   if (!membership) redirect('/dashboard')
   if (membership.role !== 'dm') redirect(`/campaigns/${id}/live-map`)
 
-  const { data: map } = await supabase
-    .from('maps')
-    .select(LIVE_MAP_COLUMNS)
-    .eq('id', mapId)
-    .eq('campaign_id', id)
-    .single<GameMap>()
-  if (!map) notFound()
+  const { data: snapshotRaw } = await supabase.rpc('get_player_live_map_snapshot', {
+    p_map_id: mapId,
+  })
+  const snapshot = (snapshotRaw ?? null) as PlayerLiveMapSnapshot | null
+  if (!snapshot || snapshot.map.campaign_id !== id) notFound()
+  const map = snapshot.map
 
-  const stableImageUrl = buildPrivateMapImageUrl(id, map.id, map.updated_at)
+  const stableImageUrl = buildPrivateMapImageUrl(id, map.id, map.storage_path)
   if (process.env.NODE_ENV !== 'production') {
     console.info('[live-map] center screen using stable map image url', {
       campaignId: id,
@@ -53,40 +43,6 @@ export default async function CenterScreenPage({ params }: PageProps) {
       updatedAt: map.updated_at,
     })
   }
-
-  const [{ data: tokens }, { data: areas }, { data: rooms }, { data: walls }, { data: parties }, { data: partyMembers }] = await Promise.all([
-    supabase
-      .from('tokens')
-      .select(CENTER_SCREEN_TOKEN_COLUMNS)
-      .eq('map_id', mapId)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('map_revealed_areas')
-      .select(MAP_REVEALED_AREA_COLUMNS)
-      .eq('map_id', mapId)
-      .eq('visible_to_players', true)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('map_room_regions')
-      .select(MAP_ROOM_REGION_COLUMNS)
-      .eq('map_id', mapId)
-      .eq('visible_to_players', true)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('map_walls')
-      .select(MAP_WALL_COLUMNS)
-      .eq('map_id', mapId)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('map_travel_parties')
-      .select(MAP_TRAVEL_PARTY_COLUMNS)
-      .eq('map_id', mapId)
-      .order('updated_at', { ascending: false }),
-    supabase
-      .from('map_travel_party_members')
-      .select(MAP_TRAVEL_PARTY_MEMBER_COLUMNS)
-      .eq('map_id', mapId),
-  ])
 
   if (!stableImageUrl) {
     return (
@@ -109,12 +65,12 @@ export default async function CenterScreenPage({ params }: PageProps) {
         campaignId={id}
         map={map}
         imageUrl={stableImageUrl}
-        initialTokens={(tokens ?? []) as unknown as Token[]}
-        initialRevealedAreas={(areas ?? []) as unknown as MapRevealedArea[]}
-        initialRoomRegions={(rooms ?? []) as unknown as MapRoomRegion[]}
-        initialWalls={(walls ?? []) as unknown as MapWall[]}
-        initialTravelParties={(parties ?? []) as unknown as MapTravelParty[]}
-        initialTravelPartyMembers={(partyMembers ?? []) as unknown as MapTravelPartyMember[]}
+        initialTokens={snapshot.tokens}
+        initialRevealedAreas={snapshot.areas}
+        initialRoomRegions={snapshot.rooms}
+        initialWalls={snapshot.walls}
+        initialTravelParties={snapshot.travel_parties}
+        initialTravelPartyMembers={snapshot.travel_party_members}
       />
     </main>
   )

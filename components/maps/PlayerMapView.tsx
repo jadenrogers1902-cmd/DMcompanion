@@ -32,11 +32,10 @@ import {
 } from 'lucide-react'
 import { MapCanvas, type RenderArea, type RenderRoomRegion, type RenderToken, type RenderWall } from './MapCanvas'
 import { movementCrossesWall, type WallForCollision } from '@/lib/utils/wall-collision'
-import { useTokenRealtime } from '@/lib/hooks/useTokenRealtime'
+import { usePlayerSafeMapRealtime } from '@/lib/hooks/usePlayerSafeMapRealtime'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import {
   createTravelParty,
-  movePlayerToken,
   respondTravelPartyInvite,
   setMapTravelOptions,
 } from '@/lib/actions/maps'
@@ -98,12 +97,6 @@ interface PlayerCharacterSummary {
   conditions: Condition[]
 }
 
-function mergeTokenList(tokens: Token[], token: Token) {
-  const next = tokens.filter((t) => t.id !== token.id)
-  next.push(token)
-  return next
-}
-
 function removeDuplicateTokens(tokens: Token[]) {
   const byId = new Map<string, Token>()
   tokens.forEach((token) => byId.set(token.id, token))
@@ -118,22 +111,6 @@ function rollRequestHpEffect(req: ActionRollRequest | null) {
   const formula = typeof effect.formula === 'string' ? effect.formula.trim() : ''
   if (!kind || !formula) return null
   return { kind, formula }
-}
-
-function mergeAreaList(areas: MapRevealedArea[], area: MapRevealedArea) {
-  const next = areas.filter((a) => a.id !== area.id)
-  next.push(area)
-  return next
-}
-
-function mergeRoomList(rooms: MapRoomRegion[], room: MapRoomRegion) {
-  const next = rooms.filter((r) => r.id !== room.id)
-  next.push(room)
-  return next.sort((a, b) => a.created_at.localeCompare(b.created_at))
-}
-
-function mergeById<T extends { id: string }>(rows: T[], next: T) {
-  return [...rows.filter((row) => row.id !== next.id), next]
 }
 
 function removeDuplicateAreas(areas: MapRevealedArea[]) {
@@ -498,116 +475,41 @@ export function PlayerMapView({
   const [nudgeBusy, setNudgeBusy] = useState(false)
   const [nudgeCooldownUntil, setNudgeCooldownUntil] = useState<number | null>(null)
 
-  // Live sync: only refresh when the *active map identity* changes. Routine
-  // updates to the current map row are merged in-place by useTokenRealtime and
-  // should not churn the whole route or image URL.
+  // Codex publications are already player-safe. Live map source rows are not;
+  // they are synchronized separately through the safe snapshot hook below.
   useRealtimeRefresh(`player-codex-${campaignId}`, [
     { table: 'campaign_doc_publications', filter: `campaign_id=eq.${campaignId}` },
     { table: 'campaign_doc_link_publications', filter: `campaign_id=eq.${campaignId}` },
   ])
 
-  useTokenRealtime(map.id, campaignId, {
-    onUpsert: (row) => {
-      const token = row as Token
-      setTokens((prev) => mergeTokenList(prev, token))
-    },
-    onDelete: (id) => {
-      setTokens((prev) => prev.filter((t) => t.id !== id))
-      setSelectedId((cur) => (cur === id ? null : cur))
-    },
-    onMapChange: (m) => {
-      setMapState(m)
-      setMapLocked(m.player_movement_locked)
-      if (m.player_movement_locked) {
+  usePlayerSafeMapRealtime(campaignId, map.id, {
+    onSnapshot: (snapshot) => {
+      if (snapshot.map.id !== map.id) {
+        router.refresh()
+        return
+      }
+      setTokens(removeDuplicateTokens(snapshot.tokens))
+      setAreas(removeDuplicateAreas(snapshot.areas))
+      setRooms(snapshot.rooms)
+      setWalls(snapshot.walls)
+      setTravelParties(snapshot.travel_parties)
+      setTravelPartyMembers(snapshot.travel_party_members)
+      setTransportConfirmations(snapshot.transport_confirmations)
+      setMapState(snapshot.map)
+      setMapLocked(snapshot.map.player_movement_locked)
+      setSelectedId((current) =>
+        current && snapshot.tokens.some((token) => token.id === current) ? current : null,
+      )
+      if (snapshot.map.player_movement_locked) {
         setMapInteractionMode((current) => (current === 'move' ? 'hand' : current))
       }
-      if (m.travel_mode !== 'combat' || m.player_movement_locked) {
+      if (snapshot.map.travel_mode !== 'combat' || snapshot.map.player_movement_locked) {
         setPendingMove(null)
         setMovementPreview(null)
       }
     },
-    onAreaUpsert: (area) => setAreas((prev) => mergeAreaList(prev, area)),
-    onAreaDelete: (id) => setAreas((prev) => prev.filter((a) => a.id !== id)),
-    onRoomUpsert: (room) => setRooms((prev) => mergeRoomList(prev, room)),
-    onRoomDelete: (id) => setRooms((prev) => prev.filter((room) => room.id !== id)),
-    onWallUpsert: (wall) => setWalls((prev) => { const next = prev.filter((w) => w.id !== wall.id); next.push(wall); return next }),
-    onWallDelete: (id) => setWalls((prev) => prev.filter((w) => w.id !== id)),
-  })
-
-  useEffect(() => {
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`active-map-watch-${campaignId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'maps', filter: `campaign_id=eq.${campaignId}` },
-        (payload) => {
-          const nextMap = payload.new as GameMap
-          const previousMap = payload.old as Partial<GameMap>
-          const activatedDifferentMap = nextMap.is_active && nextMap.id !== map.id
-          const currentMapWasDeactivated = previousMap.id === map.id && previousMap.is_active && !nextMap.is_active
-          if (activatedDifferentMap || currentMapWasDeactivated) {
-            router.refresh()
-          }
-        },
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [campaignId, map.id, router])
-
-  useEffect(() => {
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`map-travel-state-${map.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'map_travel_parties', filter: `map_id=eq.${map.id}` },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            const oldRow = payload.old as { id?: string }
-            if (oldRow.id) setTravelParties((current) => current.filter((row) => row.id !== oldRow.id))
-            return
-          }
-          setTravelParties((current) => mergeById(current, payload.new as MapTravelParty))
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'map_travel_party_members', filter: `map_id=eq.${map.id}` },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            const oldRow = payload.old as { id?: string }
-            if (oldRow.id) {
-              setTravelPartyMembers((current) => current.filter((row) => row.id !== oldRow.id))
-            }
-            return
-          }
-          setTravelPartyMembers((current) => mergeById(current, payload.new as MapTravelPartyMember))
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'map_transport_confirmations', filter: `map_id=eq.${map.id}` },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            const oldRow = payload.old as { id?: string }
-            if (oldRow.id) {
-              setTransportConfirmations((current) => current.filter((row) => row.id !== oldRow.id))
-            }
-            return
-          }
-          setTransportConfirmations((current) => mergeById(current, payload.new as MapTransportConfirmation))
-        },
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [map.id])
+    onUnavailable: () => router.refresh(),
+  }, true)
 
   const loadMyRequests = useCallback(async () => {
     setRequestsLoading(true)
@@ -716,8 +618,8 @@ export function PlayerMapView({
   //   - Neither → global fog ON (classic "nothing revealed yet" dark map).
   // This only changes how already-permitted data is painted. Server-side
   // visibility is unchanged: RLS only sends rooms with visible_to_players=TRUE
-  // on the active map, and hidden tokens stay redacted by
-  // get_player_live_map_tokens regardless of fog.
+  // on the active map, and hidden tokens stay redacted by the player-safe
+  // snapshot regardless of fog.
   const hasRevealedAreas = renderAreas.length > 0
   const hasRoomRegions = rooms.length > 0
   const hasHiddenRooms = revealOverride !== 'reveal_all' && rooms.some((room) => !room.is_revealed)
@@ -728,8 +630,8 @@ export function PlayerMapView({
   const fogMode = mapState.fog_mode ?? 'rooms'
   const fogStyle = mapState.fog_style ?? 'blackout'
   const stableImageUrl = useMemo(
-    () => buildPrivateMapImageUrl(campaignId, mapState.id, mapState.updated_at),
-    [campaignId, mapState.id, mapState.updated_at],
+    () => buildPrivateMapImageUrl(campaignId, mapState.id, mapState.storage_path),
+    [campaignId, mapState.id, mapState.storage_path],
   )
   const globalFogEnabled =
     revealOverride === 'reveal_all'
@@ -768,7 +670,18 @@ export function PlayerMapView({
     setTokens((p) => p.map((t) => (t.id === id ? { ...t, x, y } : t)))
     setWarning(null)
 
-    const result = (await movePlayerToken(id, x, y)) as MoveTokenResult
+    // Movement authorization, range, wall collision, and party movement all
+    // live in the RLS-aware RPC. Calling Supabase directly avoids one Vercel
+    // Server Action invocation for every drag/drop.
+    const supabase = createClient()
+    const { data, error } = await supabase.rpc('move_player_token', {
+      p_token_id: id,
+      p_x: x,
+      p_y: y,
+    })
+    const result = (error
+      ? { error: error.message }
+      : data ?? { error: 'No response from server.' }) as MoveTokenResult
 
     if (result?.error) {
       // revert

@@ -3,11 +3,13 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { StoryWorkspace } from '@/components/story/StoryWorkspace'
 import { Badge } from '@/components/ui/Badge'
+import { EmptyState } from '@/components/ui/EmptyState'
 import type {
   GameMap,
   Handout,
   HandoutWithUrl,
   Npc,
+  PlayerStorySnapshot,
   Quest,
   SessionRecap,
   StoryLocation,
@@ -19,21 +21,17 @@ interface PageProps {
 }
 
 async function withHandoutUrls(handouts: Handout[]) {
+  if (handouts.length === 0) return []
   const supabase = await createClient()
-  const signed = await Promise.all(
-    handouts.map(async (handout) => {
-      const { data } = await supabase.storage
-        .from('handouts')
-        .createSignedUrl(handout.storage_path, 60 * 30)
+  const { data } = await supabase.storage
+    .from('handouts')
+    .createSignedUrls(handouts.map((handout) => handout.storage_path), 60 * 5)
+  const urls = new Map((data ?? []).map((item) => [item.path, item.signedUrl ?? null]))
 
-      return {
-        ...handout,
-        signed_url: data?.signedUrl ?? null,
-      }
-    }),
-  )
-
-  return signed
+  return handouts.map((handout) => ({
+    ...handout,
+    signed_url: urls.get(handout.storage_path) ?? null,
+  }))
 }
 
 export default async function StoryPage({ params }: PageProps) {
@@ -60,6 +58,26 @@ export default async function StoryPage({ params }: PageProps) {
 
   const isDM = membership.role === 'dm'
 
+  const playerStoryResult = !isDM
+    ? await supabase.rpc('get_player_story_snapshot', { p_campaign_id: id })
+    : null
+  const playerStory = (playerStoryResult?.data ?? null) as PlayerStorySnapshot | null
+
+  if (!isDM && playerStoryResult?.error) {
+    console.error('[story] player-safe snapshot failed', playerStoryResult.error.message)
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <Link href={`/campaigns/${id}`} className="mb-4 flex items-center gap-1.5 text-sm text-faint hover:text-content">
+          {campaign.name}
+        </Link>
+        <EmptyState
+          title="Journal temporarily unavailable"
+          description="The protected campaign journal could not be loaded. Refresh to try again."
+        />
+      </div>
+    )
+  }
+
   const [
     { data: questsRaw },
     { data: npcsRaw },
@@ -71,52 +89,22 @@ export default async function StoryPage({ params }: PageProps) {
   ] = await Promise.all([
     isDM
       ? supabase.from('quests').select('*').eq('campaign_id', id).order('updated_at', { ascending: false })
-      : supabase
-          .from('quests')
-          .select('id,campaign_id,title,status,player_visible_description,rewards,visible_to_players,created_at,updated_at')
-          .eq('campaign_id', id)
-          .eq('visible_to_players', true)
-          .order('updated_at', { ascending: false }),
+      : Promise.resolve({ data: playerStory?.quests ?? [] }),
     isDM
       ? supabase.from('npcs').select('*').eq('campaign_id', id).order('updated_at', { ascending: false })
-      : supabase
-          .from('npcs')
-          .select('id,campaign_id,name,role,location_id,relationship_to_party,player_visible_notes,portrait_url,linked_token_id,visible_to_players,created_at,updated_at')
-          .eq('campaign_id', id)
-          .eq('visible_to_players', true)
-          .order('updated_at', { ascending: false }),
+      : Promise.resolve({ data: playerStory?.npcs ?? [] }),
     isDM
       ? supabase.from('locations').select('*').eq('campaign_id', id).order('updated_at', { ascending: false })
-      : supabase
-          .from('locations')
-          .select('id,campaign_id,name,description,player_visible_notes,map_id,visible_to_players,created_at,updated_at')
-          .eq('campaign_id', id)
-          .eq('visible_to_players', true)
-          .order('updated_at', { ascending: false }),
+      : Promise.resolve({ data: playerStory?.locations ?? [] }),
     isDM
       ? supabase.from('notes').select('*').eq('campaign_id', id).order('updated_at', { ascending: false })
-      : supabase
-          .from('notes')
-          .select('id,campaign_id,title,content,visibility,quest_id,npc_id,location_id,map_id,encounter_id,created_by,created_at,updated_at')
-          .eq('campaign_id', id)
-          .eq('visibility', 'shared')
-          .order('updated_at', { ascending: false }),
+      : Promise.resolve({ data: playerStory?.notes ?? [] }),
     isDM
       ? supabase.from('handouts').select('*').eq('campaign_id', id).order('updated_at', { ascending: false })
-      : supabase
-          .from('handouts')
-          .select('*')
-          .eq('campaign_id', id)
-          .eq('is_revealed', true)
-          .order('updated_at', { ascending: false }),
+      : Promise.resolve({ data: playerStory?.handouts ?? [] }),
     isDM
       ? supabase.from('session_recaps').select('*').eq('campaign_id', id).order('session_date', { ascending: false })
-      : supabase
-          .from('session_recaps')
-          .select('id,campaign_id,session_title,session_date,what_happened,important_npcs,locations_visited,loot_gained,quest_updates,open_threads,next_session_start,visible_to_players,created_at,updated_at')
-          .eq('campaign_id', id)
-          .eq('visible_to_players', true)
-          .order('session_date', { ascending: false }),
+      : Promise.resolve({ data: playerStory?.recaps ?? [] }),
     isDM
       ? supabase.from('maps').select('id, name').eq('campaign_id', id).order('name', { ascending: true })
       : Promise.resolve({ data: [] }),

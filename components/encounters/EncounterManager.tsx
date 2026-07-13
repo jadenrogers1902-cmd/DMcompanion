@@ -84,7 +84,11 @@ export function EncounterManager({
     { table: 'encounter_participants', filter: `encounter_id=eq.${encounter.id}` },
     { table: 'encounter_conditions', filter: `encounter_id=eq.${encounter.id}` },
     { table: 'characters', filter: `campaign_id=eq.${campaignId}` },
-    { table: 'tokens', filter: `campaign_id=eq.${campaignId}` },
+    ...(isDM
+      ? [{ table: 'tokens', filter: `campaign_id=eq.${campaignId}` }]
+      : encounter.map_id
+        ? [{ table: 'player_safe_map_events', filter: `map_id=eq.${encounter.map_id}` }]
+        : []),
   ])
 
   const ordered = useMemo(() => sortParticipants(participants), [participants])

@@ -1082,8 +1082,30 @@ export interface HandoutWithUrl extends Handout {
   signed_url: string | null
 }
 
-// The tokens table holds no DM-only columns, so player tokens are just tokens.
+// Player tokens keep the rendering shape of Token, but every row must come
+// from get_player_live_map_snapshot. The snapshot redacts private fields and
+// genericizes hidden discoverable tokens; the source `tokens` table is DM-only.
 export type PlayerToken = Token
+
+export interface PlayerLiveMapSnapshot {
+  map: GameMap
+  tokens: PlayerToken[]
+  areas: MapRevealedArea[]
+  rooms: MapRoomRegion[]
+  walls: MapWall[]
+  travel_parties: MapTravelParty[]
+  travel_party_members: MapTravelPartyMember[]
+  transport_confirmations: MapTransportConfirmation[]
+}
+
+export interface PlayerStorySnapshot {
+  quests: Quest[]
+  npcs: Npc[]
+  locations: StoryLocation[]
+  notes: StoryNote[]
+  handouts: Handout[]
+  recaps: SessionRecap[]
+}
 
 // Result of the move_token RPC
 export interface MoveTokenResult {
@@ -2979,6 +3001,61 @@ export type Database = {
         }
         Relationships: []
       }
+      player_safe_map_events: {
+        Row: {
+          campaign_id: string
+          revision: number
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          revision?: number
+          updated_at?: string
+        }
+        Update: {
+          revision?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      center_safe_map_events: {
+        Row: {
+          map_id: string
+          campaign_id: string
+          revision: number
+          updated_at: string
+        }
+        Insert: {
+          map_id: string
+          campaign_id: string
+          revision?: number
+          updated_at?: string
+        }
+        Update: {
+          revision?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      player_safe_story_events: {
+        Row: {
+          campaign_id: string
+          entity_type: 'quest' | 'npc' | 'location' | 'note' | 'handout' | 'session_recap'
+          revision: number
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          entity_type: 'quest' | 'npc' | 'location' | 'note' | 'handout' | 'session_recap'
+          revision?: number
+          updated_at?: string
+        }
+        Update: {
+          revision?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -3013,6 +3090,10 @@ export type Database = {
         Returns: undefined
       }
       move_token: {
+        Args: { p_token_id: string; p_x: number; p_y: number }
+        Returns: MoveTokenResult
+      }
+      move_player_token: {
         Args: { p_token_id: string; p_x: number; p_y: number }
         Returns: MoveTokenResult
       }
@@ -3053,9 +3134,17 @@ export type Database = {
         Args: { p_campaign_id: string }
         Returns: PlayerVisibleCampaignDoc[]
       }
-      get_player_live_map_tokens: {
+      get_player_live_map_snapshot: {
         Args: { p_map_id: string }
-        Returns: PlayerToken[]
+        Returns: PlayerLiveMapSnapshot | null
+      }
+      get_player_active_live_map_snapshot: {
+        Args: { p_campaign_id: string }
+        Returns: PlayerLiveMapSnapshot | null
+      }
+      get_player_story_snapshot: {
+        Args: { p_campaign_id: string }
+        Returns: PlayerStorySnapshot | null
       }
     }
     Enums: {

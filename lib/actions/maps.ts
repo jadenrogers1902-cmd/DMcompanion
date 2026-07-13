@@ -378,21 +378,6 @@ export async function updateTokenPosition(
 
 // Player move — goes through the SECURITY DEFINER RPC, which enforces
 // control, locks, and the speed limit server-side.
-export async function movePlayerToken(
-  tokenId: string,
-  x: number,
-  y: number,
-) {
-  const supabase = await createClient()
-  const { data, error } = await supabase.rpc('move_token', {
-    p_token_id: tokenId,
-    p_x: x,
-    p_y: y,
-  })
-  if (error) return { error: travelMigrationError(error.message) }
-  return data ?? { error: 'No response from server.' }
-}
-
 export async function updateToken(
   campaignId: string,
   mapId: string,

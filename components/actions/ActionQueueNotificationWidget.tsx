@@ -135,6 +135,7 @@ function buildSummary(item: Omit<NotificationItem, 'summary'>) {
 export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
   const pathname = usePathname()
   const campaignId = useMemo(() => campaignIdFromPath(pathname), [pathname])
+  const isActionQueueRoute = Boolean(campaignId && pathname === `/campaigns/${campaignId}/actions`)
   const [isDM, setIsDM] = useState(false)
   const [latest, setLatest] = useState<NotificationItem | null>(null)
   const [pendingCount, setPendingCount] = useState(0)
@@ -143,6 +144,7 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
   const [realtimeReady, setRealtimeReady] = useState(true)
   const [dmActionsOpen, setDmActionsOpen] = useState(false)
   const widgetRef = useRef<HTMLElement>(null)
+  const loadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const storageKey = campaignId ? `latest-action-dismissed:${campaignId}` : null
 
@@ -163,7 +165,7 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
   }, [storageKey])
 
   const loadLatest = useCallback(async () => {
-    if (!campaignId) {
+    if (!campaignId || isActionQueueRoute) {
       setIsDM(false)
       setLatest(null)
       setPendingCount(0)
@@ -189,20 +191,15 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
       return
     }
 
-    const [{ data: latestIntent }, { count }, { count: boardCount }] = await Promise.all([
+    const [{ data: latestIntent, count }, { count: boardCount }] = await Promise.all([
       supabase
         .from('action_intents')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('campaign_id', campaignId)
         .in('status', QUEUED_STATUSES)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
-      supabase
-        .from('action_intents')
-        .select('id', { count: 'exact', head: true })
-        .eq('campaign_id', campaignId)
-        .in('status', QUEUED_STATUSES),
       supabase
         .from('action_intents')
         .select('id', { count: 'exact', head: true })
@@ -302,17 +299,24 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
       ...itemBase,
       summary: buildSummary(itemBase),
     })
-  }, [campaignId, userId])
+  }, [campaignId, isActionQueueRoute, userId])
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
+  const scheduleLoadLatest = useCallback(() => {
+    if (loadTimerRef.current) clearTimeout(loadTimerRef.current)
+    loadTimerRef.current = setTimeout(() => {
       void loadLatest()
-    }, 0)
-    return () => window.clearTimeout(timer)
+    }, 100)
   }, [loadLatest])
 
   useEffect(() => {
-    if (!campaignId || !isDM) return
+    scheduleLoadLatest()
+    return () => {
+      if (loadTimerRef.current) clearTimeout(loadTimerRef.current)
+    }
+  }, [scheduleLoadLatest])
+
+  useEffect(() => {
+    if (!campaignId || !isDM || isActionQueueRoute) return
 
     const supabase = createClient()
     const channel = supabase
@@ -327,7 +331,7 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
         },
         () => {
           setRealtimeReady(true)
-          void loadLatest()
+          scheduleLoadLatest()
         },
       )
       .on(
@@ -340,7 +344,7 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
         },
         () => {
           setRealtimeReady(true)
-          void loadLatest()
+          scheduleLoadLatest()
         },
       )
       .on(
@@ -353,7 +357,7 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
         },
         () => {
           setRealtimeReady(true)
-          void loadLatest()
+          scheduleLoadLatest()
         },
       )
       .on(
@@ -366,7 +370,7 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
         },
         () => {
           setRealtimeReady(true)
-          void loadLatest()
+          scheduleLoadLatest()
         },
       )
       .subscribe((status) => {
@@ -379,7 +383,7 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [campaignId, isDM, loadLatest])
+  }, [campaignId, isActionQueueRoute, isDM, scheduleLoadLatest])
 
   useEffect(() => {
     if (!dmActionsOpen) return
@@ -394,12 +398,12 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
   }, [dmActionsOpen])
 
   useEffect(() => {
-    if (!campaignId || !isDM || realtimeReady) return
+    if (!campaignId || !isDM || isActionQueueRoute || realtimeReady) return
     const interval = window.setInterval(() => {
-      void loadLatest()
+      scheduleLoadLatest()
     }, 30000)
     return () => window.clearInterval(interval)
-  }, [campaignId, isDM, loadLatest, realtimeReady])
+  }, [campaignId, isActionQueueRoute, isDM, realtimeReady, scheduleLoadLatest])
 
   function dismiss() {
     if (!latest || !storageKey) return
@@ -412,7 +416,7 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
     }
   }
 
-  if (!campaignId || !isDM || !latest || dismissedIds.includes(latest.id)) {
+  if (isActionQueueRoute || !campaignId || !isDM || !latest || dismissedIds.includes(latest.id)) {
     return null
   }
 

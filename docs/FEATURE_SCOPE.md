@@ -1,12 +1,24 @@
 # Feature Scope
 
-## MVP — Build This First
+## Verified Current Baseline (2026-07-13)
+
+The current source baseline is password-based registration/login, campaign
+creation and listing, and joining a campaign with its 8-character code at
+`/join`. Magic-link authentication, campaign deletion, and invite-link joining
+are historical or aspirational scope language; they are **not** verified current
+capabilities and must not be used as release acceptance criteria.
+
+The older MVP/Later lists below preserve planning intent, not current runtime
+proof. Use the [current 40-feature full app/code audit](QA_Reports/FULL_APP_CODE_AUDIT_2026-07-12.md)
+for the verified source inventory and its explicitly blocked runtime coverage.
+
+## MVP — Historical Planning Baseline
 
 These features define the minimum viable product for a functional campaign management session.
 
-- User registration and login (email/password and magic link)
-- Campaign creation, listing, and deletion
-- Campaign invite system (link or code-based)
+- User registration and login (email/password is current; magic link is aspirational)
+- Campaign creation and listing (current); campaign deletion (aspirational)
+- Campaign join system (8-character code is current; invite link is aspirational)
 - DM and Player role separation per campaign
 - Character sheet create and edit (player-owned)
 - DM dashboard: view all characters in a campaign

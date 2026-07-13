@@ -1,5 +1,18 @@
 # Project Source of Truth
 
+## Current Verification Baseline
+
+The current product inventory is the [40-feature full app/code audit executed
+2026-07-13](QA_Reports/FULL_APP_CODE_AUDIT_2026-07-12.md). It distinguishes
+source verification from authenticated, deployed, visual, accessibility, and
+usage-dashboard evidence. Audit remediation is implemented in the working tree,
+but production deployment and migration application are not claimed.
+
+Release-critical privacy hardening depends on
+`supabase/migrations/20260713041904_player_safe_live_projections.sql`. The
+migration and matching application code must follow the atomic procedure in
+`DEPLOYMENT.md`.
+
 ## App Purpose
 
 A DnD campaign management companion web app that helps Dungeon Masters run campaigns and helps players track their characters during live play sessions.
@@ -101,9 +114,9 @@ A fully featured campaign management companion that feels fast and clean during 
 | Auth | Supabase Auth |
 | Database | Supabase Postgres (RLS enforced) |
 | File Storage | Supabase Storage |
-| Realtime | Supabase Realtime (Phase 4) |
+| Realtime | Supabase Realtime with player-safe event streams and snapshot RPCs |
 | Package Manager | npm |
-| Deployment | Vercel (planned) |
+| Deployment | Vercel target; current deployment is not verified |
 
 ---
 
@@ -119,13 +132,26 @@ A fully featured campaign management companion that feels fast and clean during 
 
 ## Live Session Safety Rules
 
+- Player and Center Screen clients must not select or subscribe to mixed-privacy
+  Live Map or Story source rows. They consume payload-free event streams and
+  role-checked sanitized snapshot RPCs; base source policies remain DM-only.
+- Player map Storage objects are not directly readable. The protected image
+  route verifies membership and active-map state before proxying bytes; revealed
+  handout files remain reveal-scoped. UI hiding is never the access boundary.
+- High-frequency player movement calls the guarded Supabase `move_player_token` RPC
+  directly so routine drag/drop does not create a Vercel Server Action invocation.
+- Private map-image cache identity follows the immutable Storage object, not
+  unrelated map metadata updates. Normal token, grid, fog, and travel changes
+  must not force the same map image to download again.
 - Player action requests use hybrid authorization:
   - Attack requires a visible, non-portal, combat-capable or attack-enabled target.
   - Talk, Investigate, and Custom Action may target any visible non-portal token.
   - Interact, Use Item, and Cast Spell require DM-enabled interaction/action settings.
 - Center Screen is player-safe display data. It honors token cast visibility and must not send hidden room/token details to the client.
 - Reveal all / hide all are temporary map-level overrides. They do not delete painted reveal areas or room masks.
-- Realtime subscribers should recover from degraded channel states by refreshing and resubscribing; degraded state should be visible without noisy alert spam.
+- Realtime subscribers recover with capped exponential backoff and jitter;
+  snapshot retries reuse the current channel and channel recreation is reserved
+  for channel failures so degraded service cannot create a retry storm.
 
 ---
 

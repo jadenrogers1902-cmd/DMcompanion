@@ -90,7 +90,7 @@ export default async function CenterScreenPage({ params }: PageProps) {
 
   if (!stableImageUrl) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-zinc-950 p-4">
+      <div className="flex min-h-dvh items-center justify-center bg-canvas p-4">
         <EmptyState title="Map image unavailable" description="The map file could not be loaded from storage." />
       </div>
     )
@@ -100,7 +100,7 @@ export default async function CenterScreenPage({ params }: PageProps) {
     <main className="relative min-h-dvh bg-black">
       <Link
         href={`/campaigns/${id}/live-map/${mapId}`}
-        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-zinc-950 focus:px-3 focus:py-2 focus:text-sm focus:text-zinc-100"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-canvas focus:px-3 focus:py-2 focus:text-sm focus:text-content"
       >
         Back to DM map editor
       </Link>

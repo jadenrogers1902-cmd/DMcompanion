@@ -187,7 +187,7 @@ function buildStatuses(doc: CampaignDoc, hasMapping: boolean): DashboardStatus[]
 }
 
 function metricValue(value: number | string) {
-  return <span className="text-2xl font-semibold text-zinc-100">{value}</span>
+  return <span className="text-2xl font-semibold text-content">{value}</span>
 }
 
 export function NotionSyncDashboard({
@@ -398,11 +398,11 @@ export function NotionSyncDashboard({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-zinc-100">Table Sync</h1>
+            <h1 className="text-2xl font-bold text-content">Table Sync</h1>
             <Badge variant={connected ? 'success' : 'warning'}>{connected ? 'Connected' : 'No connection'}</Badge>
             {!serverReady && <Badge variant="warning">Server key missing</Badge>}
           </div>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-faint">
             DM-only health view for Adventure Codex sync state, visibility, and live-object linkage.
           </p>
         </div>
@@ -430,7 +430,7 @@ export function NotionSyncDashboard({
           </Button>
           <Link
             href={`/campaigns/${campaignId}/codex/notion`}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-600 bg-zinc-700 px-3 py-1.5 text-sm text-zinc-100 transition-colors hover:bg-zinc-600"
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-border-strong bg-control px-3 py-1.5 text-sm text-content transition-colors hover:bg-hover"
           >
             <Filter className="h-4 w-4" aria-hidden="true" />
             Mappings
@@ -476,11 +476,11 @@ export function NotionSyncDashboard({
               </span>
             </CardTitle>
           </CardHeader>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted">
             These local records came from a Notion mapping that is no longer active
             (or have a broken Notion link). They no longer appear in the active Codex
             table cards. Re-add the mapping and sync to restore them, or use
-            <span className="text-zinc-200"> Delete Local Synced Data</span> to clear
+            <span className="text-content"> Delete Local Synced Data</span> to clear
             them for a selected Adventure. Notion is never modified.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -491,23 +491,23 @@ export function NotionSyncDashboard({
           </div>
           <div className="mt-3 flex flex-col gap-1.5">
             {staleRows.slice(0, 50).map((row) => (
-              <div key={row.doc.id} className="flex items-center justify-between gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm">
+              <div key={row.doc.id} className="flex items-center justify-between gap-2 rounded-md border border-border bg-panel px-3 py-2 text-sm">
                 <div className="min-w-0">
-                  <p className="truncate text-zinc-100">{row.doc.title}</p>
-                  <p className="text-[11px] text-zinc-500">
+                  <p className="truncate text-content">{row.doc.title}</p>
+                  <p className="text-[11px] text-faint">
                     {campaignDocTypeLabel(row.doc.doc_type)} · {lifecycleLabel(row.doc, row.hasMapping)}
                   </p>
                 </div>
                 <Link
                   href={`/campaigns/${campaignId}/codex?doc=${row.doc.id}`}
-                  className="shrink-0 rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:border-amber-500/50"
+                  className="shrink-0 rounded border border-border-strong px-2 py-1 text-[11px] text-content hover:border-accent/50"
                 >
                   Open
                 </Link>
               </div>
             ))}
             {staleRows.length > 50 && (
-              <p className="text-[11px] text-zinc-600">Showing first 50 of {staleRows.length}.</p>
+              <p className="text-[11px] text-faint">Showing first 50 of {staleRows.length}.</p>
             )}
           </div>
         </Card>
@@ -631,12 +631,12 @@ export function NotionSyncDashboard({
       </Card>
 
       <Card padding="none" className="overflow-hidden">
-        <div className="border-b border-zinc-800 px-4 py-3">
-          <p className="text-sm text-zinc-400">{filteredRows.length} docs shown</p>
+        <div className="border-b border-border px-4 py-3">
+          <p className="text-sm text-muted">{filteredRows.length} docs shown</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-zinc-800 text-sm">
-            <thead className="bg-zinc-950/80 text-left text-xs uppercase tracking-wide text-zinc-500">
+          <table className="min-w-full divide-y divide-border text-sm">
+            <thead className="bg-shell/80 text-left text-xs uppercase tracking-wide text-faint">
               <tr>
                 <th className="px-4 py-3">Doc</th>
                 <th className="px-4 py-3">Status</th>
@@ -646,20 +646,20 @@ export function NotionSyncDashboard({
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800">
+            <tbody className="divide-y divide-border">
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">No docs match the current filters.</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-faint">No docs match the current filters.</td>
                 </tr>
               ) : (
                 filteredRows.map((row) => (
                   <tr key={row.doc.id} className="align-top">
                     <td className="px-4 py-3">
                       <div className="min-w-64">
-                        <p className="font-medium text-zinc-100">{row.doc.title}</p>
-                        <p className="mt-1 text-xs text-zinc-500">{campaignDocTypeLabel(row.doc.doc_type)} · {row.doc.source}</p>
+                        <p className="font-medium text-content">{row.doc.title}</p>
+                        <p className="mt-1 text-xs text-faint">{campaignDocTypeLabel(row.doc.doc_type)} · {row.doc.source}</p>
                         {row.doc.tags.length > 0 && (
-                          <p className="mt-1 max-w-xs truncate text-xs text-zinc-600">{row.doc.tags.join(', ')}</p>
+                          <p className="mt-1 max-w-xs truncate text-xs text-faint">{row.doc.tags.join(', ')}</p>
                         )}
                       </div>
                     </td>
@@ -669,14 +669,14 @@ export function NotionSyncDashboard({
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-zinc-300">{row.issue}</p>
-                      {row.mapping && <p className="mt-1 text-xs text-zinc-600">{row.mapping.notion_database_name || 'Mapped database'}</p>}
+                      <p className="text-muted">{row.issue}</p>
+                      {row.mapping && <p className="mt-1 text-xs text-faint">{row.mapping.notion_database_name || 'Mapped database'}</p>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-zinc-500">
+                    <td className="px-4 py-3 text-xs text-faint">
                       <p>Last: {formatDate(row.doc.last_synced_at)}</p>
                       <p>Updated: {formatDate(row.doc.updated_at)}</p>
                     </td>
-                    <td className="px-4 py-3 text-xs text-zinc-500">
+                    <td className="px-4 py-3 text-xs text-faint">
                       <p>{row.liveLinkCount} live object{row.liveLinkCount === 1 ? '' : 's'}</p>
                     </td>
                     <td className="px-4 py-3">
@@ -696,7 +696,7 @@ export function NotionSyncDashboard({
                             href={row.doc.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-600 bg-zinc-700 px-3 py-1.5 text-sm text-zinc-100 transition-colors hover:bg-zinc-600"
+                            className="inline-flex items-center justify-center gap-2 rounded-md border border-border-strong bg-control px-3 py-1.5 text-sm text-content transition-colors hover:bg-hover"
                           >
                             <ExternalLink className="h-4 w-4" aria-hidden="true" />
                             Notion
@@ -704,21 +704,21 @@ export function NotionSyncDashboard({
                         )}
                         <Link
                           href={`/campaigns/${campaignId}/codex?doc=${row.doc.id}`}
-                          className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-600 bg-zinc-700 px-3 py-1.5 text-sm text-zinc-100 transition-colors hover:bg-zinc-600"
+                          className="inline-flex items-center justify-center gap-2 rounded-md border border-border-strong bg-control px-3 py-1.5 text-sm text-content transition-colors hover:bg-hover"
                         >
                           <FileText className="h-4 w-4" aria-hidden="true" />
                           Codex
                         </Link>
                         <Link
                           href={`/campaigns/${campaignId}/live-map`}
-                          className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-600 bg-zinc-700 px-3 py-1.5 text-sm text-zinc-100 transition-colors hover:bg-zinc-600"
+                          className="inline-flex items-center justify-center gap-2 rounded-md border border-border-strong bg-control px-3 py-1.5 text-sm text-content transition-colors hover:bg-hover"
                         >
                           <Link2 className="h-4 w-4" aria-hidden="true" />
                           Attach
                         </Link>
                         <Link
                           href={`/campaigns/${campaignId}/codex?doc=${row.doc.id}`}
-                          className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-600 bg-zinc-700 px-3 py-1.5 text-sm text-zinc-100 transition-colors hover:bg-zinc-600"
+                          className="inline-flex items-center justify-center gap-2 rounded-md border border-border-strong bg-control px-3 py-1.5 text-sm text-content transition-colors hover:bg-hover"
                         >
                           <Eye className="h-4 w-4" aria-hidden="true" />
                           Review
@@ -748,12 +748,12 @@ export function NotionSyncDashboard({
 
       {wipeOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-xl border border-red-800/60 bg-zinc-950 p-5 shadow-2xl">
+          <div className="w-full max-w-lg rounded-xl border border-red-800/60 bg-shell p-5 shadow-2xl">
             <div className="flex items-start gap-3">
               <Trash2 className="mt-0.5 h-5 w-5 shrink-0 text-red-400" aria-hidden="true" />
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-zinc-100">Delete local synced Notion data?</h2>
-                <p className="mt-1 text-sm text-zinc-400">
+                <h2 className="text-lg font-semibold text-content">Delete local synced Notion data?</h2>
+                <p className="mt-1 text-sm text-muted">
                   Choose which Adventure you want to clear from the Companion app. This only
                   removes local synced Codex/cache records for that Adventure. It does not delete
                   or modify anything in Notion.
@@ -779,10 +779,10 @@ export function NotionSyncDashboard({
               </Select>
 
               {wipeTarget !== '' && (
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm">
-                  <p className="text-zinc-300">
+                <div className="rounded-lg border border-border bg-panel px-3 py-2.5 text-sm">
+                  <p className="text-muted">
                     Will delete <span className="font-semibold text-red-300">{wipePreviewCount}</span> local
-                    Codex record(s) for <span className="font-medium text-zinc-100">{wipeTargetLabel}</span>,
+                    Codex record(s) for <span className="font-medium text-content">{wipeTargetLabel}</span>,
                     plus their Companion links and reveals.
                   </p>
                   <p className="mt-1 text-xs text-emerald-300">
@@ -793,7 +793,7 @@ export function NotionSyncDashboard({
               )}
 
               <div>
-                <label htmlFor="wipe-phrase" className="mb-1 block text-xs font-medium text-zinc-400">
+                <label htmlFor="wipe-phrase" className="mb-1 block text-xs font-medium text-muted">
                   Type <span className="font-mono text-red-300">{WIPE_CONFIRMATION_PHRASE}</span> to confirm
                 </label>
                 <Input
@@ -845,12 +845,12 @@ function Metric({
     <Card className={urgent ? 'border-orange-500/30 bg-orange-500/[0.04]' : ''}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-zinc-500">{title}</p>
-          <div className={compact ? 'mt-2 text-sm font-semibold text-zinc-100' : 'mt-2'}>
+          <p className="text-xs font-medium text-faint">{title}</p>
+          <div className={compact ? 'mt-2 text-sm font-semibold text-content' : 'mt-2'}>
             {compact ? value : metricValue(value)}
           </div>
         </div>
-        <span className={urgent ? 'text-orange-400' : 'text-zinc-600'}>
+        <span className={urgent ? 'text-orange-400' : 'text-faint'}>
           {icon && <span className="[&>svg]:h-4 [&>svg]:w-4">{icon}</span>}
         </span>
       </div>

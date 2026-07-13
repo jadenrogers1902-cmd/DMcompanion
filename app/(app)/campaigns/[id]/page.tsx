@@ -26,14 +26,14 @@ function FeatureCard({
 }) {
   return (
     <Link href={href}>
-      <Card className="hover:border-zinc-600 hover:bg-zinc-800/50 transition-all cursor-pointer h-full">
+      <Card className="hover:border-border-strong hover:bg-hover/50 transition-all cursor-pointer h-full">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <h3 className="text-sm font-medium text-zinc-200">{title}</h3>
-          <svg className="w-4 h-4 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <h3 className="text-sm font-medium text-content">{title}</h3>
+          <svg className="w-4 h-4 text-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
         </div>
-        <p className="text-xs text-zinc-500">{description}</p>
+        <p className="text-xs text-faint">{description}</p>
       </Card>
     </Link>
   )
@@ -53,14 +53,14 @@ function SessionMetric({
   return (
     <Link
       href={href}
-      className={`rounded-xl border p-4 transition hover:border-zinc-600 ${
+      className={`rounded-xl border p-4 transition hover:border-border-strong ${
         tone === 'warning'
-          ? 'border-amber-800/60 bg-amber-950/20'
-          : 'border-zinc-800 bg-zinc-900'
+          ? 'border-accent/60 bg-accent/20'
+          : 'border-border bg-panel'
       }`}
     >
-      <p className="text-xs uppercase tracking-wide text-zinc-600">{label}</p>
-      <p className="mt-2 truncate text-lg font-semibold text-zinc-100">{value}</p>
+      <p className="text-xs uppercase tracking-wide text-faint">{label}</p>
+      <p className="mt-2 truncate text-lg font-semibold text-content">{value}</p>
     </Link>
   )
 }
@@ -142,7 +142,7 @@ export default async function CampaignPage({ params }: PageProps) {
       <div className={isDM ? 'mb-5' : 'mb-8'}>
         <Link
           href="/dashboard"
-          className="text-sm text-zinc-500 hover:text-zinc-300 flex items-center gap-1.5 mb-4"
+          className="text-sm text-faint hover:text-content flex items-center gap-1.5 mb-4"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -153,13 +153,13 @@ export default async function CampaignPage({ params }: PageProps) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5 mb-1">
-              <h1 className="text-2xl font-bold text-zinc-100">{campaign.name}</h1>
+              <h1 className="text-2xl font-bold text-content">{campaign.name}</h1>
               <Badge variant={isDM ? 'dm' : 'player'}>
                 {isDM ? 'DM' : 'Player'}
               </Badge>
             </div>
             {campaign.description && (
-              <p className="text-sm text-zinc-500 max-w-xl">{campaign.description}</p>
+              <p className="text-sm text-faint max-w-xl">{campaign.description}</p>
             )}
           </div>
           {isDM && (
@@ -239,7 +239,7 @@ export default async function CampaignPage({ params }: PageProps) {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>Members</CardTitle>
-                      <span className="text-sm text-zinc-500">{members.length}</span>
+                      <span className="text-sm text-faint">{members.length}</span>
                     </div>
                   </CardHeader>
                   <MemberList members={members} currentUserId={user.id} />
@@ -264,7 +264,7 @@ export default async function CampaignPage({ params }: PageProps) {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Party</CardTitle>
-                <span className="text-sm text-zinc-500">{members.length} members</span>
+                <span className="text-sm text-faint">{members.length} members</span>
               </div>
             </CardHeader>
             <MemberList members={members} currentUserId={user.id} />

@@ -737,7 +737,7 @@ export function PreparedMapEditor({
       {/* Header: title, status, primary actions */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <h1 className="truncate text-2xl font-bold text-zinc-100">{title || 'Untitled map'}</h1>
+          <h1 className="truncate text-2xl font-bold text-content">{title || 'Untitled map'}</h1>
           <Badge variant={adventureStatusBadgeVariant(status)}>{adventureStatusLabel(status)}</Badge>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -762,7 +762,7 @@ export function PreparedMapEditor({
         </p>
       )}
       {dirty && (
-        <p className="text-xs text-amber-400/90">Unsaved changes — remember to save.</p>
+        <p className="text-xs text-accent/90">Unsaved changes — remember to save.</p>
       )}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(17rem,21rem)_minmax(0,1fr)_minmax(18rem,20rem)]">
@@ -1025,15 +1025,15 @@ export function PreparedMapEditor({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-zinc-700 bg-zinc-950 text-center transition-colors hover:border-zinc-500 disabled:opacity-60"
+              className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border-strong bg-canvas text-center transition-colors hover:border-border-strong disabled:opacity-60"
             >
-              <svg className="h-10 w-10 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <svg className="h-10 w-10 text-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
-              <span className="text-sm text-zinc-300">
+              <span className="text-sm text-muted">
                 {uploading ? 'Uploading…' : 'Add a background map image'}
               </span>
-              <span className="text-xs text-zinc-600">PNG, JPG, WEBP, or GIF · up to 15 MB</span>
+              <span className="text-xs text-faint">PNG, JPG, WEBP, or GIF · up to 15 MB</span>
             </button>
           )}
         </div>
@@ -1041,8 +1041,8 @@ export function PreparedMapEditor({
         {/* Prep sidebar */}
         <div className="flex min-w-0 flex-col gap-4">
           {/* Details */}
-          <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">Details</h2>
+          <section className="rounded-xl border border-border bg-panel p-4">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Details</h2>
             <div className="flex flex-col gap-3">
               <Input label="Title" value={title} maxLength={120}
                 onChange={(e) => { setTitle(e.target.value); touch() }} />
@@ -1072,8 +1072,8 @@ export function PreparedMapEditor({
           </section>
 
           {/* Image + grid */}
-          <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">Background &amp; Grid</h2>
+          <section className="rounded-xl border border-border bg-panel p-4">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Background &amp; Grid</h2>
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" size="sm" loading={uploading}
@@ -1086,12 +1086,12 @@ export function PreparedMapEditor({
                   </Button>
                 )}
               </div>
-              <label className="flex items-center gap-2 text-sm text-zinc-300">
+              <label className="flex items-center gap-2 text-sm text-muted">
                 <input
                   type="checkbox"
                   checked={gridEnabled}
                   onChange={(e) => { setGridEnabled(e.target.checked); touch() }}
-                  className="h-4 w-4 accent-amber-500"
+                  className="h-4 w-4 accent-accent"
                 />
                 Show grid
               </label>
@@ -1108,15 +1108,15 @@ export function PreparedMapEditor({
           </section>
 
           {/* DM notes */}
-          <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+          <section className="rounded-xl border border-border bg-panel p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
-                DM Notes <span className="text-zinc-600">({notes.length})</span>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+                DM Notes <span className="text-faint">({notes.length})</span>
               </h2>
               <Button variant="secondary" size="sm" onClick={addNote}>Add DM Note</Button>
             </div>
             {notes.length === 0 && (
-              <p className="text-xs text-zinc-600">Private prep notes — players never see these.</p>
+              <p className="text-xs text-faint">Private prep notes — players never see these.</p>
             )}
             <div className="flex flex-col gap-2.5">
               {notes.map((note, index) => (
@@ -1133,7 +1133,7 @@ export function PreparedMapEditor({
                     }}
                     className="flex-1"
                   />
-                  <label className="mt-1 flex items-center gap-1.5 text-xs text-zinc-400">
+                  <label className="mt-1 flex items-center gap-1.5 text-xs text-muted">
                     <input
                       type="checkbox"
                       checked={note.pinned}
@@ -1141,14 +1141,14 @@ export function PreparedMapEditor({
                         setNotes((prev) => prev.map((n) => (n.id === note.id ? { ...n, pinned: e.target.checked } : n)))
                         touch()
                       }}
-                      className="h-4 w-4 accent-amber-500"
+                      className="h-4 w-4 accent-accent"
                     />
                     Pin
                   </label>
                   <button
                     type="button"
                     onClick={() => { setNotes((prev) => prev.filter((n) => n.id !== note.id)); touch() }}
-                    className="mt-1 rounded-md p-1 text-zinc-600 hover:bg-zinc-800 hover:text-red-400"
+                    className="mt-1 rounded-md p-1 text-faint hover:bg-panel-raised hover:text-red-400"
                     aria-label={`Remove DM note ${index + 1}`}
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1161,15 +1161,15 @@ export function PreparedMapEditor({
           </section>
 
           {/* Links */}
-          <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+          <section className="rounded-xl border border-border bg-panel p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
-                Links <span className="text-zinc-600">({links.length})</span>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+                Links <span className="text-faint">({links.length})</span>
               </h2>
               <Button variant="secondary" size="sm" onClick={addLink}>Add Link</Button>
             </div>
             {links.length === 0 && (
-              <p className="text-xs text-zinc-600">Reference material: stat blocks, music, handouts.</p>
+              <p className="text-xs text-faint">Reference material: stat blocks, music, handouts.</p>
             )}
             <div className="flex flex-col gap-2.5">
               {links.map((link, index) => (
@@ -1197,12 +1197,12 @@ export function PreparedMapEditor({
                     />
                     {link.url && /^https?:\/\//.test(link.url) && (
                       <a href={link.url} target="_blank" rel="noopener noreferrer"
-                        className="truncate text-xs text-amber-400/90 hover:text-amber-300">
+                        className="truncate text-xs text-accent/90 hover:text-accent">
                         Open link ↗
                       </a>
                     )}
                   </div>
-                  <label className="mt-1 flex items-center gap-1.5 text-xs text-zinc-400">
+                  <label className="mt-1 flex items-center gap-1.5 text-xs text-muted">
                     <input
                       type="checkbox"
                       checked={link.pinned}
@@ -1210,14 +1210,14 @@ export function PreparedMapEditor({
                         setLinks((prev) => prev.map((l) => (l.id === link.id ? { ...l, pinned: e.target.checked } : l)))
                         touch()
                       }}
-                      className="h-4 w-4 accent-amber-500"
+                      className="h-4 w-4 accent-accent"
                     />
                     Pin
                   </label>
                   <button
                     type="button"
                     onClick={() => { setLinks((prev) => prev.filter((l) => l.id !== link.id)); touch() }}
-                    className="mt-1 rounded-md p-1 text-zinc-600 hover:bg-zinc-800 hover:text-red-400"
+                    className="mt-1 rounded-md p-1 text-faint hover:bg-panel-raised hover:text-red-400"
                     aria-label={`Remove link ${index + 1}`}
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1230,7 +1230,7 @@ export function PreparedMapEditor({
           </section>
 
           {/* Danger zone */}
-          <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+          <section className="rounded-xl border border-border bg-panel p-4">
             <Button variant="danger" size="sm" onClick={handleDelete}>Delete Map</Button>
           </section>
         </div>
@@ -1271,7 +1271,7 @@ export function PreparedMapEditor({
       {previewOpen && hasImage && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/80 p-3 sm:p-6">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-sm text-zinc-300">
+            <p className="text-sm text-muted">
               Preview — roughly what players would see (hidden tokens excluded, no fog).
             </p>
             <Button variant="secondary" size="sm" onClick={() => setPreviewOpen(false)}>
@@ -1351,10 +1351,10 @@ function SubLocationsPanel({
       <button
         type="button"
         onClick={onToggle}
-        className={`flex h-14 w-14 items-center justify-center rounded-full border text-zinc-50 shadow-2xl backdrop-blur transition ${
+        className={`flex h-14 w-14 items-center justify-center rounded-full border text-content shadow-2xl backdrop-blur transition ${
           open
             ? 'border-fuchsia-300 bg-fuchsia-500/25 shadow-fuchsia-950/50'
-            : 'border-zinc-700 bg-zinc-950/90 hover:border-fuchsia-300/70 hover:bg-zinc-900'
+            : 'border-border-strong bg-canvas/90 hover:border-fuchsia-300/70 hover:bg-panel'
         }`}
         aria-label="Sub-locations"
         title="Sub-locations"
@@ -1369,17 +1369,17 @@ function SubLocationsPanel({
 
       {open && (
         <div
-          className="flex max-h-[min(42rem,calc(100dvh-6rem))] w-[min(24rem,calc(100vw-6rem))] flex-col overflow-hidden rounded-xl border border-fuchsia-300/30 bg-zinc-950/96 shadow-2xl shadow-fuchsia-950/35 backdrop-blur"
+          className="flex max-h-[min(42rem,calc(100dvh-6rem))] w-[min(24rem,calc(100vw-6rem))] flex-col overflow-hidden rounded-xl border border-fuchsia-300/30 bg-canvas/96 shadow-2xl shadow-fuchsia-950/35 backdrop-blur"
           onPointerDown={(event) => event.stopPropagation()}
           onPointerMove={(event) => event.stopPropagation()}
           onPointerUp={(event) => event.stopPropagation()}
           onWheel={(event) => event.stopPropagation()}
           onTouchMove={(event) => event.stopPropagation()}
         >
-          <div className="border-b border-zinc-800 px-4 py-3">
+          <div className="border-b border-border px-4 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-fuchsia-300">Dungeon Map</p>
-            <h2 className="mt-1 text-base font-semibold text-zinc-50">Sub-Locations</h2>
-            <p className="mt-1 text-xs text-zinc-500">
+            <h2 className="mt-1 text-base font-semibold text-content">Sub-Locations</h2>
+            <p className="mt-1 text-xs text-faint">
               Add travel portals or draw blacked-out room regions.
             </p>
           </div>
@@ -1419,15 +1419,15 @@ function SubLocationsPanel({
                         key={door.id}
                         className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition ${
                           selectedTokenId === door.id
-                            ? 'border-stone-300/70 bg-stone-500/20 text-zinc-50'
-                            : 'border-zinc-800 bg-zinc-900/80 text-zinc-300'
+                            ? 'border-stone-300/70 bg-stone-500/20 text-content'
+                            : 'border-border bg-panel/80 text-muted'
                         }`}
                       >
                         <span aria-hidden="true">{door.icon || '🚪'}</span>
                         <button
                           type="button"
                           onClick={() => onSelectDoor(door.id)}
-                          className="min-w-0 flex-1 truncate text-left font-medium hover:text-zinc-50"
+                          className="min-w-0 flex-1 truncate text-left font-medium hover:text-content"
                         >
                           {door.name || 'Door'}
                         </button>
@@ -1480,7 +1480,7 @@ function SubLocationsPanel({
                   <button
                     type="button"
                     onClick={onCancelDraw}
-                    className="mt-2 text-xs font-medium text-zinc-400 hover:text-zinc-100"
+                    className="mt-2 text-xs font-medium text-muted hover:text-content"
                   >
                     Cancel drawing
                   </button>
@@ -1489,12 +1489,12 @@ function SubLocationsPanel({
 
               <div>
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-faint">
                     Rooms ({rooms.length})
                   </p>
                 </div>
                 {rooms.length === 0 ? (
-                  <p className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-3 text-xs text-zinc-500">
+                  <p className="rounded-lg border border-border bg-panel/80 p-3 text-xs text-faint">
                     Draw a room to configure fog, labels, and reveal behavior.
                   </p>
                 ) : (
@@ -1506,12 +1506,12 @@ function SubLocationsPanel({
                         onClick={() => onSelectRoom(room.id)}
                         className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
                           selectedRoom?.id === room.id
-                            ? 'border-fuchsia-300/70 bg-fuchsia-500/15 text-zinc-50'
-                            : 'border-zinc-800 bg-zinc-900/80 text-zinc-300 hover:border-zinc-600'
+                            ? 'border-fuchsia-300/70 bg-fuchsia-500/15 text-content'
+                            : 'border-border bg-panel/80 text-muted hover:border-border-strong'
                         }`}
                       >
                         <span className="block truncate font-semibold">{room.name}</span>
-                        <span className="mt-0.5 block text-[11px] capitalize text-zinc-500">
+                        <span className="mt-0.5 block text-[11px] capitalize text-faint">
                           {room.shape_type} - {room.reveal_mode.replace('_', ' ')} - {room.is_revealed_by_default ? 'revealed' : 'masked'}
                         </span>
                       </button>
@@ -1521,9 +1521,9 @@ function SubLocationsPanel({
               </div>
 
               {selectedRoom && (
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+                <div className="rounded-lg border border-border bg-panel p-3">
                   <div className="mb-3 flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-zinc-100">Room Settings</p>
+                    <p className="text-sm font-semibold text-content">Room Settings</p>
                     <button
                       type="button"
                       onClick={() => onRemoveRoom(selectedRoom.id)}
@@ -1538,7 +1538,7 @@ function SubLocationsPanel({
                     className={`mb-3 w-full rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                       editBordersActive
                         ? 'border-fuchsia-300/70 bg-fuchsia-500/20 text-fuchsia-100'
-                        : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-fuchsia-300/60'
+                        : 'border-border-strong bg-panel text-muted hover:border-fuchsia-300/60'
                     }`}
                   >
                     {editBordersActive ? 'Done editing borders' : 'Edit borders'}
@@ -1608,27 +1608,27 @@ function SubLocationsPanel({
                       </Select>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <label className="flex items-center gap-2 text-xs text-zinc-300">
+                      <label className="flex items-center gap-2 text-xs text-muted">
                         Border color
                         <input
                           type="color"
                           value={selectedRoom.border_color ?? '#f472b6'}
                           onChange={(event) => onUpdateRoom(selectedRoom.id, { border_color: event.target.value })}
-                          className="h-7 w-10 cursor-pointer rounded border border-zinc-700 bg-transparent"
+                          className="h-7 w-10 cursor-pointer rounded border border-border-strong bg-transparent"
                         />
                       </label>
                       {selectedRoom.border_color && (
                         <button
                           type="button"
                           onClick={() => onUpdateRoom(selectedRoom.id, { border_color: null })}
-                          className="text-xs font-medium text-zinc-400 hover:text-zinc-100"
+                          className="text-xs font-medium text-muted hover:text-content"
                         >
                           Reset to style
                         </button>
                       )}
                     </div>
                     <div>
-                      <p className="mb-1.5 text-xs font-semibold text-zinc-300">Doors (entrances)</p>
+                      <p className="mb-1.5 text-xs font-semibold text-muted">Doors (entrances)</p>
                       {(selectedRoom.door_token_ids ?? []).length > 0 ? (
                         <div className="mb-2 grid gap-1.5">
                           {(selectedRoom.door_token_ids ?? []).map((doorId) => {
@@ -1636,7 +1636,7 @@ function SubLocationsPanel({
                             return (
                               <div
                                 key={doorId}
-                                className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900/80 px-2.5 py-1.5 text-sm text-zinc-300"
+                                className="flex items-center gap-2 rounded-md border border-border bg-panel/80 px-2.5 py-1.5 text-sm text-muted"
                               >
                                 <span aria-hidden="true">🚪</span>
                                 <span className="min-w-0 flex-1 truncate">{door?.name ?? 'Door (removed)'}</span>
@@ -1656,7 +1656,7 @@ function SubLocationsPanel({
                           })}
                         </div>
                       ) : (
-                        <p className="mb-2 text-[11px] text-zinc-500">
+                        <p className="mb-2 text-[11px] text-faint">
                           No doors linked yet. Players enter this area through its linked doors.
                         </p>
                       )}
@@ -1680,14 +1680,14 @@ function SubLocationsPanel({
                             ))}
                         </Select>
                       ) : (
-                        <p className="text-[11px] text-zinc-500">
+                        <p className="text-[11px] text-faint">
                           {doors.length === 0
                             ? 'Add doors from the Doors card above, or drag a door into this area to link it.'
                             : 'All doors are linked to this area.'}
                         </p>
                       )}
                     </div>
-                    <label className="flex items-center gap-2 text-xs text-zinc-300">
+                    <label className="flex items-center gap-2 text-xs text-muted">
                       <input
                         type="checkbox"
                         checked={selectedRoom.player_label_visible}
@@ -1696,7 +1696,7 @@ function SubLocationsPanel({
                       />
                       Show room label to players before reveal
                     </label>
-                    <label className="flex items-center gap-2 text-xs text-zinc-300">
+                    <label className="flex items-center gap-2 text-xs text-muted">
                       <input
                         type="checkbox"
                         checked={selectedRoom.is_revealed_by_default}
@@ -1770,10 +1770,10 @@ function FogControlsPanel({
       <button
         type="button"
         onClick={onToggle}
-        className={`flex h-14 w-14 items-center justify-center rounded-full border text-zinc-50 shadow-2xl backdrop-blur transition ${
+        className={`flex h-14 w-14 items-center justify-center rounded-full border text-content shadow-2xl backdrop-blur transition ${
           open
             ? 'border-sky-300 bg-sky-500/25 shadow-sky-950/50'
-            : 'border-zinc-700 bg-zinc-950/90 hover:border-sky-300/70 hover:bg-zinc-900'
+            : 'border-border-strong bg-canvas/90 hover:border-sky-300/70 hover:bg-panel'
         }`}
         aria-label="Fog controls"
         title="Fog controls"
@@ -1791,17 +1791,17 @@ function FogControlsPanel({
 
       {open && (
         <div
-          className="flex max-h-[min(42rem,calc(100dvh-6rem))] w-[min(24rem,calc(100vw-6rem))] flex-col overflow-hidden rounded-xl border border-sky-300/30 bg-zinc-950/96 shadow-2xl shadow-sky-950/35 backdrop-blur"
+          className="flex max-h-[min(42rem,calc(100dvh-6rem))] w-[min(24rem,calc(100vw-6rem))] flex-col overflow-hidden rounded-xl border border-sky-300/30 bg-canvas/96 shadow-2xl shadow-sky-950/35 backdrop-blur"
           onPointerDown={(event) => event.stopPropagation()}
           onPointerMove={(event) => event.stopPropagation()}
           onPointerUp={(event) => event.stopPropagation()}
           onWheel={(event) => event.stopPropagation()}
           onTouchMove={(event) => event.stopPropagation()}
         >
-          <div className="border-b border-zinc-800 px-4 py-3">
+          <div className="border-b border-border px-4 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-300">Visibility</p>
-            <h2 className="mt-1 text-base font-semibold text-zinc-50">Fog</h2>
-            <p className="mt-1 text-xs text-zinc-500">
+            <h2 className="mt-1 text-base font-semibold text-content">Fog</h2>
+            <p className="mt-1 text-xs text-faint">
               Set how the whole map starts for players, and paint extra fog anywhere.
             </p>
           </div>
@@ -1869,7 +1869,7 @@ function FogControlsPanel({
                   <button
                     type="button"
                     onClick={onCancelDraw}
-                    className="mt-2 text-xs font-medium text-zinc-400 hover:text-zinc-100"
+                    className="mt-2 text-xs font-medium text-muted hover:text-content"
                   >
                     Cancel drawing
                   </button>
@@ -1877,11 +1877,11 @@ function FogControlsPanel({
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-faint">
                   Fog areas ({fogRegions.length})
                 </p>
                 {fogRegions.length === 0 ? (
-                  <p className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-3 text-xs text-zinc-500">
+                  <p className="rounded-lg border border-border bg-panel/80 p-3 text-xs text-faint">
                     No painted fog yet. The base fog mode above still applies.
                   </p>
                 ) : (
@@ -1893,12 +1893,12 @@ function FogControlsPanel({
                         onClick={() => onSelectFog(region.id)}
                         className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
                           selectedFog?.id === region.id
-                            ? 'border-sky-300/70 bg-sky-500/15 text-zinc-50'
-                            : 'border-zinc-800 bg-zinc-900/80 text-zinc-300 hover:border-zinc-600'
+                            ? 'border-sky-300/70 bg-sky-500/15 text-content'
+                            : 'border-border bg-panel/80 text-muted hover:border-border-strong'
                         }`}
                       >
                         <span className="block truncate font-semibold">{region.name}</span>
-                        <span className="mt-0.5 block text-[11px] capitalize text-zinc-500">
+                        <span className="mt-0.5 block text-[11px] capitalize text-faint">
                           {region.shape_type} - {region.mask_style}
                         </span>
                       </button>
@@ -1908,9 +1908,9 @@ function FogControlsPanel({
               </div>
 
               {selectedFog && (
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+                <div className="rounded-lg border border-border bg-panel p-3">
                   <div className="mb-3 flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-zinc-100">Fog area settings</p>
+                    <p className="text-sm font-semibold text-content">Fog area settings</p>
                     <button
                       type="button"
                       onClick={() => onRemoveFog(selectedFog.id)}
@@ -1925,7 +1925,7 @@ function FogControlsPanel({
                     className={`mb-3 w-full rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                       editBordersActive
                         ? 'border-sky-300/70 bg-sky-500/20 text-sky-100'
-                        : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-sky-300/60'
+                        : 'border-border-strong bg-panel text-muted hover:border-sky-300/60'
                     }`}
                   >
                     {editBordersActive ? 'Done editing borders' : 'Edit borders'}
@@ -1953,7 +1953,7 @@ function FogControlsPanel({
                       <option value="dim">Dim</option>
                       <option value="outline_only">Outline only</option>
                     </Select>
-                    <label className="flex items-center gap-2 text-xs text-zinc-300">
+                    <label className="flex items-center gap-2 text-xs text-muted">
                       <input
                         type="checkbox"
                         checked={selectedFog.is_revealed_by_default}
@@ -2021,10 +2021,10 @@ function WallsPanel({
       <button
         type="button"
         onClick={onToggle}
-        className={`flex h-14 w-14 items-center justify-center rounded-full border text-zinc-50 shadow-2xl backdrop-blur transition ${
+        className={`flex h-14 w-14 items-center justify-center rounded-full border text-content shadow-2xl backdrop-blur transition ${
           open
-            ? 'border-amber-300 bg-amber-500/25 shadow-amber-950/50'
-            : 'border-zinc-700 bg-zinc-950/90 hover:border-amber-300/70 hover:bg-zinc-900'
+            ? 'border-accent bg-accent/25 shadow-accent/50'
+            : 'border-border-strong bg-canvas/90 hover:border-accent/70 hover:bg-panel'
         }`}
         aria-label="Walls"
         title="Walls & Borders"
@@ -2038,17 +2038,17 @@ function WallsPanel({
 
       {open && (
         <div
-          className="flex max-h-[min(42rem,calc(100dvh-6rem))] w-[min(24rem,calc(100vw-6rem))] flex-col overflow-hidden rounded-xl border border-amber-300/30 bg-zinc-950/96 shadow-2xl shadow-amber-950/35 backdrop-blur"
+          className="flex max-h-[min(42rem,calc(100dvh-6rem))] w-[min(24rem,calc(100vw-6rem))] flex-col overflow-hidden rounded-xl border border-accent/30 bg-canvas/96 shadow-2xl shadow-accent/35 backdrop-blur"
           onPointerDown={(event) => event.stopPropagation()}
           onPointerMove={(event) => event.stopPropagation()}
           onPointerUp={(event) => event.stopPropagation()}
           onWheel={(event) => event.stopPropagation()}
           onTouchMove={(event) => event.stopPropagation()}
         >
-          <div className="border-b border-zinc-800 px-4 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-300">Movement</p>
-            <h2 className="mt-1 text-base font-semibold text-zinc-50">Walls &amp; Borders</h2>
-            <p className="mt-1 text-xs text-zinc-500">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-accent">Movement</p>
+            <h2 className="mt-1 text-base font-semibold text-content">Walls &amp; Borders</h2>
+            <p className="mt-1 text-xs text-faint">
               Draw impassable walls. Link doors to create openings players can pass through.
             </p>
           </div>
@@ -2061,8 +2061,8 @@ function WallsPanel({
                   onClick={onStartRectangle}
                   className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                     roomDrawTool === 'rectangle'
-                      ? 'border-amber-400 bg-amber-500/20 text-amber-200'
-                      : 'border-zinc-700 text-zinc-400 hover:border-amber-400/50 hover:text-amber-300'
+                      ? 'border-accent bg-accent/20 text-accent'
+                      : 'border-border-strong text-muted hover:border-accent/50 hover:text-accent'
                   }`}
                 >
                   {roomDrawTool === 'rectangle' ? 'Drawing rectangle…' : '▭ Rectangle'}
@@ -2072,8 +2072,8 @@ function WallsPanel({
                   onClick={onStartPolygon}
                   className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                     roomDrawTool === 'polygon'
-                      ? 'border-amber-400 bg-amber-500/20 text-amber-200'
-                      : 'border-zinc-700 text-zinc-400 hover:border-amber-400/50 hover:text-amber-300'
+                      ? 'border-accent bg-accent/20 text-accent'
+                      : 'border-border-strong text-muted hover:border-accent/50 hover:text-accent'
                   }`}
                 >
                   {roomDrawTool === 'polygon' ? `Polygon (${draftPointCount} pts)` : '⬡ Polygon'}
@@ -2081,9 +2081,9 @@ function WallsPanel({
               </div>
               {roomDrawTool === 'polygon' && draftPointCount >= 3 && (
                 <div className="flex gap-2">
-                  <button type="button" onClick={onFinishPolygon} className="flex-1 rounded-lg border border-amber-400 bg-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-200">Finish polygon</button>
-                  <button type="button" onClick={onUndoPolygonPoint} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-400">Undo point</button>
-                  <button type="button" onClick={onCancelDraw} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-400">Cancel</button>
+                  <button type="button" onClick={onFinishPolygon} className="flex-1 rounded-lg border border-accent bg-accent/20 px-3 py-2 text-xs font-semibold text-accent">Finish polygon</button>
+                  <button type="button" onClick={onUndoPolygonPoint} className="rounded-lg border border-border-strong px-3 py-2 text-xs text-muted">Undo point</button>
+                  <button type="button" onClick={onCancelDraw} className="rounded-lg border border-border-strong px-3 py-2 text-xs text-muted">Cancel</button>
                 </div>
               )}
 
@@ -2092,8 +2092,8 @@ function WallsPanel({
                 onClick={onToggleEditBorders}
                 className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                   editBordersActive
-                    ? 'border-amber-400 bg-amber-500/20 text-amber-200'
-                    : 'border-zinc-700 text-zinc-400 hover:border-amber-400/50 hover:text-amber-300'
+                    ? 'border-accent bg-accent/20 text-accent'
+                    : 'border-border-strong text-muted hover:border-accent/50 hover:text-accent'
                 }`}
               >
                 {editBordersActive ? 'Editing borders — drag handles to reshape' : 'Edit borders'}
@@ -2101,14 +2101,14 @@ function WallsPanel({
 
               {walls.length > 0 && (
                 <div className="grid gap-1.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Walls ({walls.length})</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-faint">Walls ({walls.length})</p>
                   {walls.map((wall) => (
                     <div
                       key={wall.id}
                       className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition cursor-pointer ${
                         selectedWall?.id === wall.id
-                          ? 'border-amber-400 bg-amber-500/15 text-amber-100'
-                          : 'border-zinc-800 text-zinc-300 hover:border-amber-400/40'
+                          ? 'border-accent bg-accent/15 text-accent'
+                          : 'border-border text-muted hover:border-accent/40'
                       }`}
                       onClick={() => onSelectWall(wall.id)}
                     >
@@ -2116,7 +2116,7 @@ function WallsPanel({
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onRemoveWall(wall.id) }}
-                        className="ml-2 text-zinc-600 hover:text-red-400"
+                        className="ml-2 text-faint hover:text-red-400"
                         aria-label="Remove wall"
                       >
                         ✕
@@ -2127,7 +2127,7 @@ function WallsPanel({
               )}
 
               {selectedWall && (
-                <div className="grid gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                <div className="grid gap-3 rounded-lg border border-accent/20 bg-accent/5 p-3">
                   <Input
                     label="Name"
                     value={selectedWall.name}
@@ -2143,19 +2143,19 @@ function WallsPanel({
                     <option value="thick">Thick</option>
                   </Select>
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Border colour</label>
+                    <label className="block text-xs font-semibold text-muted mb-1">Border colour</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
                         value={selectedWall.border_color ?? '#b45309'}
                         onChange={(e) => onUpdateWall(selectedWall.id, { border_color: e.target.value })}
-                        className="h-8 w-8 rounded border border-zinc-700 bg-transparent"
+                        className="h-8 w-8 rounded border border-border-strong bg-transparent"
                       />
                       {selectedWall.border_color && (
                         <button
                           type="button"
                           onClick={() => onUpdateWall(selectedWall.id, { border_color: null })}
-                          className="text-xs text-zinc-500 hover:text-zinc-300"
+                          className="text-xs text-faint hover:text-muted"
                         >
                           Reset
                         </button>
@@ -2164,31 +2164,31 @@ function WallsPanel({
                   </div>
 
                   <div>
-                    <p className="text-xs font-semibold text-amber-200 mb-1">Doors (passable gaps)</p>
+                    <p className="text-xs font-semibold text-accent mb-1">Doors (passable gaps)</p>
                     {(selectedWall.door_token_ids ?? []).length > 0 ? (
                       <div className="grid gap-1">
                         {(selectedWall.door_token_ids ?? []).map((doorId) => {
                           const door = doors.find((d) => d.id === doorId)
                           return (
-                            <div key={doorId} className="flex items-center justify-between rounded border border-amber-500/20 px-2 py-1 text-xs text-amber-100">
+                            <div key={doorId} className="flex items-center justify-between rounded border border-accent/20 px-2 py-1 text-xs text-accent">
                               <span>{door?.name || 'Door'}</span>
-                              <button type="button" onClick={() => onUnlinkDoor(selectedWall.id, doorId)} className="text-zinc-500 hover:text-red-400">✕</button>
+                              <button type="button" onClick={() => onUnlinkDoor(selectedWall.id, doorId)} className="text-faint hover:text-red-400">✕</button>
                             </div>
                           )
                         })}
                       </div>
                     ) : (
-                      <p className="text-xs text-zinc-600">No doors linked — this wall blocks all movement through it.</p>
+                      <p className="text-xs text-faint">No doors linked — this wall blocks all movement through it.</p>
                     )}
                     {unlinkedDoors.length > 0 && (
                       <div className="mt-2 grid gap-1">
-                        <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Available doors</p>
+                        <p className="text-[10px] text-faint uppercase tracking-wider">Available doors</p>
                         {unlinkedDoors.map((door) => (
                           <button
                             key={door.id}
                             type="button"
                             onClick={() => onLinkDoor(selectedWall.id, door.id)}
-                            className="flex items-center gap-1 rounded border border-zinc-800 px-2 py-1 text-xs text-zinc-400 hover:border-amber-400/40 hover:text-amber-300"
+                            className="flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-muted hover:border-accent/40 hover:text-accent"
                           >
                             <span>+</span> {door.name || 'Door'}
                           </button>
@@ -2200,7 +2200,7 @@ function WallsPanel({
               )}
 
               {walls.length === 0 && (
-                <p className="text-xs text-zinc-600 text-center py-4">
+                <p className="text-xs text-faint text-center py-4">
                   No walls yet. Draw a rectangle or polygon to add a wall region.
                 </p>
               )}

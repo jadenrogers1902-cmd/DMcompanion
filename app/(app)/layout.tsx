@@ -26,10 +26,10 @@ export default async function AppLayout({
     .single()
 
   return (
-    <div className="flex h-screen overflow-hidden bg-zinc-950">
+    <div className="flex h-screen overflow-hidden bg-canvas text-content">
       <Sidebar profile={profile} />
 
-      <main className="min-w-0 flex-1 overflow-y-auto pb-20 md:pb-0">
+      <main className="relative min-w-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_85%_0%,rgb(184_167_255/0.06),transparent_28rem)] pb-20 md:pb-0">
         {children}
       </main>
 

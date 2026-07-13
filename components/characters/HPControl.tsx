@@ -55,17 +55,17 @@ export function HPControl({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
-        <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+        <span className="text-xs font-semibold text-faint uppercase tracking-wider">
           Hit Points
         </span>
-        {saving && <span className="text-xs text-zinc-600">Saving…</span>}
+        {saving && <span className="text-xs text-faint">Saving…</span>}
       </div>
 
       <div className="flex items-baseline gap-1">
         <span className={`text-3xl font-bold ${hpColor(current, maxHp)}`}>
           {current}
         </span>
-        <span className="text-lg text-zinc-500">/ {maxHp}</span>
+        <span className="text-lg text-faint">/ {maxHp}</span>
         {temp > 0 && (
           <span className="ml-2 text-sm text-blue-400 font-medium">
             +{temp} temp
@@ -74,7 +74,7 @@ export function HPControl({
       </div>
 
       {/* HP bar */}
-      <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+      <div className="h-2 rounded-full bg-panel-raised overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${hpBarColor(current, maxHp)}`}
           style={{ width: `${pct}%` }}
@@ -96,7 +96,7 @@ export function HPControl({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0"
-              className="w-20 text-center rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+              className="w-20 text-center rounded-lg border border-border-strong bg-panel px-2 py-2 text-sm text-content outline-none focus:border-accent"
             />
             <button
               onClick={() => apply(1)}
@@ -108,7 +108,7 @@ export function HPControl({
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm text-zinc-400">Temp HP</label>
+            <label className="text-sm text-muted">Temp HP</label>
             <input
               type="number"
               defaultValue={temp}
@@ -117,7 +117,7 @@ export function HPControl({
                 const v = Math.max(0, parseInt(e.target.value || '0', 10))
                 if (v !== temp) saveTemp(v)
               }}
-              className="w-20 text-center rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 outline-none focus:border-amber-500"
+              className="w-20 text-center rounded-lg border border-border-strong bg-panel px-2 py-1.5 text-sm text-content outline-none focus:border-accent"
             />
           </div>
         </div>

@@ -29,10 +29,10 @@ function CharacterMiniCard({
 }) {
   return (
     <Link href={`/campaigns/${campaignId}/characters/${character.id}`}>
-      <Card className="h-full transition-colors hover:border-zinc-600" padding="sm">
+      <Card className="h-full transition-colors hover:border-border-strong" padding="sm">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-semibold text-zinc-100">{character.name}</p>
+            <p className="font-semibold text-content">{character.name}</p>
             <CardDescription className="mt-0.5">
               {[character.race, character.class && `${character.class} ${character.level}`]
                 .filter(Boolean)
@@ -43,12 +43,12 @@ function CharacterMiniCard({
             <span className={`font-bold ${hpColor(character.current_hp, character.max_hp)}`}>
               {character.current_hp}
             </span>
-            <span className="text-sm text-zinc-600">/{character.max_hp}</span>
-            <p className="text-xs text-zinc-600">AC {character.armor_class}</p>
+            <span className="text-sm text-faint">/{character.max_hp}</span>
+            <p className="text-xs text-faint">AC {character.armor_class}</p>
           </div>
         </div>
         {editable && (
-          <span className="mt-3 inline-block text-xs text-amber-400">Edit -&gt;</span>
+          <span className="mt-3 inline-block text-xs text-accent">Edit -&gt;</span>
         )}
       </Card>
     </Link>
@@ -92,7 +92,7 @@ export default async function CharactersPage({ params }: PageProps) {
   const backLink = (
     <Link
       href={`/campaigns/${id}`}
-      className="mb-4 flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300"
+      className="mb-4 flex items-center gap-1.5 text-sm text-faint hover:text-content"
     >
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -136,10 +136,10 @@ export default async function CharactersPage({ params }: PageProps) {
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-bold text-zinc-100">Party Dashboard</h1>
+                <h1 className="text-2xl font-bold text-content">Party Dashboard</h1>
                 <Badge variant="dm">DM</Badge>
               </div>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-1 text-sm text-faint">
                 Quick glance at every character in the campaign.
               </p>
             </div>
@@ -167,8 +167,8 @@ export default async function CharactersPage({ params }: PageProps) {
         {backLink}
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-100">Characters</h1>
-            <p className="mt-1 text-sm text-zinc-500">Manage your characters in this campaign.</p>
+            <h1 className="text-2xl font-bold text-content">Characters</h1>
+            <p className="mt-1 text-sm text-faint">Manage your characters in this campaign.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={`/campaigns/${id}/characters/templates`}>
@@ -198,7 +198,7 @@ export default async function CharactersPage({ params }: PageProps) {
         />
       ) : (
         <section className="mb-8">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-faint">
             Your Characters
           </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -211,7 +211,7 @@ export default async function CharactersPage({ params }: PageProps) {
 
       {partyChars.length > 0 && (
         <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-faint">
             Party
           </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

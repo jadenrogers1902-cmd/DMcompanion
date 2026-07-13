@@ -51,18 +51,18 @@ function Collapsible({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <section className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
+    <section className="overflow-hidden rounded-xl border border-border bg-panel/40">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className={`flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-semibold transition-colors hover:bg-zinc-800/50 ${
-          accent ? 'text-amber-300' : 'text-zinc-200'
+        className={`flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-semibold transition-colors hover:bg-panel-raised/50 ${
+          accent ? 'text-accent' : 'text-content'
         }`}
       >
         <span>{title}</span>
         <svg
-          className={`h-4 w-4 shrink-0 text-zinc-500 transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`h-4 w-4 shrink-0 text-faint transition-transform ${open ? 'rotate-90' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -71,7 +71,7 @@ function Collapsible({
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
         </svg>
       </button>
-      {open && <div className="flex flex-col gap-3 border-t border-zinc-800 p-3">{children}</div>}
+      {open && <div className="flex flex-col gap-3 border-t border-border p-3">{children}</div>}
     </section>
   )
 }
@@ -177,11 +177,11 @@ export function TokenDetailPanel({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+        className="flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-canvas shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         {/* Header (fixed) */}
-        <div className="shrink-0 border-b border-zinc-800 bg-zinc-950 p-4">
+        <div className="shrink-0 border-b border-border bg-canvas p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2.5">
               <span
@@ -195,14 +195,14 @@ export function TokenDetailPanel({
                 onChange={(event) => onChange({ name: event.target.value })}
                 placeholder={meta.label}
                 maxLength={80}
-                className="min-w-0 flex-1 border-none bg-transparent text-lg font-semibold text-zinc-100 outline-none placeholder:text-zinc-600"
+                className="min-w-0 flex-1 border-none bg-transparent text-lg font-semibold text-content outline-none placeholder:text-faint"
                 aria-label="Token name"
               />
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+              className="rounded-md p-1 text-faint hover:bg-panel-raised hover:text-content"
               aria-label="Close token panel"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -215,7 +215,7 @@ export function TokenDetailPanel({
             <Badge variant={token.reveal_state === 'visible' ? 'success' : 'default'}>
               {revealOption?.label ?? token.reveal_state}
             </Badge>
-            <span className="text-xs text-zinc-600">
+            <span className="text-xs text-faint">
               at {Math.round(token.x)}, {Math.round(token.y)}
             </span>
           </div>
@@ -262,12 +262,12 @@ export function TokenDetailPanel({
 
         {isTransport && (
           <Collapsible title="Destination Map" defaultOpen accent>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-faint">
               When players tap this transport, the party travels to this map (vote in party mode, or
               enter directly when alone). Revisiting a map keeps its revealed fog and token positions.
             </p>
             {destinationMaps.length === 0 ? (
-              <p className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-500">
+              <p className="rounded-lg border border-border bg-panel p-3 text-xs text-faint">
                 No other prepared maps exist yet. Create another map in this campaign to link it here.
               </p>
             ) : (
@@ -289,13 +289,13 @@ export function TokenDetailPanel({
               </Select>
             )}
             {!token.linked_prepared_map_id && destinationMaps.length > 0 && (
-              <p className="text-xs text-amber-400/80">
+              <p className="text-xs text-accent/80">
                 No destination set — players won&apos;t be able to travel through this token until you pick one.
               </p>
             )}
             {destinationMap && (
-              <p className="text-xs text-zinc-400">
-                Destination: <span className="text-zinc-200">{destinationMap.title}</span>
+              <p className="text-xs text-muted">
+                Destination: <span className="text-content">{destinationMap.title}</span>
               </p>
             )}
           </Collapsible>
@@ -328,7 +328,7 @@ export function TokenDetailPanel({
           </Select>
 
           {/* Behavior — only the controls relevant to this token kind. */}
-          <div className="grid gap-2 rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-300">
+          <div className="grid gap-2 rounded-lg border border-border bg-panel p-3 text-sm text-muted">
             {showCombatBlock && (
               <>
                 <label className="flex items-center justify-between gap-3">
@@ -345,7 +345,7 @@ export function TokenDetailPanel({
                           : false,
                       })
                     }
-                    className="h-4 w-4 accent-amber-500"
+                    className="h-4 w-4 accent-accent"
                   />
                 </label>
                 <label className="flex items-center justify-between gap-3">
@@ -355,7 +355,7 @@ export function TokenDetailPanel({
                     checked={token.can_move !== false}
                     disabled={token.is_dynamic === false}
                     onChange={(event) => onChange({ can_move: event.target.checked })}
-                    className="h-4 w-4 accent-amber-500 disabled:opacity-50"
+                    className="h-4 w-4 accent-accent disabled:opacity-50"
                   />
                 </label>
                 <label className="flex items-center justify-between gap-3">
@@ -365,7 +365,7 @@ export function TokenDetailPanel({
                     checked={Boolean(token.can_participate_in_combat)}
                     disabled={token.is_dynamic === false}
                     onChange={(event) => onChange({ can_participate_in_combat: event.target.checked })}
-                    className="h-4 w-4 accent-amber-500 disabled:opacity-50"
+                    className="h-4 w-4 accent-accent disabled:opacity-50"
                   />
                 </label>
               </>
@@ -376,11 +376,11 @@ export function TokenDetailPanel({
                 type="checkbox"
                 checked={Boolean(token.interactable)}
                 onChange={(event) => onChange({ interactable: event.target.checked })}
-                className="h-4 w-4 accent-amber-500"
+                className="h-4 w-4 accent-accent"
               />
             </label>
             {kind !== 'creature' && (
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-faint">
                 {kind === 'location'
                   ? 'Locations are fixed reference points — players cannot move them.'
                   : 'Static objects stay put; players cannot move them.'}
@@ -403,11 +403,11 @@ export function TokenDetailPanel({
         {!isTransport && (
         <Collapsible title={kind === 'location' ? 'Linked Location Entry' : 'Codex Entry Link'}>
           {linkedDoc ? (
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+            <div className="rounded-lg border border-border bg-panel p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-zinc-100">{linkedDoc.title}</p>
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="truncate text-sm font-semibold text-content">{linkedDoc.title}</p>
+                  <p className="mt-1 text-xs text-faint">
                     {campaignDocTypeLabel(linkedDoc.doc_type)} - Source: {linkedDoc.source === 'notion' ? 'Notion' : linkedDoc.source}
                   </p>
                 </div>
@@ -416,12 +416,12 @@ export function TokenDetailPanel({
                 </Badge>
               </div>
               {linkedDoc.player_summary && (
-                <p className="mt-2 whitespace-pre-wrap text-xs text-zinc-300">{linkedDoc.player_summary}</p>
+                <p className="mt-2 whitespace-pre-wrap text-xs text-muted">{linkedDoc.player_summary}</p>
               )}
               {linkedDoc.dm_notes && (
                 <details className="mt-2">
-                  <summary className="cursor-pointer text-xs text-amber-400">DM notes</summary>
-                  <p className="mt-1 whitespace-pre-wrap text-xs text-zinc-400">{linkedDoc.dm_notes}</p>
+                  <summary className="cursor-pointer text-xs text-accent">DM notes</summary>
+                  <p className="mt-1 whitespace-pre-wrap text-xs text-muted">{linkedDoc.dm_notes}</p>
                 </details>
               )}
               <div className="mt-3 flex flex-wrap gap-2">
@@ -442,8 +442,8 @@ export function TokenDetailPanel({
                   Detach link
                 </Button>
               </div>
-              <div className="mt-3 border-t border-zinc-800 pt-3">
-                <p className="mb-2 text-[11px] uppercase tracking-wide text-zinc-600">Reveal player-safe summary</p>
+              <div className="mt-3 border-t border-border pt-3">
+                <p className="mb-2 text-[11px] uppercase tracking-wide text-faint">Reveal player-safe summary</p>
                 <CodexRevealControls
                   players={players}
                   compact
@@ -461,14 +461,14 @@ export function TokenDetailPanel({
                 />
               </div>
               {linkedRows.length === 0 && (
-                <p className="mt-3 text-xs text-zinc-600">
+                <p className="mt-3 text-xs text-faint">
                   This prep token stores the Codex link; the live token link is created when the prepared map is sent to the Live Map.
                 </p>
               )}
             </div>
           ) : (
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-              <p className="text-xs text-zinc-500">
+            <div className="rounded-lg border border-border bg-panel p-3">
+              <p className="text-xs text-faint">
                 Link this token to a cached Codex entry. This never changes the Notion source.
               </p>
               <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -495,7 +495,7 @@ export function TokenDetailPanel({
 
         <Collapsible title="Description & Notes">
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Description</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-faint">Description</p>
             <Textarea
               aria-label="Description"
               rows={2}
@@ -506,7 +506,7 @@ export function TokenDetailPanel({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Player Notes</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-faint">Player Notes</p>
             <Textarea
               aria-label="Player notes"
               rows={2}
@@ -517,7 +517,7 @@ export function TokenDetailPanel({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-amber-500/80">{dmNotesLabel}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-accent/80">{dmNotesLabel}</p>
             <Textarea
               aria-label="DM notes"
               rows={3}
@@ -543,7 +543,7 @@ export function TokenDetailPanel({
               }
             />
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-zinc-300" htmlFor="token-color">
+              <label className="text-sm font-medium text-muted" htmlFor="token-color">
                 Color
               </label>
               <input
@@ -551,7 +551,7 @@ export function TokenDetailPanel({
                 type="color"
                 value={token.color}
                 onChange={(event) => onChange({ color: event.target.value })}
-                className="h-9 w-full cursor-pointer rounded-lg border border-zinc-700 bg-zinc-900"
+                className="h-9 w-full cursor-pointer rounded-lg border border-border-strong bg-panel"
               />
             </div>
           </div>
@@ -584,7 +584,7 @@ export function TokenDetailPanel({
 
         {related && (
           <Collapsible title="Related Records">
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-400">
+            <div className="rounded-lg border border-border bg-panel p-3 text-xs text-muted">
               <div className="truncate">Adventure: {related.adventureTitle || related.adventureId}</div>
               <div className="truncate">Chapter: {related.chapterTitle || related.chapterId}</div>
               <div className="truncate">
@@ -596,7 +596,7 @@ export function TokenDetailPanel({
         </div>
 
         {/* Footer (fixed) — Remove + Close always reachable */}
-        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-zinc-800 bg-zinc-950 p-3">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border bg-canvas p-3">
           <Button variant="danger" size="sm" onClick={onRemove}>
             Remove Token
           </Button>

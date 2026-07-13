@@ -1,5 +1,25 @@
 # Adventure Codex + Notion Bridge — Change Log
 
+## Option 3 - Moonlit Grimoire Theme Revamp (2026-07-12)
+
+### Added
+
+- Semantic Moonlit Grimoire colors, display typography, focus treatment, atmospheric surfaces, and role/status treatments for shared, DM, player, map, and Center Screen UI.
+- A read-only `npm.cmd run audit:theme` gate for legacy Zinc/Amber utilities.
+- `OPTION3_THEME_FEATURE_BASELINE.md` and `OPTION3_THEME_FINAL_QA.md` for feature parity and evidence tracking.
+- Public browser checks for registration, rendered theme tokens, and 375px auth-screen overflow.
+
+### Preserved
+
+- Existing routes, role gates, server actions, API contracts, Supabase schema/RLS, realtime behavior, and gameplay color semantics.
+- DM-private versus player-safe data separation across Story, Adventure Codex, actions, live maps, and Center Screen.
+
+### Verification Status
+
+- Theme audit, TypeScript, ESLint, and the Next.js production build pass. Exact results are recorded in the final theme QA report.
+- The configured Playwright dev-server run hung without producing a test result and was terminated, so public browser smoke is not claimed.
+- Authenticated DM/player, privacy, realtime, and full responsive verification remain blocked until disposable fixture credentials are available; they are not claimed from source inspection.
+
 Phase-by-phase change records for the Adventure Codex / Notion bridge work.
 Architecture invariant: **Notion is documentation, not the live engine.** Notion
 syncs into the app-owned Codex; live gameplay state (positions, HP, initiative,

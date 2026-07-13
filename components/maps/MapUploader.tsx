@@ -113,20 +113,20 @@ export function MapUploader({ campaignId }: MapUploaderProps) {
         />
 
         <div className="mt-5">
-          <label className="text-sm font-medium text-zinc-300 block mb-2">
+          <label className="text-sm font-medium text-muted block mb-2">
             Map image
           </label>
           <label
             htmlFor="map-file"
-            className="flex flex-col items-center justify-center gap-2 py-10 px-6 rounded-lg border-2 border-dashed border-zinc-700 hover:border-zinc-600 cursor-pointer transition-colors text-center"
+            className="flex flex-col items-center justify-center gap-2 py-10 px-6 rounded-lg border-2 border-dashed border-border-strong hover:border-border-strong cursor-pointer transition-colors text-center"
           >
-            <svg className="w-8 h-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg className="w-8 h-8 text-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
             </svg>
-            <span className="text-sm text-zinc-400">
+            <span className="text-sm text-muted">
               {file ? file.name : 'Click to choose an image'}
             </span>
-            <span className="text-xs text-zinc-600">PNG, JPG, WEBP, or GIF · up to 15 MB</span>
+            <span className="text-xs text-faint">PNG, JPG, WEBP, or GIF · up to 15 MB</span>
           </label>
           <input
             id="map-file"
@@ -142,7 +142,7 @@ export function MapUploader({ campaignId }: MapUploaderProps) {
           <img
             src={preview}
             alt="Map preview"
-            className="mt-4 max-h-64 w-full object-contain rounded-lg border border-zinc-800 bg-zinc-950"
+            className="mt-4 max-h-64 w-full object-contain rounded-lg border border-border bg-canvas"
           />
         )}
       </Card>

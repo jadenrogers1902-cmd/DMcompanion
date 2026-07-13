@@ -56,7 +56,7 @@ export function ChapterList({ campaignId, adventureId, chapters, sceneCounts = {
         return (
           <div
             key={chapter.id}
-            className="relative flex items-stretch gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4 pl-3 transition-colors hover:border-zinc-600"
+            className="relative flex items-stretch gap-3 rounded-xl border border-border bg-panel p-4 pl-3 transition-colors hover:border-border-strong"
           >
             {/* Reorder rail */}
             <div className="relative z-10 flex flex-col items-center justify-center gap-1">
@@ -64,19 +64,19 @@ export function ChapterList({ campaignId, adventureId, chapters, sceneCounts = {
                 type="button"
                 onClick={() => handleMove(chapter.id, 'up')}
                 disabled={index === 0 || movingId !== null}
-                className="rounded-md p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-30 disabled:hover:bg-transparent"
+                className="rounded-md p-1 text-faint transition hover:bg-panel-raised hover:text-content disabled:opacity-30 disabled:hover:bg-transparent"
                 aria-label={`Move "${chapter.title}" up`}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
                 </svg>
               </button>
-              <span className="text-[11px] font-semibold text-zinc-600">{index + 1}</span>
+              <span className="text-[11px] font-semibold text-faint">{index + 1}</span>
               <button
                 type="button"
                 onClick={() => handleMove(chapter.id, 'down')}
                 disabled={index === chapters.length - 1 || movingId !== null}
-                className="rounded-md p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-30 disabled:hover:bg-transparent"
+                className="rounded-md p-1 text-faint transition hover:bg-panel-raised hover:text-content disabled:opacity-30 disabled:hover:bg-transparent"
                 aria-label={`Move "${chapter.title}" down`}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -93,15 +93,15 @@ export function ChapterList({ campaignId, adventureId, chapters, sceneCounts = {
                 aria-label={`Open chapter "${chapter.title}"`}
               />
               <div className="flex items-start justify-between gap-2">
-                <h3 className="font-semibold text-zinc-100">{chapter.title}</h3>
+                <h3 className="font-semibold text-content">{chapter.title}</h3>
                 <Badge variant={adventureStatusBadgeVariant(chapter.status)}>
                   {adventureStatusLabel(chapter.status)}
                 </Badge>
               </div>
-              <p className="mt-1 line-clamp-2 text-sm text-zinc-500">
+              <p className="mt-1 line-clamp-2 text-sm text-faint">
                 {chapter.description || 'No description yet.'}
               </p>
-              <div className="mt-2.5 flex items-center gap-3 text-xs text-zinc-600">
+              <div className="mt-2.5 flex items-center gap-3 text-xs text-faint">
                 <span>
                   {sceneCount} {sceneCount === 1 ? 'map' : 'maps'}
                 </span>

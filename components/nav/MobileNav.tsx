@@ -98,7 +98,7 @@ export function MobileNav({ profile }: MobileNavProps) {
     : navItems
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-zinc-950/95 backdrop-blur border-t border-zinc-800 flex z-10 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed right-0 bottom-0 left-0 z-10 flex border-t border-border-strong bg-overlay/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-16px_40px_rgb(0_0_0/0.24)] backdrop-blur-xl md:hidden">
       {items.map((item) => {
         const isActive =
           pathname === item.href ||
@@ -106,13 +106,18 @@ export function MobileNav({ profile }: MobileNavProps) {
             item.href !== `/campaigns/${campaignId}` &&
             pathname.startsWith(item.href))
         const itemLive = (item as { live?: boolean }).live === true
-        const colorClass = itemLive ? 'text-red-400' : isActive ? 'text-amber-400' : 'text-zinc-500'
+        const colorClass = itemLive
+          ? 'text-live'
+          : isActive
+            ? 'text-accent'
+            : 'text-faint hover:text-muted'
         return (
           <Link
             key={item.href}
             href={item.href}
             className={`
-              flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors min-w-0
+              min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors
+              ${isActive ? 'bg-accent/6' : 'hover:bg-hover/45'}
               ${colorClass}
             `.trim()}
           >

@@ -45,14 +45,14 @@ export function ConditionManager({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+        <span className="text-xs font-semibold text-faint uppercase tracking-wider">
           Conditions
         </span>
         {canEdit && (
           <button
             type="button"
             onClick={() => setShowPicker((v) => !v)}
-            className="text-xs text-amber-400 hover:text-amber-300"
+            className="text-xs text-accent hover:text-accent-hover"
           >
             {showPicker ? 'Close' : '+ Add'}
           </button>
@@ -60,7 +60,7 @@ export function ConditionManager({
       </div>
 
       {conditions.length === 0 ? (
-        <p className="text-sm text-zinc-600">None</p>
+        <p className="text-sm text-faint">None</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {conditions.map((c) => (
@@ -86,7 +86,7 @@ export function ConditionManager({
       )}
 
       {canEdit && showPicker && (
-        <div className="flex flex-col gap-3 p-3 rounded-lg bg-zinc-950 border border-zinc-800">
+        <div className="flex flex-col gap-3 p-3 rounded-lg bg-shell border border-border">
           <div className="flex flex-wrap gap-2">
             {STANDARD_CONDITIONS.map((name) => {
               const isActive = activeNames.has(name.toLowerCase())
@@ -98,8 +98,8 @@ export function ConditionManager({
                   onClick={() => add(name)}
                   className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
                     isActive
-                      ? 'bg-zinc-800 text-zinc-600 border-zinc-800 cursor-not-allowed'
-                      : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-orange-500/50 hover:text-orange-300'
+                      ? 'bg-panel-raised text-faint border-border cursor-not-allowed'
+                      : 'bg-panel text-muted border-border-strong hover:border-orange-500/50 hover:text-orange-300'
                   }`}
                 >
                   {name}
@@ -119,13 +119,13 @@ export function ConditionManager({
                 }
               }}
               placeholder="Custom condition…"
-              className="flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 outline-none focus:border-amber-500"
+              className="flex-1 rounded-lg border border-border-strong bg-panel px-3 py-1.5 text-sm text-content outline-none focus:border-accent"
             />
             <button
               type="button"
               onClick={() => add(custom)}
               disabled={adding || !custom.trim()}
-              className="px-3 py-1.5 rounded-lg bg-amber-500 text-zinc-950 text-sm font-semibold hover:bg-amber-400 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent-hover disabled:opacity-50"
             >
               Add
             </button>

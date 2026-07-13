@@ -35,7 +35,7 @@ function PendingUpdateMiniCard({ campaignId, update, onChanged }: { campaignId: 
 
   if (update.status !== 'pending_dm_review') {
     return (
-      <div className="mt-2 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-2 text-xs text-zinc-400">
+      <div className="mt-2 rounded-md border border-border bg-panel px-2.5 py-2 text-xs text-muted">
         Map update {update.status === 'applied' ? 'applied' : 'rejected'}: {update.summary}
       </div>
     )
@@ -43,17 +43,17 @@ function PendingUpdateMiniCard({ campaignId, update, onChanged }: { campaignId: 
 
   if (update.update_type === 'damage_token' || update.update_type === 'heal_token') {
     return (
-      <div className="mt-2 rounded-md border border-amber-800/60 bg-amber-950/20 px-2.5 py-2 text-xs text-amber-100">
-        <p className="font-medium text-amber-200">Pending HP Update</p>
+      <div className="mt-2 rounded-md border border-accent/60 bg-accent/20 px-2.5 py-2 text-xs text-accent">
+        <p className="font-medium text-accent">Pending HP Update</p>
         <p className="mt-1">{update.summary}</p>
-        <p className="mt-1.5 text-[10px] text-amber-200/70">Open the action and approve the result to apply HP.</p>
+        <p className="mt-1.5 text-[10px] text-accent/70">Open the action and approve the result to apply HP.</p>
       </div>
     )
   }
 
   return (
-    <div className="mt-2 rounded-md border border-amber-800/60 bg-amber-950/20 px-2.5 py-2 text-xs text-amber-100">
-      <p className="font-medium text-amber-200">Suggested Update</p>
+    <div className="mt-2 rounded-md border border-accent/60 bg-accent/20 px-2.5 py-2 text-xs text-accent">
+      <p className="font-medium text-accent">Suggested Update</p>
       <p className="mt-1">{update.summary}</p>
       <div className="mt-2 grid grid-cols-2 gap-2">
         <button
@@ -65,7 +65,7 @@ function PendingUpdateMiniCard({ campaignId, update, onChanged }: { campaignId: 
             setBusy(null)
             onChanged()
           }}
-          className="rounded-md bg-amber-500 px-2 py-1 text-[11px] font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-60"
+          className="rounded-md bg-accent px-2 py-1 text-[11px] font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-60"
         >
           {busy === 'apply' ? 'Applying…' : 'Apply Update'}
         </button>
@@ -78,12 +78,12 @@ function PendingUpdateMiniCard({ campaignId, update, onChanged }: { campaignId: 
             setBusy(null)
             onChanged()
           }}
-          className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] font-semibold text-zinc-200 transition hover:border-red-500/60 hover:text-red-300 disabled:opacity-60"
+          className="rounded-md border border-border-strong bg-panel px-2 py-1 text-[11px] font-semibold text-content transition hover:border-red-500/60 hover:text-red-300 disabled:opacity-60"
         >
           {busy === 'reject' ? 'Rejecting…' : 'Reject Update'}
         </button>
       </div>
-      <p className="mt-1.5 text-[10px] text-amber-200/70">Open the full Action Queue to edit values before applying.</p>
+      <p className="mt-1.5 text-[10px] text-accent/70">Open the full Action Queue to edit values before applying.</p>
     </div>
   )
 }
@@ -419,30 +419,30 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
   return (
     <aside
       ref={widgetRef}
-      className="fixed inset-x-3 bottom-24 z-40 mx-auto max-w-sm rounded-xl border border-amber-500/30 bg-zinc-950 p-3 shadow-2xl shadow-black/40 animate-in fade-in slide-in-from-bottom-2 md:inset-x-auto md:bottom-5 md:left-[16.5rem] md:mx-0 md:w-80"
+      className="fixed inset-x-3 bottom-24 z-40 mx-auto max-w-sm rounded-xl border border-accent/30 bg-canvas p-3 shadow-2xl shadow-black/40 animate-in fade-in slide-in-from-bottom-2 md:inset-x-auto md:bottom-5 md:left-[16.5rem] md:mx-0 md:w-80"
       aria-live="polite"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.85)]" />
-            <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">
+            <span className="h-2 w-2 rounded-full bg-accent-hover shadow-[0_0_12px_rgba(251,191,36,0.85)]" />
+            <p className="text-xs font-semibold uppercase tracking-wider text-accent">
               New Player Action
             </p>
             {pendingCount > 1 && (
-              <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-200">
+              <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-accent">
                 {pendingCount}
               </span>
             )}
           </div>
-          <p className="mt-2 text-sm font-medium leading-snug text-zinc-100">
+          <p className="mt-2 text-sm font-medium leading-snug text-content">
             {latest.summary}
           </p>
         </div>
         <button
           type="button"
           onClick={dismiss}
-          className="rounded-md px-1.5 py-1 text-xs text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200"
+          className="rounded-md px-1.5 py-1 text-xs text-faint transition hover:bg-panel hover:text-content"
           aria-label="Dismiss latest action notification"
         >
           Close
@@ -450,7 +450,7 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
       </div>
 
       {latest.message && (
-        <p className="mt-2 line-clamp-2 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-2 text-xs text-zinc-300">
+        <p className="mt-2 line-clamp-2 rounded-md border border-border bg-panel px-2.5 py-2 text-xs text-muted">
           {latest.message}
         </p>
       )}
@@ -481,7 +481,7 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
         <PendingUpdateMiniCard campaignId={campaignId} update={latest.pendingUpdate} onChanged={() => void loadLatest()} />
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-faint">
         {latest.playerName && <span>{latest.playerName}</span>}
         {latest.locationName && <span>Location: {latest.locationName}</span>}
         <span>{statusLabel(latest.status)}</span>
@@ -493,13 +493,13 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
         <button
           type="button"
           onClick={() => setDmActionsOpen((open) => !open)}
-          className="inline-flex items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm font-semibold text-zinc-100 transition hover:border-amber-500/60 hover:text-amber-200"
+          className="inline-flex items-center justify-center rounded-md border border-border-strong bg-panel px-3 py-1.5 text-sm font-semibold text-content transition hover:border-accent/60 hover:text-accent"
         >
           DM Actions
         </button>
         <Link
           href={`/campaigns/${campaignId}/actions`}
-          className="inline-flex items-center justify-center rounded-md bg-amber-500 px-3 py-1.5 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+          className="inline-flex items-center justify-center rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-on-accent transition hover:bg-accent-hover"
         >
           View Action Queue
         </Link>
@@ -520,18 +520,18 @@ export function ActionQueueNotificationWidget({ userId }: { userId: string }) {
       </div>
 
       {dmActionsOpen && (
-        <div className="absolute inset-x-0 bottom-[calc(100%+0.5rem)] rounded-xl border border-zinc-700 bg-zinc-950 p-3 shadow-2xl shadow-black/50 animate-in fade-in slide-in-from-bottom-1 md:left-0 md:right-auto md:w-[22rem]">
+        <div className="absolute inset-x-0 bottom-[calc(100%+0.5rem)] rounded-xl border border-border-strong bg-canvas p-3 shadow-2xl shadow-black/50 animate-in fade-in slide-in-from-bottom-1 md:left-0 md:right-auto md:w-[22rem]">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-zinc-100">DM Actions</h2>
-              <p className="mt-0.5 text-xs text-zinc-500">
+              <h2 className="text-sm font-semibold text-content">DM Actions</h2>
+              <p className="mt-0.5 text-xs text-faint">
                 {latest.actionType} / {statusLabel(latest.status)}
               </p>
             </div>
             <button
               type="button"
               onClick={() => setDmActionsOpen(false)}
-              className="rounded-md px-1.5 py-1 text-xs text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200"
+              className="rounded-md px-1.5 py-1 text-xs text-faint transition hover:bg-panel hover:text-content"
             >
               Close
             </button>

@@ -204,7 +204,7 @@ const TOKEN_CLASS_DEFINITIONS: TokenClassDefinition[] = [
     label: 'Items',
     description: 'Lootable map rewards, containers, and keys players can discover.',
     tokenTypes: ['loot', 'chest', 'key', 'container'],
-    accent: 'border-amber-500/35 bg-amber-500/10 text-amber-100',
+    accent: 'border-accent/35 bg-accent/10 text-accent',
     settings: {
       visible_to_players: false,
       discoverable: true,
@@ -1116,7 +1116,7 @@ export function MapEditor({
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-xl font-bold text-zinc-100">{map.name}</h1>
+          <h1 className="text-xl font-bold text-content">{map.name}</h1>
           {isActive ? (
             <Badge variant="success">Active</Badge>
           ) : (
@@ -1412,10 +1412,10 @@ export function MapEditor({
         </div>
 
         {/* Side panel */}
-        <div className={`${toolsOpen ? 'flex' : 'hidden'} min-h-0 flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950`}>
-          <div className="shrink-0 border-b border-zinc-800 p-3">
+        <div className={`${toolsOpen ? 'flex' : 'hidden'} min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-canvas`}>
+          <div className="shrink-0 border-b border-border p-3">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-zinc-100">Map Tools</h2>
+              <h2 className="text-sm font-semibold text-content">Map Tools</h2>
               <Badge variant="default">DM</Badge>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
@@ -1454,19 +1454,19 @@ export function MapEditor({
                   onVisibilityChange={setTokenVisibilityFilter}
                 />
                 <Card tone="panel" rounded="lg" padding="xs">
-                  <h3 className="text-sm font-semibold text-zinc-200">Token Editing</h3>
-                  <p className="mt-2 text-xs text-zinc-500">
+                  <h3 className="text-sm font-semibold text-content">Token Editing</h3>
+                  <p className="mt-2 text-xs text-faint">
                     Use the floating + on the map to add tokens. Select any token for quick actions
                     and a tabbed editor.
                   </p>
             {selected ? (
-                  <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                  <div className="mt-3 rounded-lg border border-border bg-canvas p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-zinc-100">
+                        <p className="truncate text-sm font-medium text-content">
                           {selected.name || 'Unnamed token'}
                         </p>
-                        <p className="text-xs capitalize text-zinc-500">{selected.token_type}</p>
+                        <p className="text-xs capitalize text-faint">{selected.token_type}</p>
                       </div>
                       <Button size="sm" variant="secondary" onClick={() => openTokenEditor('basic')}>
                         Edit
@@ -1474,14 +1474,14 @@ export function MapEditor({
                     </div>
                   </div>
             ) : (
-                  <p className="mt-3 text-xs text-zinc-600">
+                  <p className="mt-3 text-xs text-faint">
                     Nothing selected. Click a token to manage it, or click the + bubble.
                   </p>
             )}
                 </Card>
                 <Card tone="panel" rounded="lg" padding="xs">
-                  <h3 className="text-sm font-semibold text-zinc-200">Movement</h3>
-                  <p className="mt-2 text-xs text-zinc-500">
+                  <h3 className="text-sm font-semibold text-content">Movement</h3>
+                  <p className="mt-2 text-xs text-faint">
                     Use selected-token quick controls to lock, reset movement, or reset position.
                   </p>
                   {selected && (
@@ -1518,13 +1518,13 @@ export function MapEditor({
           {/* Revealed areas (fog layer) */}
           {mapToolTab === 'reveal' && (
           <Card tone="panel" rounded="lg" padding="xs" className="flex flex-col gap-3">
-            <h3 className="text-sm font-semibold text-zinc-200">Visibility</h3>
-            <p className="text-xs text-zinc-500">
+            <h3 className="text-sm font-semibold text-content">Visibility</h3>
+            <p className="text-xs text-faint">
               Control the map-level reveal override, painted reveals, and room masks. Temporary
               reveal/hide does not delete painted areas.
             </p>
             {revealOverride !== 'normal' && (
-              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+              <div className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-xs text-accent">
                 {revealOverride === 'reveal_all'
                   ? 'Reveal-all is active. Painted reveals and room masks are preserved.'
                   : 'Hide-all is active. Painted reveals and room masks are preserved.'}
@@ -1560,7 +1560,7 @@ export function MapEditor({
               </Button>
             </div>
             {drawTool && (
-              <p className="text-[11px] text-amber-400/80">
+              <p className="text-[11px] text-accent/80">
                 Drag on the map to draw the {drawTool}. Click the button again to cancel.
               </p>
             )}
@@ -1569,12 +1569,12 @@ export function MapEditor({
                 {areas.map((a) => (
                   <li
                     key={a.id}
-                    className="flex items-center justify-between gap-2 text-xs bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5"
+                    className="flex items-center justify-between gap-2 text-xs bg-canvas border border-border rounded-lg px-2.5 py-1.5"
                   >
-                    <span className="text-zinc-400 capitalize">
+                    <span className="text-muted capitalize">
                       {a.shape_type}
                       {a.shape_type !== 'full' && (
-                        <span className="text-zinc-600">
+                        <span className="text-faint">
                           {' '}@ {Math.round(a.x)},{Math.round(a.y)}
                         </span>
                       )}
@@ -1583,7 +1583,7 @@ export function MapEditor({
                       <button
                         type="button"
                         onClick={() => handleToggleArea(a)}
-                        className={a.visible_to_players ? 'text-emerald-400 hover:text-emerald-300' : 'text-zinc-500 hover:text-zinc-300'}
+                        className={a.visible_to_players ? 'text-emerald-400 hover:text-emerald-300' : 'text-faint hover:text-muted'}
                       >
                         {a.visible_to_players ? 'Revealed' : 'Hidden'}
                       </button>
@@ -1612,7 +1612,7 @@ export function MapEditor({
                 </span>
               </div>
               {rooms.length === 0 ? (
-                <p className="mt-3 text-xs text-zinc-500">
+                <p className="mt-3 text-xs text-faint">
                   No room masks on this live map.
                 </p>
               ) : (
@@ -1620,19 +1620,19 @@ export function MapEditor({
                   {rooms.map((room) => (
                     <li
                       key={room.id}
-                      className="rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-xs"
+                      className="rounded-lg border border-border bg-canvas px-2.5 py-2 text-xs"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-zinc-200">{room.name}</p>
-                          <p className="mt-0.5 capitalize text-zinc-500">
+                          <p className="truncate font-semibold text-content">{room.name}</p>
+                          <p className="mt-0.5 capitalize text-faint">
                             {room.shape_type} - {room.reveal_mode.replace('_', ' ')} - {room.border_style.replace('_', ' ')}
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleToggleRoom(room)}
-                          className={room.is_revealed ? 'shrink-0 text-emerald-400 hover:text-emerald-300' : 'shrink-0 text-amber-300 hover:text-amber-200'}
+                          className={room.is_revealed ? 'shrink-0 text-emerald-400 hover:text-emerald-300' : 'shrink-0 text-accent hover:text-accent'}
                         >
                           {room.is_revealed ? 'Revealed' : 'Reveal'}
                         </button>
@@ -1641,7 +1641,7 @@ export function MapEditor({
                         <button
                           type="button"
                           onClick={() => handleToggleRoomPlayerLabel(room)}
-                          className={room.player_label_visible ? 'text-sky-300 hover:text-sky-200' : 'text-zinc-500 hover:text-zinc-300'}
+                          className={room.player_label_visible ? 'text-sky-300 hover:text-sky-200' : 'text-faint hover:text-muted'}
                         >
                           {room.player_label_visible ? 'Label on' : 'Label off'}
                         </button>
@@ -1665,8 +1665,8 @@ export function MapEditor({
           {mapToolTab === 'grid' && (
           <Card tone="panel" rounded="lg" padding="xs" className="flex flex-col gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-zinc-200">Grid</h3>
-              <p className="mt-1 text-xs text-zinc-500">
+              <h3 className="text-sm font-semibold text-content">Grid</h3>
+              <p className="mt-1 text-xs text-faint">
                 Tune the map grid and DM reveal-light brightness. These grid settings are shared by the DM and player views.
               </p>
             </div>
@@ -1706,12 +1706,12 @@ export function MapEditor({
               />
             </div>
             <label className="grid gap-1.5 text-sm">
-              <span className="font-medium text-zinc-300">Grid color</span>
+              <span className="font-medium text-muted">Grid color</span>
               <input
                 type="color"
                 value={gridColor}
                 onChange={(event) => setGridColor(event.target.value)}
-                className="h-10 w-full rounded-md border border-zinc-700 bg-zinc-950 p-1"
+                className="h-10 w-full rounded-md border border-border-strong bg-canvas p-1"
               />
             </label>
             <SliderSetting
@@ -1750,7 +1750,7 @@ export function MapEditor({
               display={`${Math.round(dmLightBrightness * 100)}%`}
               onChange={setDmLightBrightness}
             />
-            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-500">
+            <div className="rounded-lg border border-border bg-canvas p-3 text-xs text-faint">
               1 square = {gridScale} ft. Grid brightness defaults brighter now at 34% for both DM and players.
             </div>
             {gridSaveError && (
@@ -1791,7 +1791,7 @@ function ToolbarMenu({
         {label}
       </Button>
       {open && (
-        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-zinc-700 bg-zinc-950 shadow-2xl shadow-black/40">
+        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-border-strong bg-canvas shadow-2xl shadow-black/40">
           <div className="grid gap-1 p-2">{children}</div>
         </div>
       )}
@@ -1814,14 +1814,14 @@ function ToolbarMenuItemText({
     <span
       className={`block rounded-md border px-3 py-2 text-left transition ${
         disabled
-          ? 'border-transparent text-zinc-600'
+          ? 'border-transparent text-faint'
           : active
-          ? 'border-amber-400/50 bg-amber-500/15 text-amber-100'
-          : 'border-transparent text-zinc-200 hover:border-zinc-700 hover:bg-zinc-900'
+          ? 'border-accent/50 bg-accent/15 text-accent'
+          : 'border-transparent text-content hover:border-border-strong hover:bg-panel'
       }`}
     >
       <span className="block text-sm font-semibold">{title}</span>
-      <span className="mt-0.5 block text-xs text-zinc-500">{description}</span>
+      <span className="mt-0.5 block text-xs text-faint">{description}</span>
     </span>
   )
 }
@@ -1886,32 +1886,32 @@ function LiveMapHealthPanel({
     issueCount === 0
       ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
       : issueCount <= 2
-        ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+        ? 'border-accent/40 bg-accent/10 text-accent'
         : 'border-red-500/40 bg-red-500/10 text-red-200'
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-950 shadow-xl shadow-black/20">
+    <div className="rounded-xl border border-border bg-canvas shadow-xl shadow-black/20">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full flex-wrap items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-zinc-900/70"
+        className="flex w-full flex-wrap items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-panel/70"
       >
         <div>
-          <p className="text-sm font-semibold text-zinc-100">Diagnostics</p>
-          <p className="text-xs text-zinc-500">Live map health, realtime, session, cast, and migration status.</p>
+          <p className="text-sm font-semibold text-content">Diagnostics</p>
+          <p className="text-xs text-faint">Live map health, realtime, session, cast, and migration status.</p>
         </div>
         <div className="flex items-center gap-2">
           <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${statusTone}`}>
             {issueCount === 0 ? 'Healthy' : `${issueCount} check${issueCount === 1 ? '' : 's'}`}
           </span>
-          <span className="text-xs text-zinc-500">{open ? 'Hide' : 'Show'}</span>
+          <span className="text-xs text-faint">{open ? 'Hide' : 'Show'}</span>
         </div>
       </button>
       {open && (
-        <div className="grid gap-2 border-t border-zinc-800 p-3 lg:grid-cols-[1fr_1fr]">
+        <div className="grid gap-2 border-t border-border p-3 lg:grid-cols-[1fr_1fr]">
           <div>
             <div className="mb-2 flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-zinc-100">Live map health</h2>
+              <h2 className="text-sm font-semibold text-content">Live map health</h2>
               <CardEyebrow>Session diagnostics</CardEyebrow>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -1936,14 +1936,14 @@ function LiveMapHealthPanel({
           <Card tone="panel" rounded="lg" padding="xs">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Migration/status diagnostics</p>
-                <p className="mt-1 break-all text-xs text-zinc-300">Latest local: {latestMigration}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-faint">Migration/status diagnostics</p>
+                <p className="mt-1 break-all text-xs text-muted">Latest local: {latestMigration}</p>
               </div>
-              <span className="rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-200">
+              <span className="rounded-full border border-accent/35 bg-accent/10 px-2 py-1 text-[11px] font-semibold text-accent">
                 Remote unverified
               </span>
             </div>
-            <p className="mt-2 text-xs text-zinc-500">{unappliedMigrationHint}</p>
+            <p className="mt-2 text-xs text-faint">{unappliedMigrationHint}</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <HealthItem
                 label="Codex realtime"
@@ -1968,9 +1968,9 @@ function HealthItem({ label, value, ok }: { label: string; value: string; ok: bo
     <Card tone="panel" rounded="lg" padding="xs" className="flex items-center justify-between gap-3">
       <div className="min-w-0">
         <CardEyebrow className="truncate">{label}</CardEyebrow>
-        <p className="mt-0.5 truncate text-xs text-zinc-200">{value}</p>
+        <p className="mt-0.5 truncate text-xs text-content">{value}</p>
       </div>
-      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${ok ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]' : 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.6)]'}`} />
+      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${ok ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]' : 'bg-accent-hover shadow-[0_0_10px_rgba(251,191,36,0.6)]'}`} />
     </Card>
   )
 }
@@ -1997,20 +1997,20 @@ function TokenFilterPanel({
   return (
     <Card tone="panel" rounded="lg" padding="xs">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-zinc-200">Token search</h3>
-        <span className="text-xs text-zinc-500">{shown}/{total} shown</span>
+        <h3 className="text-sm font-semibold text-content">Token search</h3>
+        <span className="text-xs text-faint">{shown}/{total} shown</span>
       </div>
       <input
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
         placeholder="Search name, type, notes..."
-        className="mt-3 min-h-10 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-amber-400"
+        className="mt-3 min-h-10 w-full rounded-md border border-border-strong bg-canvas px-3 text-sm text-content outline-none transition placeholder:text-faint focus:border-accent"
       />
       <div className="mt-2 grid grid-cols-2 gap-2">
         <select
           value={typeFilter}
           onChange={(event) => onTypeChange(event.target.value as 'all' | TokenType)}
-          className="min-h-10 rounded-md border border-zinc-700 bg-zinc-950 px-2 text-sm text-zinc-100 outline-none focus:border-amber-400"
+          className="min-h-10 rounded-md border border-border-strong bg-canvas px-2 text-sm text-content outline-none focus:border-accent"
         >
           <option value="all">All types</option>
           {TOKEN_TYPES.map((type) => (
@@ -2020,7 +2020,7 @@ function TokenFilterPanel({
         <select
           value={visibilityFilter}
           onChange={(event) => onVisibilityChange(event.target.value as TokenVisibilityFilter)}
-          className="min-h-10 rounded-md border border-zinc-700 bg-zinc-950 px-2 text-sm text-zinc-100 outline-none focus:border-amber-400"
+          className="min-h-10 rounded-md border border-border-strong bg-canvas px-2 text-sm text-content outline-none focus:border-accent"
         >
           <option value="all">All visibility</option>
           <option value="visible">Visible to players</option>
@@ -2037,7 +2037,7 @@ function TokenFilterPanel({
             onTypeChange('all')
             onVisibilityChange('all')
           }}
-          className="mt-2 text-xs font-semibold text-amber-300 hover:text-amber-200"
+          className="mt-2 text-xs font-semibold text-accent hover:text-accent"
         >
           Clear filters
         </button>
@@ -2060,13 +2060,13 @@ function TokenAddBubble({
   return (
     <div className="absolute bottom-4 left-4 z-20">
       {open && (
-        <div className="mb-3 max-h-[calc(100%-1.5rem)] w-[min(21rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950 p-3 shadow-2xl">
+        <div className="mb-3 max-h-[calc(100%-1.5rem)] w-[min(21rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-border-strong bg-canvas p-3 shadow-2xl">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-zinc-100">Add token</p>
+            <p className="text-sm font-semibold text-content">Add token</p>
             <button
               type="button"
               onClick={onToggle}
-              className="text-xs text-zinc-500 hover:text-zinc-200"
+              className="text-xs text-faint hover:text-content"
             >
               Close
             </button>
@@ -2078,13 +2078,13 @@ function TokenAddBubble({
                 type="button"
                 disabled={busy}
                 onClick={() => onAdd(type.value)}
-                className="flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-2 text-center transition hover:border-amber-500/70 disabled:opacity-50"
+                className="flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-panel px-2 py-2 text-center transition hover:border-accent/70 disabled:opacity-50"
               >
                 <span
                   className="h-6 w-6 rounded-full border border-black/40"
                   style={{ backgroundColor: type.color }}
                 />
-                <span className="text-xs text-zinc-300">{type.label}</span>
+                <span className="text-xs text-muted">{type.label}</span>
               </button>
             ))}
           </div>
@@ -2094,7 +2094,7 @@ function TokenAddBubble({
         type="button"
         onClick={onToggle}
         aria-label="Add token or object"
-        className="flex h-14 w-14 items-center justify-center rounded-full border border-amber-300/60 bg-amber-500 text-3xl font-semibold leading-none text-zinc-950 shadow-2xl transition hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-zinc-950"
+        className="flex h-14 w-14 items-center justify-center rounded-full border border-accent/60 bg-accent text-3xl font-semibold leading-none text-on-accent shadow-2xl transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-canvas"
       >
         +
       </button>
@@ -2132,15 +2132,15 @@ function TokenContextMenu({
   const isPortal = token.token_type === 'portal' && Boolean(token.destination_prepared_map_id)
   return (
     <div
-      className="absolute z-30 max-h-[calc(100%-1.5rem)] w-72 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950 p-3 shadow-2xl"
+      className="absolute z-30 max-h-[calc(100%-1.5rem)] w-72 overflow-y-auto rounded-lg border border-border-strong bg-canvas p-3 shadow-2xl"
       style={position}
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-zinc-100">
+          <p className="truncate text-sm font-semibold text-content">
             {token.name || 'Unnamed token'}
           </p>
-          <p className="text-xs capitalize text-zinc-500">
+          <p className="text-xs capitalize text-faint">
             {token.token_type}
             {!token.visible_to_players && ' · hidden'}
             {token.is_defeated && ' · defeated'}
@@ -2161,9 +2161,9 @@ function TokenContextMenu({
         <ContextButton onClick={() => onOpenTab('advanced')}>Advanced</ContextButton>
       </div>
 
-      <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900/80 p-2">
-        <p className="text-xs text-zinc-500">
-          Movement used: <span className="text-zinc-200">{Math.round(token.movement_used)} ft</span>
+      <div className="mt-3 rounded-lg border border-border bg-panel/80 p-2">
+        <p className="text-xs text-faint">
+          Movement used: <span className="text-content">{Math.round(token.movement_used)} ft</span>
           {selectedSpeed !== undefined && <> of {selectedSpeed} ft</>}
         </p>
         <div className="mt-2 grid grid-cols-2 gap-2">
@@ -2192,7 +2192,7 @@ function TokenContextMenu({
             type="button"
             disabled={portalBusy}
             onClick={onGoToLocation}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-zinc-500 hover:text-zinc-100 disabled:opacity-50"
+            className="w-full rounded-md border border-border-strong bg-panel px-3 py-2 text-xs font-semibold text-content transition hover:border-border-strong hover:text-content disabled:opacity-50"
           >
             Go to {token.name || 'location'}
           </button>
@@ -2217,7 +2217,7 @@ function ContextButton({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-2 text-xs font-medium text-zinc-200 transition hover:border-amber-500/70 hover:text-amber-200"
+      className="rounded-md border border-border bg-panel px-2 py-2 text-xs font-medium text-content transition hover:border-accent/70 hover:text-accent"
     >
       {children}
     </button>
@@ -2239,8 +2239,8 @@ function ToolTabButton({
       onClick={onClick}
       className={`rounded-md px-2 py-2 text-xs font-medium transition ${
         active
-          ? 'bg-amber-500 text-zinc-950'
-          : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'
+          ? 'bg-accent text-on-accent'
+          : 'bg-panel text-muted hover:bg-panel-raised hover:text-content'
       }`}
     >
       {children}
@@ -2266,10 +2266,10 @@ function SliderSetting({
   onChange: (value: number) => void
 }) {
   return (
-    <label className="grid gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm">
+    <label className="grid gap-2 rounded-lg border border-border bg-canvas p-3 text-sm">
       <span className="flex items-center justify-between gap-3">
-        <span className="font-medium text-zinc-300">{label}</span>
-        <span className="text-xs text-zinc-500">{display}</span>
+        <span className="font-medium text-muted">{label}</span>
+        <span className="text-xs text-faint">{display}</span>
       </span>
       <input
         type="range"
@@ -2278,7 +2278,7 @@ function SliderSetting({
         step={step}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="w-full accent-amber-500"
+        className="w-full accent-accent"
       />
     </label>
   )
@@ -2304,20 +2304,20 @@ function TokenClassSettingsPanel({
   const classifiedCount = tokens.filter((token) => tokenClassForType(token.token_type)).length
 
   return (
-    <div className="absolute right-3 top-3 z-30 flex max-h-[calc(100%-6rem)] w-[min(27rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-fuchsia-400/30 bg-zinc-950/95 shadow-2xl shadow-fuchsia-950/30 backdrop-blur">
-      <div className="border-b border-zinc-800 px-4 py-3">
+    <div className="absolute right-3 top-3 z-30 flex max-h-[calc(100%-6rem)] w-[min(27rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-fuchsia-400/30 bg-canvas/95 shadow-2xl shadow-fuchsia-950/30 backdrop-blur">
+      <div className="border-b border-border px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-fuchsia-300">Live Map Control</p>
-            <h2 className="mt-1 text-base font-semibold text-zinc-50">Token Classes</h2>
-            <p className="mt-1 text-xs text-zinc-500">
+            <h2 className="mt-1 text-base font-semibold text-content">Token Classes</h2>
+            <p className="mt-1 text-xs text-faint">
               Apply behavior presets to already placed enemies, NPCs, portals, loot, and objects.
             </p>
           </div>
           <button
             type="button"
             onClick={onToggle}
-            className="rounded-md px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+            className="rounded-md px-2 py-1 text-sm text-faint hover:bg-panel-raised hover:text-content"
             aria-label="Close token class settings"
           >
             x
@@ -2329,8 +2329,8 @@ function TokenClassSettingsPanel({
         <div className="mb-3 rounded-lg border border-fuchsia-500/25 bg-fuchsia-500/10 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold text-zinc-100">Recommended defaults</p>
-              <p className="mt-1 text-xs text-zinc-400">
+              <p className="text-sm font-semibold text-content">Recommended defaults</p>
+              <p className="mt-1 text-xs text-muted">
                 {classifiedCount} of {tokens.length} placed tokens match these classes.
               </p>
             </div>
@@ -2355,12 +2355,12 @@ function TokenClassSettingsPanel({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-sm font-semibold text-zinc-50">{definition.label}</h3>
+                      <h3 className="text-sm font-semibold text-content">{definition.label}</h3>
                       <span className="rounded-full border border-current/25 px-2 py-0.5 text-[11px]">
                         {count} token{count === 1 ? '' : 's'}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-zinc-300">{definition.description}</p>
+                    <p className="mt-1 text-xs text-muted">{definition.description}</p>
                   </div>
                   <Button
                     size="sm"
@@ -2373,7 +2373,7 @@ function TokenClassSettingsPanel({
                   </Button>
                 </div>
 
-                <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-zinc-200">
+                <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-content">
                   <TokenClassChip label={settings.visible_to_players ? 'Visible' : 'Dim until discovered'} />
                   <TokenClassChip label={settings.discoverable ? 'Discoverable' : 'Not discoverable'} />
                   <TokenClassChip label={settings.visible_on_cast ? 'Cast display' : 'Hidden from cast'} />
@@ -2385,11 +2385,11 @@ function TokenClassSettingsPanel({
                 </div>
 
                 <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Actions</p>
-                  <p className="mt-1 text-xs text-zinc-200">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Actions</p>
+                  <p className="mt-1 text-xs text-content">
                     {(settings.available_actions ?? []).join(', ') || 'Uses default actions'}
                   </p>
-                  <p className="mt-2 text-[11px] text-zinc-400">
+                  <p className="mt-2 text-[11px] text-muted">
                     Types: {definition.tokenTypes.join(', ')}
                   </p>
                 </div>
@@ -2428,20 +2428,20 @@ function CastSettingsPanel({
   if (!open) return null
 
   return (
-    <div className="absolute right-3 top-3 z-30 flex max-h-[calc(100%-6rem)] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-cyan-400/30 bg-zinc-950/95 shadow-2xl shadow-cyan-950/30 backdrop-blur">
-      <div className="border-b border-zinc-800 px-4 py-3">
+    <div className="absolute right-3 top-3 z-30 flex max-h-[calc(100%-6rem)] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-cyan-400/30 bg-canvas/95 shadow-2xl shadow-cyan-950/30 backdrop-blur">
+      <div className="border-b border-border px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-300">Cast Display</p>
-            <h2 className="mt-1 text-base font-semibold text-zinc-50">Cast Settings</h2>
-            <p className="mt-1 text-xs text-zinc-500">
+            <h2 className="mt-1 text-base font-semibold text-content">Cast Settings</h2>
+            <p className="mt-1 text-xs text-faint">
               Controls how the center screen arranges party and split-player views.
             </p>
           </div>
           <button
             type="button"
             onClick={onToggle}
-            className="rounded-md px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+            className="rounded-md px-2 py-1 text-sm text-faint hover:bg-panel-raised hover:text-content"
             aria-label="Close cast settings"
           >
             x
@@ -2508,7 +2508,7 @@ function CastSettingsPanel({
             <option value="wide">Wide</option>
           </Select>
 
-          <div className="grid gap-2 rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
+          <div className="grid gap-2 rounded-lg border border-border bg-panel/70 p-3">
             <ToggleSetting label="Show player names" checked={settings.showPlayerNames} disabled={busy} onChange={(value) => onChange({ showPlayerNames: value })} />
             <ToggleSetting label="Show health bars" checked={settings.showHealthBars} disabled={busy} onChange={(value) => onChange({ showHealthBars: value })} />
             <ToggleSetting label="Show undiscovered hints" checked={settings.showTokenHints} disabled={busy} onChange={(value) => onChange({ showTokenHints: value })} />
@@ -2517,7 +2517,7 @@ function CastSettingsPanel({
           </div>
 
           {feedback && (
-            <p className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-amber-200">
+            <p className="rounded-md border border-border bg-panel px-3 py-2 text-xs text-accent">
               {feedback}
             </p>
           )}
@@ -2539,7 +2539,7 @@ function ToggleSetting({
   onChange: (value: boolean) => void
 }) {
   return (
-    <label className="flex items-center justify-between gap-3 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300">
+    <label className="flex items-center justify-between gap-3 rounded-md border border-border bg-canvas px-3 py-2 text-xs text-muted">
       <span>{label}</span>
       <input
         type="checkbox"
@@ -2591,27 +2591,27 @@ function TokenEditPanel({
   }
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-40 max-h-[82vh] overflow-hidden rounded-lg border border-zinc-700 bg-zinc-950 shadow-2xl md:absolute md:inset-x-auto md:bottom-4 md:right-4 md:w-[32rem]">
-      <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-3">
+    <div className="fixed inset-x-3 bottom-3 z-40 max-h-[82vh] overflow-hidden rounded-lg border border-border-strong bg-canvas shadow-2xl md:absolute md:inset-x-auto md:bottom-4 md:right-4 md:w-[32rem]">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-zinc-100">
+          <p className="truncate text-sm font-semibold text-content">
             {edited.name || 'Unnamed token'}
           </p>
-          <p className="text-xs capitalize text-zinc-500">{edited.token_type}</p>
+          <p className="text-xs capitalize text-faint">{edited.token_type}</p>
         </div>
         <div className="flex items-center gap-2">
           {saveStatus !== 'idle' && (
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-faint">
               {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
             </span>
           )}
-          <button type="button" onClick={onCancel} className="text-sm text-zinc-500 hover:text-zinc-200">
+          <button type="button" onClick={onCancel} className="text-sm text-faint hover:text-content">
             Close
           </button>
         </div>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto border-b border-zinc-800 px-3 py-2">
+      <div className="flex gap-1 overflow-x-auto border-b border-border px-3 py-2">
         {TOKEN_EDIT_TABS.map((item) => (
           <button
             key={item.value}
@@ -2619,8 +2619,8 @@ function TokenEditPanel({
             onClick={() => onTabChange(item.value)}
             className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition ${
               tab === item.value
-                ? 'bg-amber-500 text-zinc-950'
-                : 'bg-zinc-900 text-zinc-400 hover:text-zinc-100'
+                ? 'bg-accent text-on-accent'
+                : 'bg-panel text-muted hover:text-content'
             }`}
           >
             {item.label}
@@ -2684,7 +2684,7 @@ function TokenEditPanel({
             </Select>
 
             {edited.token_type === 'portal' && (
-              <p className="rounded-lg border border-violet-500/40 bg-violet-500/10 p-3 text-xs text-zinc-400">
+              <p className="rounded-lg border border-violet-500/40 bg-violet-500/10 p-3 text-xs text-muted">
                 🌀 Transport token{edited.destination_prepared_map_id ? '' : ' — no destination linked. Set one on the prepared map in Adventure Maker, then redeploy.'}
                 {edited.destination_prepared_map_id ? ' Use the quick menu (click the token) to travel the party here or go to the location yourself.' : ''}
               </p>
@@ -2725,7 +2725,7 @@ function TokenEditPanel({
               onChange={(e) => onPatch({ hidden_dm_actions: parseList(e.target.value) })}
               rows={2}
               placeholder="Ambush, Secret Door..."
-              className="border-amber-900/50 bg-zinc-950"
+              className="border-accent/50 bg-canvas"
             />
             <Select
               label="Default resolver"
@@ -2762,7 +2762,7 @@ function TokenEditPanel({
               </p>
             )}
             {!edited.visible_to_players && !edited.discoverable && (
-              <p className="rounded-lg border border-amber-900/50 bg-amber-950/20 p-3 text-xs text-amber-200">
+              <p className="rounded-lg border border-accent/50 bg-accent/20 p-3 text-xs text-accent">
                 Hidden tokens stay DM-only and are not sent to player map or action views.
               </p>
             )}
@@ -2835,9 +2835,9 @@ function TokenEditPanel({
               onChange={(e) => onDmNoteChange(e.target.value)}
               rows={5}
               placeholder="Only you can see this. Never sent to players."
-              className="border-amber-900/50 bg-zinc-950"
+              className="border-accent/50 bg-canvas"
             />
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-faint">
               Private notes are stored separately from tokens and are not part of player realtime payloads.
             </p>
           </div>
@@ -2845,25 +2845,25 @@ function TokenEditPanel({
 
         {tab === 'advanced' && (
           <div className="flex flex-col gap-3">
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Movement</p>
-              <p className="mt-2 text-sm text-zinc-300">
-                Used this round: <span className="text-zinc-100">{Math.round(edited.movement_used)} ft</span>
+            <div className="rounded-lg border border-border bg-panel/70 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-faint">Movement</p>
+              <p className="mt-2 text-sm text-muted">
+                Used this round: <span className="text-content">{Math.round(edited.movement_used)} ft</span>
                 {selectedSpeed !== undefined && <> of {selectedSpeed} ft</>}
               </p>
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mt-1 text-xs text-faint">
                 Token is {edited.movement_locked ? 'locked' : 'unlocked'}; over-speed movement is{' '}
                 {edited.movement_override_allowed ? 'allowed' : 'blocked'}.
               </p>
             </div>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-faint">
               Use the quick menu for lock, override, reset movement, and reset position controls.
             </p>
           </div>
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-zinc-800 px-4 py-3">
+      <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3">
         <Button size="sm" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>

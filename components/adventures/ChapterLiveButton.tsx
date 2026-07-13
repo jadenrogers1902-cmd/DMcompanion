@@ -70,7 +70,7 @@ export function ChapterLiveButton({
           </span>
         )}
       </div>
-      {blockedReason && <p className="text-xs text-zinc-500">{blockedReason}</p>}
+      {blockedReason && <p className="text-xs text-faint">{blockedReason}</p>}
       {error && <p className="text-xs text-red-300">{error}</p>}
       {flash && !error && (
         <p className="text-xs text-emerald-300">Hub is now the active map — players can open it from Live Map.</p>

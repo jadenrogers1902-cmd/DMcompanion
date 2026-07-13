@@ -14,7 +14,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium text-zinc-300"
+            className="text-sm font-medium text-muted"
           >
             {label}
           </label>
@@ -23,23 +23,23 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           className={`
-            w-full rounded-lg border bg-zinc-900 px-3 py-2 text-sm text-zinc-100
-            placeholder:text-zinc-600
-            outline-none transition-colors
+            w-full rounded-lg border bg-control px-3 py-2 text-sm text-content
+            placeholder:text-faint
+            outline-none transition-[border-color,box-shadow,background-color]
             ${
               error
-                ? 'border-red-700 focus:border-red-500'
-                : 'border-zinc-700 focus:border-amber-500'
+                ? 'border-danger/65 focus:border-danger focus:shadow-[0_0_0_3px_rgb(240_113_155/0.1)]'
+                : 'border-border-strong focus:border-accent focus:shadow-[0_0_0_3px_rgb(184_167_255/0.1)]'
             }
-            disabled:opacity-50 disabled:cursor-not-allowed
+            disabled:cursor-not-allowed disabled:opacity-50
             ${className}
           `.trim()}
           {...props}
         />
         {hint && !error && (
-          <p className="text-xs text-zinc-500">{hint}</p>
+          <p className="text-xs text-faint">{hint}</p>
         )}
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {error && <p className="text-xs text-danger">{error}</p>}
       </div>
     )
   },
@@ -62,7 +62,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium text-zinc-300"
+            className="text-sm font-medium text-muted"
           >
             {label}
           </label>
@@ -71,21 +71,21 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={inputId}
           className={`
-            w-full rounded-lg border bg-zinc-900 px-3 py-2 text-sm text-zinc-100
-            placeholder:text-zinc-600 resize-none
-            outline-none transition-colors
+            w-full resize-none rounded-lg border bg-control px-3 py-2 text-sm text-content
+            placeholder:text-faint
+            outline-none transition-[border-color,box-shadow,background-color]
             ${
               error
-                ? 'border-red-700 focus:border-red-500'
-                : 'border-zinc-700 focus:border-amber-500'
+                ? 'border-danger/65 focus:border-danger focus:shadow-[0_0_0_3px_rgb(240_113_155/0.1)]'
+                : 'border-border-strong focus:border-accent focus:shadow-[0_0_0_3px_rgb(184_167_255/0.1)]'
             }
-            disabled:opacity-50 disabled:cursor-not-allowed
+            disabled:cursor-not-allowed disabled:opacity-50
             ${className}
           `.trim()}
           {...props}
         />
-        {hint && !error && <p className="text-xs text-zinc-500">{hint}</p>}
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {hint && !error && <p className="text-xs text-faint">{hint}</p>}
+        {error && <p className="text-xs text-danger">{error}</p>}
       </div>
     )
   },

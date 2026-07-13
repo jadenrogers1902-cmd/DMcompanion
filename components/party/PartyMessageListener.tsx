@@ -146,13 +146,13 @@ export function PartyMessageListener({ userId }: { userId: string }) {
           <button
             type="button"
             onClick={() => setLogOpen(true)}
-            className="fixed right-4 top-4 z-[65] max-w-sm rounded-full border border-zinc-700 bg-zinc-950/95 px-4 py-2 text-left shadow-2xl shadow-black/40 backdrop-blur transition hover:border-amber-500/50"
+            className="fixed right-4 top-4 z-[65] max-w-sm rounded-full border border-dm-only/45 bg-canvas/95 px-4 py-2 text-left shadow-2xl shadow-black/40 backdrop-blur transition hover:border-dm-only/70"
           >
             <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-amber-400" />
+              <span className="h-2 w-2 rounded-full bg-dm-only" />
               <span className="min-w-0">
-                <span className="block truncate text-xs font-semibold text-zinc-100">{dmPill.title}</span>
-                <span className="block truncate text-[11px] text-zinc-500">
+                <span className="block truncate text-xs font-semibold text-content">{dmPill.title}</span>
+                <span className="block truncate text-[11px] text-faint">
                   {dmPill.message_type === 'whisper'
                     ? `${dmPill.senderName ?? 'Player'} ${dmPill.title.toLowerCase()}.`
                     : dmPill.message_type === 'nudge'
@@ -164,23 +164,23 @@ export function PartyMessageListener({ userId }: { userId: string }) {
           </button>
         )}
         {logOpen && (
-          <div className="fixed right-4 top-16 z-[66] w-[22rem] max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-700 bg-zinc-950 p-3 shadow-2xl shadow-black/50">
+          <div className="fixed right-4 top-16 z-[66] w-[22rem] max-w-[calc(100vw-2rem)] rounded-xl border border-border-strong bg-canvas p-3 shadow-2xl shadow-black/50">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-zinc-100">Communication Log</h2>
-              <button type="button" onClick={() => setLogOpen(false)} className="text-xs text-zinc-500 hover:text-zinc-100">Close</button>
+              <h2 className="text-sm font-semibold text-content">Communication Log</h2>
+              <button type="button" onClick={() => setLogOpen(false)} className="text-xs text-faint hover:text-content">Close</button>
             </div>
             <div className="mt-3 grid max-h-80 gap-2 overflow-y-auto">
               {dmLog.map((item) => (
-                <div key={item.id} className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-                  <p className="text-xs font-medium text-zinc-100">{item.title}</p>
-                  <p className="mt-1 text-[11px] text-zinc-500">
+                <div key={item.id} className="rounded-lg border border-border bg-panel p-3">
+                  <p className="text-xs font-medium text-content">{item.title}</p>
+                  <p className="mt-1 text-[11px] text-faint">
                     {item.message_type === 'whisper'
                       ? `${item.senderName ?? 'Player'} ${item.title.toLowerCase()}.`
                       : item.message_type === 'nudge'
                         ? item.message
                       : item.message}
                   </p>
-                  <p className="mt-1 text-[10px] uppercase tracking-wide text-zinc-600">
+                  <p className="mt-1 text-[10px] uppercase tracking-wide text-faint">
                     {item.delivery_status} / {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                   </p>
                 </div>
@@ -202,22 +202,24 @@ export function PartyMessageListener({ userId }: { userId: string }) {
     <div className="fixed inset-0 z-[65] flex items-center justify-center px-4 pointer-events-none">
       <div
         className={`pointer-events-auto w-full ${
-          isMeeting ? 'max-w-2xl border-red-500 bg-red-950 shadow-red-950/70' : 'max-w-md border-amber-500/50 bg-zinc-950 shadow-black/50'
+          isMeeting
+            ? 'max-w-2xl border-danger bg-red-950 shadow-red-950/70'
+            : 'max-w-md border-player-safe/50 bg-canvas shadow-black/50'
         } rounded-xl border p-5 text-center shadow-2xl`}
         role="alertdialog"
         aria-modal="true"
       >
-        <p className={`text-xs font-semibold uppercase tracking-[0.22em] ${isMeeting ? 'text-red-200' : 'text-amber-300'}`}>
+        <p className={`text-xs font-semibold uppercase tracking-[0.22em] ${isMeeting ? 'text-danger' : 'text-player-safe'}`}>
           {isMeeting ? 'Urgent Table Alert' : isAnnouncement ? 'Party Notice' : isReveal ? 'New Information' : 'Private Message'}
         </p>
-        <h2 className={`mt-2 font-bold ${isMeeting ? 'text-3xl text-red-50' : 'text-xl text-zinc-100'}`}>
+        <h2 className={`mt-2 font-bold ${isMeeting ? 'text-3xl text-red-50' : 'text-xl text-content'}`}>
           {titleFor(message.message_type)}
         </h2>
-        <p className="mt-2 text-sm text-zinc-300">
+        <p className="mt-2 text-sm text-muted">
           {isReveal ? 'From your DM' : `From ${message.senderName ?? 'A party member'}`}
         </p>
         <p className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
-          isMeeting ? 'border-red-400/40 bg-red-900/50 text-red-50' : 'border-zinc-700 bg-zinc-900 text-zinc-100'
+          isMeeting ? 'border-red-400/40 bg-red-900/50 text-red-50' : 'border-border-strong bg-panel text-content'
         }`}>
           {message.message}
         </p>
@@ -227,7 +229,7 @@ export function PartyMessageListener({ userId }: { userId: string }) {
           </p>
         )}
         {isReveal && (
-          <p className="mt-3 text-xs text-zinc-500">
+          <p className="mt-3 text-xs text-faint">
             Find the full details under Revealed Info in your campaign Codex.
           </p>
         )}
@@ -235,7 +237,7 @@ export function PartyMessageListener({ userId }: { userId: string }) {
           type="button"
           onClick={() => setMessage(null)}
           className={`mt-5 rounded-md px-4 py-2 text-sm font-semibold transition ${
-            isMeeting ? 'bg-red-100 text-red-950 hover:bg-white' : 'bg-amber-500 text-zinc-950 hover:bg-amber-400'
+            isMeeting ? 'bg-red-100 text-red-950 hover:bg-white' : 'bg-accent text-on-accent hover:bg-accent-hover'
           }`}
         >
           Dismiss

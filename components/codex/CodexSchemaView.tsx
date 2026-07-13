@@ -202,12 +202,12 @@ export function CodexSchemaView({ campaignId, docs, links, mappings, initialTabl
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-100">Codex Schema</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="text-2xl font-bold text-content">Codex Schema</h1>
+        <p className="mt-1 text-sm text-faint">
           How your mapped Notion tables connect. Nodes are tables; lines are linked
           records between them.
         </p>
-        <Link href={`/campaigns/${campaignId}/codex`} className="mt-2 inline-block text-xs font-medium text-amber-400 hover:text-amber-300">
+        <Link href={`/campaigns/${campaignId}/codex`} className="mt-2 inline-block text-xs font-medium text-accent hover:text-accent-hover">
           ← Back to Adventure Codex
         </Link>
       </div>
@@ -226,17 +226,17 @@ export function CodexSchemaView({ campaignId, docs, links, mappings, initialTabl
               <option key={r.value} value={r.value}>{r.label}</option>
             ))}
           </Select>
-          <label className="flex items-end gap-2 pb-2 text-xs text-zinc-300">
-            <input type="checkbox" checked={liveOnly} onChange={(e) => setLiveOnly(e.target.checked)} className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900" />
+          <label className="flex items-end gap-2 pb-2 text-xs text-muted">
+            <input type="checkbox" checked={liveOnly} onChange={(e) => setLiveOnly(e.target.checked)} className="h-3.5 w-3.5 rounded border-border-strong bg-panel" />
             Live-object linked only
           </label>
           <div className="flex flex-col gap-1">
-            <label className="flex items-center gap-2 text-xs text-zinc-300">
-              <input type="checkbox" checked={playerOnly} onChange={(e) => setPlayerOnly(e.target.checked)} className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900" />
+            <label className="flex items-center gap-2 text-xs text-muted">
+              <input type="checkbox" checked={playerOnly} onChange={(e) => setPlayerOnly(e.target.checked)} className="h-3.5 w-3.5 rounded border-border-strong bg-panel" />
               Player-visible / revealed only
             </label>
-            <label className="flex items-center gap-2 text-xs text-zinc-300">
-              <input type="checkbox" checked={staleOnly} onChange={(e) => setStaleOnly(e.target.checked)} className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900" />
+            <label className="flex items-center gap-2 text-xs text-muted">
+              <input type="checkbox" checked={staleOnly} onChange={(e) => setStaleOnly(e.target.checked)} className="h-3.5 w-3.5 rounded border-border-strong bg-panel" />
               Stale / unmapped only
             </label>
           </div>
@@ -245,7 +245,7 @@ export function CodexSchemaView({ campaignId, docs, links, mappings, initialTabl
 
       {nodesWithInternal.length === 0 ? (
         <Card className="border-dashed">
-          <p className="text-sm text-zinc-500">No mapped tables or records yet. Map a Notion database and sync to populate the schema.</p>
+          <p className="text-sm text-faint">No mapped tables or records yet. Map a Notion database and sync to populate the schema.</p>
         </Card>
       ) : (
         <>
@@ -264,7 +264,7 @@ export function CodexSchemaView({ campaignId, docs, links, mappings, initialTabl
                   <g key={edge.key} onClick={() => { setSelectedEdge(edge.key); setSelectedNode(null) }} className="cursor-pointer" opacity={dim ? 0.2 : 1}>
                     <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={active ? '#f59e0b' : '#52525b'} strokeWidth={active ? 2.5 : 1.5} />
                     <rect x={mx - 14} y={my - 10} width={28} height={18} rx={4} fill="#18181b" stroke={active ? '#f59e0b' : '#3f3f46'} />
-                    <text x={mx} y={my + 3} textAnchor="middle" className="fill-zinc-200" fontSize={11}>{edge.count}</text>
+                    <text x={mx} y={my + 3} textAnchor="middle" className="fill-content" fontSize={11}>{edge.count}</text>
                   </g>
                 )
               })}
@@ -286,10 +286,10 @@ export function CodexSchemaView({ campaignId, docs, links, mappings, initialTabl
                       stroke={n.kind === 'mapping' ? (active ? '#f59e0b' : '#3f3f46') : '#a16207'}
                       strokeWidth={active ? 2 : 1.25}
                     />
-                    <text x={p.x} y={p.y - 12} textAnchor="middle" className="fill-zinc-100" fontSize={12} fontWeight={600}>
+                    <text x={p.x} y={p.y - 12} textAnchor="middle" className="fill-content" fontSize={12} fontWeight={600}>
                       {n.title.length > 20 ? `${n.title.slice(0, 19)}…` : n.title}
                     </text>
-                    <text x={p.x} y={p.y + 4} textAnchor="middle" className="fill-zinc-500" fontSize={10}>
+                    <text x={p.x} y={p.y + 4} textAnchor="middle" className="fill-faint" fontSize={10}>
                       {n.recordCount} rec · {n.liveCount} live{n.internalCount ? ` · ↻${n.internalCount}` : ''}
                     </text>
                     <circle cx={p.x - w / 2 + 12} cy={p.y - h / 2 + 12} r={4} fill={n.hasFailedSync ? '#ef4444' : n.kind === 'mapping' && n.mappingEnabled ? '#22c55e' : '#a1a1aa'} />
@@ -301,26 +301,26 @@ export function CodexSchemaView({ campaignId, docs, links, mappings, initialTabl
 
           {/* Mobile fallback: relationship list */}
           <Card className="md:hidden">
-            <h2 className="text-sm font-semibold text-zinc-100">Tables</h2>
+            <h2 className="text-sm font-semibold text-content">Tables</h2>
             <div className="mt-2 flex flex-col gap-1.5">
               {nodesWithInternal.map((n) => (
-                <button key={n.key} type="button" onClick={() => { setSelectedNode(n.key); setSelectedEdge(null) }} className={`rounded-md border px-2.5 py-2 text-left text-sm ${selectedNode === n.key ? 'border-amber-500/60 bg-amber-500/10' : 'border-zinc-800 bg-zinc-900'}`}>
+                <button key={n.key} type="button" onClick={() => { setSelectedNode(n.key); setSelectedEdge(null) }} className={`rounded-md border px-2.5 py-2 text-left text-sm ${selectedNode === n.key ? 'border-accent/60 bg-accent/10' : 'border-border bg-panel'}`}>
                   <span className="flex items-center justify-between gap-2">
-                    <span className="truncate text-zinc-100">{n.title}</span>
-                    <span className="shrink-0 text-[11px] text-zinc-500">{n.recordCount} rec · {n.liveCount} live</span>
+                    <span className="truncate text-content">{n.title}</span>
+                    <span className="shrink-0 text-[11px] text-faint">{n.recordCount} rec · {n.liveCount} live</span>
                   </span>
                 </button>
               ))}
             </div>
-            <h2 className="mt-4 text-sm font-semibold text-zinc-100">Relationships</h2>
+            <h2 className="mt-4 text-sm font-semibold text-content">Relationships</h2>
             <div className="mt-2 flex flex-col gap-1.5">
               {edges.length === 0 ? (
-                <p className="text-xs text-zinc-600">No cross-table relationships{relFilter !== 'all' ? ' for this relationship type' : ''}.</p>
+                <p className="text-xs text-faint">No cross-table relationships{relFilter !== 'all' ? ' for this relationship type' : ''}.</p>
               ) : (
                 edges.map((edge) => (
-                  <button key={edge.key} type="button" onClick={() => { setSelectedEdge(edge.key); setSelectedNode(null) }} className={`rounded-md border px-2.5 py-2 text-left text-xs ${selectedEdge === edge.key ? 'border-amber-500/60 bg-amber-500/10' : 'border-zinc-800 bg-zinc-900'}`}>
-                    <span className="text-zinc-200">{nodeTitle(edge.from)} → {nodeTitle(edge.to)}</span>
-                    <span className="text-zinc-500"> · {edge.count}</span>
+                  <button key={edge.key} type="button" onClick={() => { setSelectedEdge(edge.key); setSelectedNode(null) }} className={`rounded-md border px-2.5 py-2 text-left text-xs ${selectedEdge === edge.key ? 'border-accent/60 bg-accent/10' : 'border-border bg-panel'}`}>
+                    <span className="text-content">{nodeTitle(edge.from)} → {nodeTitle(edge.to)}</span>
+                    <span className="text-faint"> · {edge.count}</span>
                   </button>
                 ))
               )}
@@ -332,9 +332,9 @@ export function CodexSchemaView({ campaignId, docs, links, mappings, initialTabl
       {/* Detail panel */}
       {selectedEdgeObj ? (
         <Card>
-          <h2 className="text-sm font-semibold text-zinc-100">
+          <h2 className="text-sm font-semibold text-content">
             {nodeTitle(selectedEdgeObj.from)} → {nodeTitle(selectedEdgeObj.to)}
-            <span className="ml-2 text-xs font-normal text-zinc-500">{selectedEdgeObj.count} link(s)</span>
+            <span className="ml-2 text-xs font-normal text-faint">{selectedEdgeObj.count} link(s)</span>
           </h2>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {selectedEdgeObj.relations.map((r) => (
@@ -343,11 +343,11 @@ export function CodexSchemaView({ campaignId, docs, links, mappings, initialTabl
           </div>
           <div className="mt-3 flex flex-col gap-1.5">
             {edgeRecords.map(({ link, src, tgt }) => (
-              <div key={link.id} className="flex items-center justify-between gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm">
-                <span className="min-w-0 truncate text-zinc-200">{src?.title} → {tgt?.title}</span>
+              <div key={link.id} className="flex items-center justify-between gap-2 rounded-md border border-border bg-panel px-3 py-2 text-sm">
+                <span className="min-w-0 truncate text-content">{src?.title} → {tgt?.title}</span>
                 <span className="flex shrink-0 gap-1.5">
-                  {src && <Link href={`/campaigns/${campaignId}/codex?doc=${src.id}`} className="rounded border border-zinc-700 px-2 py-0.5 text-[11px] text-zinc-200 hover:border-amber-500/50">Open source</Link>}
-                  {tgt && <Link href={`/campaigns/${campaignId}/codex?doc=${tgt.id}`} className="rounded border border-zinc-700 px-2 py-0.5 text-[11px] text-zinc-200 hover:border-amber-500/50">Open target</Link>}
+                  {src && <Link href={`/campaigns/${campaignId}/codex?doc=${src.id}`} className="rounded border border-border-strong px-2 py-0.5 text-[11px] text-content hover:border-accent/50">Open source</Link>}
+                  {tgt && <Link href={`/campaigns/${campaignId}/codex?doc=${tgt.id}`} className="rounded border border-border-strong px-2 py-0.5 text-[11px] text-content hover:border-accent/50">Open target</Link>}
                 </span>
               </div>
             ))}
@@ -355,18 +355,18 @@ export function CodexSchemaView({ campaignId, docs, links, mappings, initialTabl
         </Card>
       ) : selectedNode ? (
         <Card>
-          <h2 className="text-sm font-semibold text-zinc-100">
+          <h2 className="text-sm font-semibold text-content">
             {nodeTitle(selectedNode)}
-            <span className="ml-2 text-xs font-normal text-zinc-500">{nodeRecords.length} record(s)</span>
+            <span className="ml-2 text-xs font-normal text-faint">{nodeRecords.length} record(s)</span>
           </h2>
           <div className="mt-3 flex flex-col gap-1.5">
             {nodeRecords.length === 0 ? (
-              <p className="text-xs text-zinc-600">No records match the current filters.</p>
+              <p className="text-xs text-faint">No records match the current filters.</p>
             ) : (
               nodeRecords.map((d) => (
-                <Link key={d.id} href={`/campaigns/${campaignId}/codex?doc=${d.id}`} className="flex items-center justify-between gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm hover:border-amber-500/50">
-                  <span className="min-w-0 truncate text-zinc-100">{d.title}</span>
-                  <span className="shrink-0 text-[11px] text-zinc-500">{campaignDocTypeLabel(d.doc_type)}</span>
+                <Link key={d.id} href={`/campaigns/${campaignId}/codex?doc=${d.id}`} className="flex items-center justify-between gap-2 rounded-md border border-border bg-panel px-3 py-2 text-sm hover:border-accent/50">
+                  <span className="min-w-0 truncate text-content">{d.title}</span>
+                  <span className="shrink-0 text-[11px] text-faint">{campaignDocTypeLabel(d.doc_type)}</span>
                 </Link>
               ))
             )}
@@ -374,7 +374,7 @@ export function CodexSchemaView({ campaignId, docs, links, mappings, initialTabl
         </Card>
       ) : (
         <Card className="border-dashed">
-          <p className="text-sm text-zinc-500">Select a table node or a relationship line to see linked records.</p>
+          <p className="text-sm text-faint">Select a table node or a relationship line to see linked records.</p>
         </Card>
       )}
     </div>

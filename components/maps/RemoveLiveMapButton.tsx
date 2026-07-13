@@ -42,7 +42,7 @@ export function RemoveLiveMapButton({
       disabled={busy}
       aria-label={`Remove ${mapName} from Live Map`}
       title="Remove from Live Map"
-      className="absolute right-2 top-2 z-10 rounded-md border border-zinc-700 bg-zinc-950/80 p-1.5 text-zinc-400 transition hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
+      className="absolute right-2 top-2 z-10 rounded-md border border-border-strong bg-canvas/80 p-1.5 text-muted transition hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
     >
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />

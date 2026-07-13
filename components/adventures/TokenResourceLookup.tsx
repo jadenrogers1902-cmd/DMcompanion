@@ -26,9 +26,9 @@ function MetadataChips({ metadata }: { metadata: Record<string, string> }) {
       {entries.map(([key, value]) => (
         <span
           key={key}
-          className="rounded-md border border-zinc-800 bg-zinc-950 px-1.5 py-0.5 text-[11px] text-zinc-400"
+          className="rounded-md border border-border bg-canvas px-1.5 py-0.5 text-[11px] text-muted"
         >
-          <span className="text-zinc-500">{key}:</span> {value}
+          <span className="text-faint">{key}:</span> {value}
         </span>
       ))}
     </div>
@@ -91,26 +91,26 @@ export function TokenResourceLookup({
     const syncedDate = resource.synced_at ? resource.synced_at.slice(0, 10) : null
     return (
       <section>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">
           SRD Resource
         </h3>
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+        <div className="rounded-lg border border-border bg-panel p-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="truncate text-sm font-semibold text-zinc-100">
+                <span className="truncate text-sm font-semibold text-content">
                   {resource.name}
                 </span>
                 <Badge variant="default">{resource.category}</Badge>
               </div>
               {resource.summary && (
-                <p className="mt-0.5 text-xs text-zinc-400">{resource.summary}</p>
+                <p className="mt-0.5 text-xs text-muted">{resource.summary}</p>
               )}
             </div>
             <button
               type="button"
               onClick={onDetach}
-              className="shrink-0 rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-800 hover:text-red-400"
+              className="shrink-0 rounded-md px-2 py-1 text-xs text-faint hover:bg-panel-raised hover:text-red-400"
             >
               Detach
             </button>
@@ -124,18 +124,18 @@ export function TokenResourceLookup({
                 href={resource.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-amber-400/90 hover:text-amber-300"
+                className="text-accent/90 hover:text-accent"
               >
                 View source data ↗
               </a>
             )}
-            <span className="text-zinc-600">
+            <span className="text-faint">
               from {resource.source}
               {syncedDate ? ` · synced ${syncedDate}` : ''}
             </span>
           </div>
         </div>
-        <p className="mt-2 text-[11px] text-zinc-600">
+        <p className="mt-2 text-[11px] text-faint">
           Reference data only — your DM notes are kept separate and untouched.
         </p>
       </section>
@@ -145,15 +145,15 @@ export function TokenResourceLookup({
   // ── Search state ──────────────────────────────────────────
   return (
     <section>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-        SRD Resource <span className="text-zinc-600">(optional)</span>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">
+        SRD Resource <span className="text-faint">(optional)</span>
       </h3>
       <form onSubmit={runSearch} className="flex flex-col gap-2 sm:flex-row">
         <select
           aria-label="Resource category"
           value={category}
           onChange={(event) => setCategory(event.target.value as SrdCategory)}
-          className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+          className="rounded-lg border border-border-strong bg-panel px-2 py-2 text-sm text-content outline-none focus:border-accent"
         >
           {SRD_CATEGORIES.map((option) => (
             <option key={option.value} value={option.value}>
@@ -167,7 +167,7 @@ export function TokenResourceLookup({
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search by name (e.g. goblin)"
           maxLength={60}
-          className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-amber-500"
+          className="min-w-0 flex-1 rounded-lg border border-border-strong bg-panel px-3 py-2 text-sm text-content placeholder:text-faint outline-none focus:border-accent"
         />
         <Button type="submit" size="sm" loading={loading} disabled={loading}>
           Search
@@ -177,7 +177,7 @@ export function TokenResourceLookup({
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
 
       {!error && hasSearched && !loading && results.length === 0 && (
-        <p className="mt-2 text-xs text-zinc-500">
+        <p className="mt-2 text-xs text-faint">
           No SRD matches. Try a different name or category.
         </p>
       )}
@@ -189,18 +189,18 @@ export function TokenResourceLookup({
               key={`${result.category}:${result.source_id}`}
               type="button"
               onClick={() => attach(result)}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-left transition-colors hover:border-amber-500/60 hover:bg-amber-500/5"
+              className="rounded-lg border border-border bg-canvas px-3 py-2 text-left transition-colors hover:border-accent/60 hover:bg-accent/5"
             >
-              <span className="text-sm font-medium text-zinc-100">{result.name}</span>
+              <span className="text-sm font-medium text-content">{result.name}</span>
               {result.summary && (
-                <span className="mt-0.5 block text-xs text-zinc-500">{result.summary}</span>
+                <span className="mt-0.5 block text-xs text-faint">{result.summary}</span>
               )}
             </button>
           ))}
         </div>
       )}
 
-      <p className="mt-2 text-[11px] text-zinc-600">
+      <p className="mt-2 text-[11px] text-faint">
         Looks up the WotC 5e SRD (CC BY 4.0) via Open5e. Stores a short reference
         and a link — never the full text, and never your DM notes.
       </p>

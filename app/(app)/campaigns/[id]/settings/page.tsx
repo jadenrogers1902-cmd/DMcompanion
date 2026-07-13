@@ -116,7 +116,7 @@ export default function CampaignSettingsPage({ params }: PageProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
-        <div className="w-6 h-6 border-2 border-zinc-700 border-t-amber-500 rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-border-strong border-t-accent rounded-full animate-spin" />
       </div>
     )
   }
@@ -130,15 +130,15 @@ export default function CampaignSettingsPage({ params }: PageProps) {
       <div className="mb-8">
         <Link
           href={`/campaigns/${campaignId}`}
-          className="text-sm text-zinc-500 hover:text-zinc-300 flex items-center gap-1.5 mb-4"
+          className="text-sm text-faint hover:text-content flex items-center gap-1.5 mb-4"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
           Back to campaign
         </Link>
-        <h1 className="text-2xl font-bold text-zinc-100">Campaign Settings</h1>
-        <p className="text-sm text-zinc-500 mt-1">Only visible to the Dungeon Master.</p>
+        <h1 className="text-2xl font-bold text-content">Campaign Settings</h1>
+        <p className="text-sm text-faint mt-1">Only visible to the Dungeon Master.</p>
       </div>
 
       {/* Campaign details */}
@@ -183,14 +183,14 @@ export default function CampaignSettingsPage({ params }: PageProps) {
           {members.map((member) => (
             <li key={member.id} className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 text-xs font-semibold shrink-0">
+                <div className="w-8 h-8 rounded-full bg-panel-raised border border-border-strong flex items-center justify-center text-muted text-xs font-semibold shrink-0">
                   {member.profiles?.display_name?.[0]?.toUpperCase() ?? '?'}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-zinc-200">
+                  <p className="text-sm font-medium text-content">
                     {member.profiles?.display_name ?? 'Unknown'}
                     {member.user_id === currentUserId && (
-                      <span className="text-zinc-500 font-normal"> (you)</span>
+                      <span className="text-faint font-normal"> (you)</span>
                     )}
                   </p>
                 </div>
@@ -215,7 +215,7 @@ export default function CampaignSettingsPage({ params }: PageProps) {
           ))}
         </ul>
         {nonDMMembers.length === 0 && (
-          <p className="text-sm text-zinc-500 mt-3">No players have joined yet.</p>
+          <p className="text-sm text-faint mt-3">No players have joined yet.</p>
         )}
       </Card>
     </div>

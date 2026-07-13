@@ -11,9 +11,9 @@ export default function RegisterPage() {
   const [state, formAction, pending] = useActionState(register, { error: null })
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-      <h2 className="text-lg font-semibold text-zinc-100 mb-1">Create account</h2>
-      <p className="text-sm text-zinc-500 mb-6">Join the adventure.</p>
+    <div className="moonlit-panel rounded-2xl p-6 backdrop-blur-xl">
+      <h2 className="font-display mb-1 text-2xl font-semibold text-content">Create account</h2>
+      <p className="mb-6 text-sm text-faint">Join the adventure.</p>
 
       <form action={formAction} className="flex flex-col gap-4">
         {state.error && <Alert message={state.error} />}
@@ -59,9 +59,9 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      <p className="text-sm text-zinc-500 text-center mt-6">
+      <p className="mt-6 text-center text-sm text-faint">
         Already have an account?{' '}
-        <Link href="/login" className="text-amber-400 hover:text-amber-300">
+        <Link href="/login" className="font-medium text-accent hover:text-accent-hover">
           Sign in
         </Link>
       </p>

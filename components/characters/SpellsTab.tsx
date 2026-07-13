@@ -64,7 +64,7 @@ export function SpellsTab({ characterId, spells, canEdit }: SpellsTabProps) {
       {canEdit && showForm && (
         <form
           onSubmit={handleAdd}
-          className="flex flex-col gap-4 p-4 rounded-lg bg-zinc-950 border border-zinc-800"
+          className="flex flex-col gap-4 p-4 rounded-lg bg-shell border border-border"
         >
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -94,30 +94,30 @@ export function SpellsTab({ characterId, spells, canEdit }: SpellsTabProps) {
           {sorted.map((spell) => (
             <li
               key={spell.id}
-              className="flex items-start justify-between gap-3 p-3 rounded-lg bg-zinc-950 border border-zinc-800"
+              className="flex items-start justify-between gap-3 p-3 rounded-lg bg-shell border border-border"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-zinc-200">{spell.name}</span>
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                  <span className="text-sm font-medium text-content">{spell.name}</span>
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-panel-raised text-muted">
                     {spellLevelLabel(spell.spell_level)}
                   </span>
                   {spell.prepared && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">Prepared</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-accent/15 text-accent">Prepared</span>
                   )}
                   {spell.uses && (
-                    <span className="text-xs text-zinc-500">{spell.uses}</span>
+                    <span className="text-xs text-faint">{spell.uses}</span>
                   )}
                 </div>
                 {spell.description && (
-                  <p className="text-xs text-zinc-500 mt-1">{spell.description}</p>
+                  <p className="text-xs text-faint mt-1">{spell.description}</p>
                 )}
               </div>
               {canEdit && (
                 <button
                   type="button"
                   onClick={() => handleDelete(spell.id)}
-                  className="text-zinc-600 hover:text-red-400 shrink-0"
+                  className="text-faint hover:text-red-400 shrink-0"
                   aria-label="Delete spell"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

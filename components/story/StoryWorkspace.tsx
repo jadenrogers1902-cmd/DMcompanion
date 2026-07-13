@@ -82,7 +82,7 @@ function noteBadge(visibility: string) {
 }
 
 function snippet(value: string | null | undefined) {
-  if (!value) return <span className="text-zinc-600">No notes yet.</span>
+  if (!value) return <span className="text-faint">No notes yet.</span>
   return value
 }
 
@@ -157,8 +157,8 @@ function DMStoryWorkspace({
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Story Tools</h1>
-          <p className="text-sm text-zinc-500 mt-1">
+          <h1 className="text-2xl font-bold text-content">Story Tools</h1>
+          <p className="text-sm text-faint mt-1">
             Manage quests, NPCs, locations, notes, handouts, and recaps for the campaign.
           </p>
         </div>
@@ -191,7 +191,7 @@ function PlayerJournal({ quests, npcs, locations, notes, handouts, recaps }: Sto
     <div className="flex flex-col gap-5">
       <div>
         <CardEyebrow>Journal</CardEyebrow>
-        <h1 className="text-2xl font-bold text-zinc-100">Party Journal</h1>
+        <h1 className="text-2xl font-bold text-content">Party Journal</h1>
         <CardDescription className="mt-1 text-sm">
           Shared campaign notes, discoveries, handouts, and session recaps.
         </CardDescription>
@@ -202,18 +202,18 @@ function PlayerJournal({ quests, npcs, locations, notes, handouts, recaps }: Sto
           { id: 'quests', label: 'Quests', badge: quests.length, content: <PlayerCards items={quests} render={(quest) => (
             <JournalCard title={quest.title} badge={<Badge variant="default">{quest.status}</Badge>}>
               <p>{snippet(quest.player_visible_description)}</p>
-              {quest.rewards && <p className="mt-2 text-amber-200">Rewards: {quest.rewards}</p>}
+              {quest.rewards && <p className="mt-2 text-accent">Rewards: {quest.rewards}</p>}
             </JournalCard>
           )} /> },
           { id: 'npcs', label: 'NPCs', badge: npcs.length, content: <PlayerCards items={npcs} render={(npc) => (
             <JournalCard title={npc.name} badge={npc.role ? <Badge variant="default">{npc.role}</Badge> : null}>
-              {npc.relationship_to_party && <p className="mb-2 text-zinc-400">{npc.relationship_to_party}</p>}
+              {npc.relationship_to_party && <p className="mb-2 text-muted">{npc.relationship_to_party}</p>}
               <p>{snippet(npc.player_visible_notes)}</p>
             </JournalCard>
           )} /> },
           { id: 'locations', label: 'Locations', badge: locations.length, content: <PlayerCards items={locations} render={(location) => (
             <JournalCard title={location.name}>
-              {location.description && <p className="mb-2 text-zinc-400">{location.description}</p>}
+              {location.description && <p className="mb-2 text-muted">{location.description}</p>}
               <p>{snippet(location.player_visible_notes)}</p>
             </JournalCard>
           )} /> },
@@ -230,7 +230,7 @@ function PlayerJournal({ quests, npcs, locations, notes, handouts, recaps }: Sto
                   href={handout.signed_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-3 inline-flex text-sm font-medium text-amber-400 hover:text-amber-300"
+                  className="mt-3 inline-flex text-sm font-medium text-accent hover:text-accent-hover"
                 >
                   Open handout
                 </a>
@@ -258,7 +258,7 @@ function PlayerCards<T extends { id: string }>({
   if (items.length === 0) {
     return (
       <Card className="border-dashed">
-        <p className="text-sm text-zinc-500">Nothing has been shared here yet.</p>
+        <p className="text-sm text-faint">Nothing has been shared here yet.</p>
       </Card>
     )
   }
@@ -277,10 +277,10 @@ function JournalCard({
   return (
     <Card tone="panel">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
+        <h2 className="text-lg font-semibold text-content">{title}</h2>
         {badge}
       </div>
-      <div className="mt-3 text-sm text-zinc-500 whitespace-pre-wrap">{children}</div>
+      <div className="mt-3 text-sm text-faint whitespace-pre-wrap">{children}</div>
     </Card>
   )
 }
@@ -308,7 +308,7 @@ function QuestTab({ campaignId, quests }: { campaignId: string; quests: Quest[] 
             <div className="flex items-start justify-between gap-3">
               <div>
                 <CardTitle>{quest.title}</CardTitle>
-                <p className="text-xs text-zinc-500 mt-1">{quest.status}</p>
+                <p className="text-xs text-faint mt-1">{quest.status}</p>
               </div>
               {visibilityBadge(quest.visible_to_players)}
             </div>
@@ -359,7 +359,7 @@ function NpcTab({
           <div className="flex items-start justify-between gap-3">
             <div>
               <CardTitle>{npc.name}</CardTitle>
-              {npc.role && <p className="text-xs text-zinc-500 mt-1">{npc.role}</p>}
+              {npc.role && <p className="text-xs text-faint mt-1">{npc.role}</p>}
             </div>
             {visibilityBadge(npc.visible_to_players)}
           </div>
@@ -498,7 +498,7 @@ function HandoutsTab({ campaignId, handouts }: { campaignId: string; handouts: H
           <div className="flex items-start justify-between gap-3">
             <div>
               <CardTitle>{handout.title}</CardTitle>
-              <p className="text-xs text-zinc-500 mt-1">{formatBytes(handout.file_size)}</p>
+              <p className="text-xs text-faint mt-1">{formatBytes(handout.file_size)}</p>
             </div>
             {handout.is_revealed ? <Badge variant="success">Revealed</Badge> : <Badge variant="warning">Hidden</Badge>}
           </div>
@@ -508,7 +508,7 @@ function HandoutsTab({ campaignId, handouts }: { campaignId: string; handouts: H
               href={handout.signed_url}
               target="_blank"
               rel="noreferrer"
-              className="mt-3 inline-flex text-sm font-medium text-amber-400 hover:text-amber-300"
+              className="mt-3 inline-flex text-sm font-medium text-accent hover:text-accent-hover"
             >
               Open file
             </a>
@@ -549,7 +549,7 @@ function RecapsTab({ campaignId, recaps }: { campaignId: string; recaps: Session
           <div className="flex items-start justify-between gap-3">
             <div>
               <CardTitle>{recap.session_title}</CardTitle>
-              {recap.session_date && <p className="text-xs text-zinc-500 mt-1">{recap.session_date}</p>}
+              {recap.session_date && <p className="text-xs text-faint mt-1">{recap.session_date}</p>}
             </div>
             {visibilityBadge(recap.visible_to_players, 'Shared')}
           </div>
@@ -571,7 +571,7 @@ function RecapsTab({ campaignId, recaps }: { campaignId: string; recaps: Session
 
 function RecapBody({ recap, includeDmNotes }: { recap: SessionRecap; includeDmNotes: boolean }) {
   return (
-    <div className="mt-3 grid gap-3 text-sm text-zinc-500">
+    <div className="mt-3 grid gap-3 text-sm text-faint">
       <StoryText label="What happened" value={recap.what_happened} />
       <StoryText label="Important NPCs" value={recap.important_npcs} />
       <StoryText label="Locations visited" value={recap.locations_visited} />
@@ -710,7 +710,7 @@ function HandoutUploader({ campaignId }: { campaignId: string }) {
       <Textarea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
       <label
         htmlFor="handout-file"
-        className="rounded-lg border-2 border-dashed border-zinc-700 px-4 py-8 text-center text-sm text-zinc-400 hover:border-zinc-600 cursor-pointer"
+        className="rounded-lg border-2 border-dashed border-border-strong px-4 py-8 text-center text-sm text-muted hover:border-border-strong cursor-pointer"
       >
         {file ? file.name : 'Choose image, PDF, or text file'}
       </label>
@@ -752,10 +752,10 @@ function StoryText({
 }) {
   return (
     <div className="mt-3">
-      <p className={`text-xs font-medium ${privateText ? 'text-amber-400' : 'text-zinc-400'}`}>
+      <p className={`text-xs font-medium ${privateText ? 'text-accent' : 'text-muted'}`}>
         {label}
       </p>
-      <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-500">{snippet(value)}</p>
+      <p className="mt-1 whitespace-pre-wrap text-sm text-faint">{snippet(value)}</p>
     </div>
   )
 }
@@ -763,7 +763,7 @@ function StoryText({
 function EmptyList({ label }: { label: string }) {
   return (
     <Card className="border-dashed lg:col-span-2">
-      <p className="text-sm text-zinc-500">{label}</p>
+      <p className="text-sm text-faint">{label}</p>
     </Card>
   )
 }

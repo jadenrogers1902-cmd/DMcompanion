@@ -966,7 +966,7 @@ export function MapCanvas({
   const movementPathSquares = buildMovementPathSquares(movementPathToken, movementPathTarget)
 
   return (
-    <div className="relative w-full h-full overflow-hidden rounded-lg bg-zinc-950 select-none">
+    <div className="relative w-full h-full overflow-hidden rounded-lg bg-canvas select-none">
       <div
         ref={viewportRef}
         className={`absolute inset-0 touch-none ${drawingToolActive ? 'cursor-crosshair' : 'cursor-grab active:cursor-grabbing'}`}
@@ -1501,7 +1501,7 @@ export function MapCanvas({
                 )}
                 {showHealth && (
                   <div
-                    className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 flex min-w-20 -translate-x-1/2 items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/95 px-1.5 py-1 shadow-lg shadow-black/40"
+                    className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 flex min-w-20 -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-canvas/95 px-1.5 py-1 shadow-lg shadow-black/40"
                     aria-hidden="true"
                   >
                     <Heart
@@ -1511,7 +1511,7 @@ export function MapCanvas({
                           : 'fill-red-500 text-red-300'
                       }`}
                     />
-                    <div className="h-1.5 w-12 overflow-hidden rounded-full bg-zinc-800">
+                    <div className="h-1.5 w-12 overflow-hidden rounded-full bg-panel-raised">
                       <div
                         className={`h-full rounded-full ${hpBarClass(currentHp, maxHp, Boolean(t.is_defeated))}`}
                         style={{ width: `${hpPct}%` }}
@@ -1539,7 +1539,7 @@ export function MapCanvas({
               (viewportRef.current?.clientHeight ?? 0) / 2,
             1.2,
           )}
-          className="w-9 h-9 rounded-lg bg-zinc-900/90 border border-zinc-700 text-zinc-200 text-lg font-semibold hover:bg-zinc-800"
+          className="w-9 h-9 rounded-lg bg-panel/90 border border-border-strong text-content text-lg font-semibold hover:bg-panel-raised"
           aria-label="Zoom in"
         >
           +
@@ -1553,7 +1553,7 @@ export function MapCanvas({
               (viewportRef.current?.clientHeight ?? 0) / 2,
             0.8,
           )}
-          className="w-9 h-9 rounded-lg bg-zinc-900/90 border border-zinc-700 text-zinc-200 text-lg font-semibold hover:bg-zinc-800"
+          className="w-9 h-9 rounded-lg bg-panel/90 border border-border-strong text-content text-lg font-semibold hover:bg-panel-raised"
           aria-label="Zoom out"
         >
           −
@@ -1561,7 +1561,7 @@ export function MapCanvas({
         <button
           type="button"
           onClick={fit}
-          className="w-9 h-9 rounded-lg bg-zinc-900/90 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 flex items-center justify-center"
+          className="w-9 h-9 rounded-lg bg-panel/90 border border-border-strong text-muted hover:bg-panel-raised flex items-center justify-center"
           aria-label="Fit to screen"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

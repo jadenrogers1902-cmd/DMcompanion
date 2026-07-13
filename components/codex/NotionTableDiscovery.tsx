@@ -142,7 +142,7 @@ export function NotionTableDiscovery({
       <CardHeader>
         <CardTitle>Find Tables from Notion</CardTitle>
       </CardHeader>
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-faint">
         Discover the Notion tables shared with your integration, auto-map their
         fields, and import them as Adventure Codex table cards. This imports a synced
         copy into Companion — it does not modify Notion.
@@ -177,7 +177,7 @@ export function NotionTableDiscovery({
             <Button size="sm" variant="secondary" onClick={selectAll}>Select all</Button>
             <Button size="sm" variant="secondary" onClick={selectRecommended}>Select recommended</Button>
             <Button size="sm" variant="secondary" onClick={clearSelection}>Clear</Button>
-            <span className="text-xs text-zinc-500">{selected.size} selected</span>
+            <span className="text-xs text-faint">{selected.size} selected</span>
             <Button
               size="sm"
               onClick={importSelected}
@@ -194,18 +194,18 @@ export function NotionTableDiscovery({
               const isSelected = selected.has(t.databaseId)
               const chosenType = docTypeFor(t)
               return (
-                <div key={t.databaseId} className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+                <div key={t.databaseId} className="rounded-lg border border-border bg-panel p-3">
                   <div className="flex items-start gap-3">
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggle(t.databaseId)}
-                      className="mt-1 h-4 w-4 rounded border-zinc-700 bg-zinc-950"
+                      className="mt-1 h-4 w-4 rounded border-border-strong bg-shell"
                       aria-label={`Select ${t.title}`}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-zinc-100">{t.title}</span>
+                        <span className="truncate text-sm font-semibold text-content">{t.title}</span>
                         <Badge variant="player">Source: Notion</Badge>
                         {t.imported ? (
                           <Badge variant="success">Imported</Badge>
@@ -215,7 +215,7 @@ export function NotionTableDiscovery({
                           <Badge variant="default">Ready</Badge>
                         )}
                       </div>
-                      <p className="mt-1 text-[11px] text-zinc-500">
+                      <p className="mt-1 text-[11px] text-faint">
                         {t.fieldCount} field{t.fieldCount === 1 ? '' : 's'} · {t.auto.mapping.relation_properties.length} relation field(s)
                       </p>
 
@@ -235,29 +235,29 @@ export function NotionTableDiscovery({
                         <button
                           type="button"
                           onClick={() => togglePreview(t.databaseId)}
-                          className="rounded border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 hover:border-amber-500/50"
+                          className="rounded border border-border-strong px-2.5 py-1.5 text-xs text-content hover:border-accent/50"
                         >
                           {previewOpen.has(t.databaseId) ? 'Hide fields' : 'Preview fields'}
                         </button>
                       </div>
 
                       {previewOpen.has(t.databaseId) && (
-                        <div className="mt-2 overflow-x-auto rounded-md border border-zinc-800">
-                          <table className="min-w-full divide-y divide-zinc-800 text-xs">
-                            <thead className="bg-zinc-950/80 text-left text-zinc-500">
+                        <div className="mt-2 overflow-x-auto rounded-md border border-border">
+                          <table className="min-w-full divide-y divide-border text-xs">
+                            <thead className="bg-shell/80 text-left text-faint">
                               <tr>
                                 <th className="px-2 py-1.5">Notion field</th>
                                 <th className="px-2 py-1.5">Type</th>
                                 <th className="px-2 py-1.5">Suggested mapping</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-zinc-800">
+                            <tbody className="divide-y divide-border">
                               {t.auto.fieldPlan.map((f) => (
                                 <tr key={f.name}>
-                                  <td className="px-2 py-1.5 text-zinc-200">{f.name}</td>
-                                  <td className="px-2 py-1.5 text-zinc-500">{f.type}</td>
+                                  <td className="px-2 py-1.5 text-content">{f.name}</td>
+                                  <td className="px-2 py-1.5 text-faint">{f.type}</td>
                                   <td className="px-2 py-1.5">
-                                    <span className={f.role === 'ignored' ? 'text-zinc-600' : 'text-zinc-300'}>{roleLabel(f.role)}</span>
+                                    <span className={f.role === 'ignored' ? 'text-faint' : 'text-muted'}>{roleLabel(f.role)}</span>
                                     {f.confidence === 'low' && f.role !== 'ignored' && <span className="ml-1 text-yellow-500">(review)</span>}
                                   </td>
                                 </tr>
@@ -282,7 +282,7 @@ export function NotionTableDiscovery({
       )}
 
       {searched && tables.length === 0 && !error && (
-        <p className="mt-3 text-sm text-zinc-500">No tables found.</p>
+        <p className="mt-3 text-sm text-faint">No tables found.</p>
       )}
     </Card>
   )

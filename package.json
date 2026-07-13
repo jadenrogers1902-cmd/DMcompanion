@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "audit:theme": "node scripts/audit-theme-legacy.mjs",
     "check:e2e-env": "node scripts/check-e2e-env.mjs",
     "db:migrate": "node scripts/supabase-migrate.mjs",
     "test:e2e": "playwright test",

@@ -4,13 +4,22 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-zinc-950">
-      <div className="w-full max-w-sm">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-canvas px-4 py-12">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-80"
+        aria-hidden="true"
+        style={{
+          background:
+            'radial-gradient(circle at 50% 12%, rgb(184 167 255 / 0.18), transparent 30rem), radial-gradient(circle at 18% 88%, rgb(103 232 194 / 0.07), transparent 24rem)',
+        }}
+      />
+      <div className="pointer-events-none absolute top-[-18rem] h-[34rem] w-[34rem] rounded-full border border-accent/10" aria-hidden="true" />
+      <div className="relative z-10 w-full max-w-sm">
         {/* Logo / App name */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 mb-4">
+        <div className="mb-8 text-center">
+          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl border border-accent/45 bg-accent/10 shadow-[0_0_32px_rgb(184_167_255/0.12)]">
             <svg
-              className="w-6 h-6 text-amber-400"
+              className="h-6 w-6 text-accent"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -23,8 +32,8 @@ export default function AuthLayout({
               />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-zinc-100">DM Companion</h1>
-          <p className="text-sm text-zinc-500 mt-1">Campaign management for adventurers</p>
+          <h1 className="font-display text-3xl font-semibold tracking-wide text-content">DM Companion</h1>
+          <p className="mt-1 text-sm text-faint">Campaign management for adventurers</p>
         </div>
         {children}
       </div>

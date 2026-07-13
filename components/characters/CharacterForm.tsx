@@ -109,7 +109,7 @@ export function CharacterForm({ campaignId, character }: CharacterFormProps) {
             const mod = abilityMod(abilityScores[key] ?? 10)
             return (
               <div key={key} className="flex flex-col items-center gap-1.5">
-                <label htmlFor={key} className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <label htmlFor={key} className="text-xs font-semibold text-muted uppercase tracking-wider">
                   {ABILITY_LABELS[key]}
                 </label>
                 <input
@@ -125,9 +125,9 @@ export function CharacterForm({ campaignId, character }: CharacterFormProps) {
                       [key]: Number(e.target.value) || 0,
                     }))
                   }
-                  className="w-full text-center rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-2 text-base font-semibold text-zinc-100 outline-none focus:border-amber-500"
+                  className="w-full text-center rounded-lg border border-border-strong bg-panel px-2 py-2 text-base font-semibold text-content outline-none focus:border-accent"
                 />
-                <span className="text-xs text-zinc-500 font-mono">{formatMod(mod)}</span>
+                <span className="text-xs text-faint font-mono">{formatMod(mod)}</span>
               </div>
             )
           })}

@@ -127,13 +127,13 @@ export function SendToLiveMapButton({
           aria-label="Send to Live Map"
           aria-modal="true"
         >
-          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 p-4">
-              <h2 className="text-lg font-semibold text-zinc-100">Send to Live Map</h2>
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border bg-canvas shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <h2 className="text-lg font-semibold text-content">Send to Live Map</h2>
               <button
                 type="button"
                 onClick={closeDialog}
-                className="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+                className="rounded-md p-1 text-faint hover:bg-panel-raised hover:text-content"
                 aria-label="Close"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -144,7 +144,7 @@ export function SendToLiveMapButton({
 
             <div className="max-h-[70vh] overflow-y-auto p-4">
               {dirty && !result && (
-                <p className="mb-3 rounded-lg border border-amber-800/60 bg-amber-900/20 px-3 py-2 text-sm text-amber-300">
+                <p className="mb-3 rounded-lg border border-accent/60 bg-accent/20 px-3 py-2 text-sm text-accent">
                   Save your changes first — deploying copies the last saved version.
                 </p>
               )}
@@ -175,32 +175,32 @@ export function SendToLiveMapButton({
               ) : (
                 <div className="flex flex-col gap-2.5">
                   {ctx?.preview && (
-                    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-                      <h3 className="text-sm font-semibold text-zinc-100">Deploy preview</h3>
+                    <div className="rounded-lg border border-border bg-panel p-3">
+                      <h3 className="text-sm font-semibold text-content">Deploy preview</h3>
                       <dl className="mt-2 grid grid-cols-2 gap-2 text-xs">
                         <div>
-                          <dt className="text-zinc-500">Visible tokens</dt>
+                          <dt className="text-faint">Visible tokens</dt>
                           <dd className="font-semibold text-emerald-300">{ctx.preview.visibleTokens}</dd>
                         </div>
                         <div>
-                          <dt className="text-zinc-500">Hidden/discoverable</dt>
-                          <dd className="font-semibold text-amber-300">{ctx.preview.hiddenOrDiscoverableTokens}</dd>
+                          <dt className="text-faint">Hidden/discoverable</dt>
+                          <dd className="font-semibold text-accent">{ctx.preview.hiddenOrDiscoverableTokens}</dd>
                         </div>
                         <div>
-                          <dt className="text-zinc-500">Rooms</dt>
-                          <dd className="font-semibold text-zinc-200">{ctx.preview.rooms}</dd>
+                          <dt className="text-faint">Rooms</dt>
+                          <dd className="font-semibold text-content">{ctx.preview.rooms}</dd>
                         </div>
                         <div>
-                          <dt className="text-zinc-500">Fog masks</dt>
-                          <dd className="font-semibold text-zinc-200">{ctx.preview.fogMasks}</dd>
+                          <dt className="text-faint">Fog masks</dt>
+                          <dd className="font-semibold text-content">{ctx.preview.fogMasks}</dd>
                         </div>
                         <div>
-                          <dt className="text-zinc-500">Transport links</dt>
-                          <dd className="font-semibold text-zinc-200">{ctx.preview.transportLinks}</dd>
+                          <dt className="text-faint">Transport links</dt>
+                          <dd className="font-semibold text-content">{ctx.preview.transportLinks}</dd>
                         </div>
                         <div>
-                          <dt className="text-zinc-500">Codex links</dt>
-                          <dd className="font-semibold text-zinc-200">{ctx.preview.codexLinks}</dd>
+                          <dt className="text-faint">Codex links</dt>
+                          <dd className="font-semibold text-content">{ctx.preview.codexLinks}</dd>
                         </div>
                       </dl>
                     </div>
@@ -214,21 +214,21 @@ export function SendToLiveMapButton({
                         key={info.mode}
                         className={`rounded-lg border p-3 ${
                           isReplace
-                            ? 'border-amber-800/50 bg-amber-950/20'
-                            : 'border-zinc-800 bg-zinc-900'
+                            ? 'border-accent/50 bg-accent/20'
+                            : 'border-border bg-panel'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="text-sm font-semibold text-zinc-100">{info.title}</h3>
-                            <p className="mt-0.5 text-xs text-zinc-400">{info.description}</p>
+                            <h3 className="text-sm font-semibold text-content">{info.title}</h3>
+                            <p className="mt-0.5 text-xs text-muted">{info.description}</p>
                             {info.mode === 'duplicate' && deployCount > 0 && (
-                              <p className="mt-1 text-[11px] text-zinc-500">
+                              <p className="mt-1 text-[11px] text-faint">
                                 Already deployed {deployCount} time{deployCount === 1 ? '' : 's'} from this prep.
                               </p>
                             )}
                             {isReplace && !loadingCtx && (
-                              <p className="mt-1 text-[11px] text-amber-400/80">
+                              <p className="mt-1 text-[11px] text-accent/80">
                                 {ctx?.activeMapName
                                   ? `Players currently see “${ctx.activeMapName}”. This will swap it out now.`
                                   : 'No map is active yet — this will become the active map.'}

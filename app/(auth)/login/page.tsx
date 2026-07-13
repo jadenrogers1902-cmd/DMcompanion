@@ -11,9 +11,9 @@ export default function LoginPage() {
   const [state, formAction, pending] = useActionState(login, { error: null })
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-      <h2 className="text-lg font-semibold text-zinc-100 mb-1">Sign in</h2>
-      <p className="text-sm text-zinc-500 mb-6">Welcome back, adventurer.</p>
+    <div className="moonlit-panel rounded-2xl p-6 backdrop-blur-xl">
+      <h2 className="font-display mb-1 text-2xl font-semibold text-content">Sign in</h2>
+      <p className="mb-6 text-sm text-faint">Welcome back, adventurer.</p>
 
       <form action={formAction} className="flex flex-col gap-4">
         {state.error && <Alert message={state.error} />}
@@ -40,9 +40,9 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <p className="text-sm text-zinc-500 text-center mt-6">
+      <p className="mt-6 text-center text-sm text-faint">
         No account?{' '}
-        <Link href="/register" className="text-amber-400 hover:text-amber-300">
+        <Link href="/register" className="font-medium text-accent hover:text-accent-hover">
           Create one
         </Link>
       </p>

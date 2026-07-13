@@ -14,7 +14,7 @@ export function AdventureBreadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
         <Fragment key={`${crumb.label}-${index}`}>
           {index > 0 && (
             <svg
-              className="h-3.5 w-3.5 shrink-0 text-zinc-700"
+              className="h-3.5 w-3.5 shrink-0 text-faint"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -25,11 +25,11 @@ export function AdventureBreadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
             </svg>
           )}
           {crumb.href ? (
-            <Link href={crumb.href} className="text-zinc-500 transition-colors hover:text-zinc-300">
+            <Link href={crumb.href} className="text-faint transition-colors hover:text-muted">
               {crumb.label}
             </Link>
           ) : (
-            <span className="font-medium text-zinc-300">{crumb.label}</span>
+            <span className="font-medium text-muted">{crumb.label}</span>
           )}
         </Fragment>
       ))}

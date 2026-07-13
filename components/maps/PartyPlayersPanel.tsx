@@ -96,20 +96,20 @@ export function PartyPlayersPanel({
   return (
     <>
       {open && (
-        <div className="absolute left-3 top-3 z-30 flex max-h-[calc(100%-6rem)] w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950/95 shadow-2xl backdrop-blur">
+        <div className="absolute left-3 top-3 z-30 flex max-h-[calc(100%-6rem)] w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-border-strong bg-canvas/95 shadow-2xl backdrop-blur">
           {/* Header */}
-          <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2.5">
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-zinc-400" aria-hidden="true" />
-              <p className="text-sm font-semibold text-zinc-100">Party &amp; Players</p>
+              <Users className="h-4 w-4 text-muted" aria-hidden="true" />
+              <p className="text-sm font-semibold text-content">Party &amp; Players</p>
             </div>
-            <button type="button" onClick={onToggle} className="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200" aria-label="Close panel">
+            <button type="button" onClick={onToggle} className="rounded-md p-1 text-faint hover:bg-panel-raised hover:text-content" aria-label="Close panel">
               <X className="h-4 w-4" />
             </button>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 border-b border-zinc-800 p-2">
+          <div className="flex gap-1 border-b border-border p-2">
             <TabButton active={tab === 'travel'} onClick={() => setTab('travel')}>
               Travel &amp; Party
             </TabButton>
@@ -126,7 +126,7 @@ export function PartyPlayersPanel({
                   <TravelModeButton active={travelMode === 'freeroam'} label="Freeroam" icon={<Unlock className="h-4 w-4" />} disabled={busy} onClick={() => onUpdate({ travelMode: 'freeroam' })} />
                   <TravelModeButton active={travelMode === 'combat'} label="Combat" icon={<Swords className="h-4 w-4" />} disabled={busy} onClick={() => onUpdate({ travelMode: 'combat' })} />
                 </div>
-                <p className="text-[11px] text-zinc-500">1 square = 5 ft. Default travel allowance is 30 ft.</p>
+                <p className="text-[11px] text-faint">1 square = 5 ft. Default travel allowance is 30 ft.</p>
 
                 <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3">
                   <div className="flex items-start justify-between gap-3">
@@ -136,7 +136,7 @@ export function PartyPlayersPanel({
                         New player movement reveals this much fog around each moved token.
                       </p>
                     </div>
-                    <span className="rounded-md border border-sky-400/40 bg-zinc-950 px-2 py-1 text-xs font-semibold text-sky-100">
+                    <span className="rounded-md border border-sky-400/40 bg-canvas px-2 py-1 text-xs font-semibold text-sky-100">
                       {normalizedVisionRadius} ft
                     </span>
                   </div>
@@ -150,7 +150,7 @@ export function PartyPlayersPanel({
                         className={`rounded-md border px-2 py-1.5 text-[11px] font-semibold transition disabled:opacity-50 ${
                           normalizedVisionRadius === feet
                             ? 'border-sky-300 bg-sky-400/20 text-sky-50'
-                            : 'border-zinc-700 bg-zinc-950 text-zinc-300 hover:border-sky-500/60 hover:text-sky-100'
+                            : 'border-border-strong bg-canvas text-muted hover:border-sky-500/60 hover:text-sky-100'
                         }`}
                       >
                         {feet === 0 ? 'None' : `${feet} ft`}
@@ -167,7 +167,7 @@ export function PartyPlayersPanel({
                       value={normalizedVisionRadius}
                       disabled={busy}
                       onChange={(event) => onUpdate({ playerVisionRadiusFeet: Number(event.target.value) })}
-                      className="mt-1 min-h-9 w-full rounded-md border border-sky-500/30 bg-zinc-950 px-3 py-1.5 text-sm text-zinc-100 outline-none transition focus:border-sky-300 disabled:opacity-50"
+                      className="mt-1 min-h-9 w-full rounded-md border border-sky-500/30 bg-canvas px-3 py-1.5 text-sm text-content outline-none transition focus:border-sky-300 disabled:opacity-50"
                     />
                   </label>
                 </div>
@@ -178,22 +178,22 @@ export function PartyPlayersPanel({
                   <ToggleRow label="Lock party options" checked={partyOptionsLocked} disabled={busy || travelMode === 'combat'} onChange={(v) => onUpdate({ partyOptionsLocked: v })} />
                 </div>
 
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Party approvals</p>
+                <div className="rounded-lg border border-border bg-panel p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Party approvals</p>
                   {activeParty && (
                     <p className="mt-2 text-xs text-emerald-300">
                       Active: {activeParty.name} · led by {playerName(activeParty.leader_user_id)}
                     </p>
                   )}
                   {pendingParties.length === 0 ? (
-                    <p className="mt-2 text-xs text-zinc-500">No parties waiting for approval.</p>
+                    <p className="mt-2 text-xs text-faint">No parties waiting for approval.</p>
                   ) : (
                     <div className="mt-2 grid gap-2">
                       {pendingParties.map((party) => (
-                        <div key={party.id} className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
-                          <p className="text-xs font-medium text-zinc-100">{party.name}</p>
-                          <p className="mt-1 text-[11px] text-zinc-500">Leader: {playerName(party.leader_user_id)}</p>
-                          <p className="mt-1 text-[11px] text-zinc-500">{partyMemberSummary(party.id)}</p>
+                        <div key={party.id} className="rounded-md border border-border bg-canvas p-2">
+                          <p className="text-xs font-medium text-content">{party.name}</p>
+                          <p className="mt-1 text-[11px] text-faint">Leader: {playerName(party.leader_user_id)}</p>
+                          <p className="mt-1 text-[11px] text-faint">{partyMemberSummary(party.id)}</p>
                           <div className="mt-2 flex gap-2">
                             <Button size="sm" variant="secondary" onClick={() => onReviewParty(party.id, false)} loading={busy}>Deny</Button>
                             <Button size="sm" onClick={() => onReviewParty(party.id, true)} loading={busy}>Approve</Button>
@@ -205,13 +205,13 @@ export function PartyPlayersPanel({
                 </div>
 
                 {feedback && (
-                  <p className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-amber-200">{feedback}</p>
+                  <p className="rounded-md border border-border bg-panel px-3 py-2 text-xs text-accent">{feedback}</p>
                 )}
               </div>
             ) : (
               <div className="flex flex-col gap-2">
                 {roster.length === 0 && (
-                  <p className="text-xs text-zinc-500">No players have joined this campaign yet.</p>
+                  <p className="text-xs text-faint">No players have joined this campaign yet.</p>
                 )}
                 {roster.map(({ player, token }) => (
                   <PlayerRow
@@ -236,8 +236,8 @@ export function PartyPlayersPanel({
         type="button"
         onClick={onToggle}
         aria-label="Open party and player controls"
-        className={`absolute bottom-4 left-24 z-20 flex h-14 w-14 items-center justify-center rounded-full border shadow-2xl transition focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:ring-offset-2 focus:ring-offset-zinc-950 ${
-          open ? 'border-zinc-300 bg-zinc-300 text-zinc-950' : 'border-zinc-600 bg-zinc-700 text-zinc-100 hover:bg-zinc-600'
+        className={`absolute bottom-4 left-24 z-20 flex h-14 w-14 items-center justify-center rounded-full border shadow-2xl transition focus:outline-none focus:ring-2 focus:ring-content focus:ring-offset-2 focus:ring-offset-canvas ${
+          open ? 'border-content bg-muted text-on-accent' : 'border-border-strong bg-control text-content hover:bg-control'
         }`}
       >
         <Users className="h-6 w-6" aria-hidden="true" />
@@ -252,7 +252,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
       type="button"
       onClick={onClick}
       className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition ${
-        active ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+        active ? 'bg-panel-raised text-content' : 'text-muted hover:bg-panel hover:text-content'
       }`}
     >
       {children}
@@ -262,9 +262,9 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 function ToggleRow({ label, checked, disabled, onChange }: { label: string; checked: boolean; disabled?: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-300">
+    <label className="flex items-center justify-between gap-3 rounded-lg border border-border bg-panel px-3 py-2 text-xs text-muted">
       <span>{label}</span>
-      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-amber-500" />
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-accent" />
     </label>
   )
 }
@@ -276,7 +276,7 @@ function TravelModeButton({ active, label, icon, disabled, onClick }: { active: 
       onClick={onClick}
       disabled={disabled}
       className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-[11px] font-medium transition disabled:opacity-50 ${
-        active ? 'border-amber-500/70 bg-amber-500/15 text-amber-200' : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500'
+        active ? 'border-accent/70 bg-accent/15 text-accent' : 'border-border-strong bg-panel text-muted hover:border-border-strong'
       }`}
     >
       {icon}
@@ -304,10 +304,10 @@ function PlayerRow({
 }) {
   if (!token) {
     return (
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2.5">
+      <div className="rounded-lg border border-border bg-panel/40 px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium text-zinc-300">{name}</span>
-          <span className="shrink-0 text-[10px] uppercase tracking-wide text-zinc-600">No token here</span>
+          <span className="truncate text-sm font-medium text-muted">{name}</span>
+          <span className="shrink-0 text-[10px] uppercase tracking-wide text-faint">No token here</span>
         </div>
       </div>
     )
@@ -318,29 +318,29 @@ function PlayerRow({
   const hpColor = hpBarClass(token.current_hp, maxHp, token.is_defeated)
 
   return (
-    <div className={`rounded-lg border px-3 py-2.5 ${selected ? 'border-amber-500/60 bg-amber-500/5' : 'border-zinc-800 bg-zinc-900'}`}>
+    <div className={`rounded-lg border px-3 py-2.5 ${selected ? 'border-accent/60 bg-accent/5' : 'border-border bg-panel'}`}>
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-zinc-100">{name}</p>
-          <p className="truncate text-[11px] text-zinc-500">{token.name || 'Token'}</p>
+          <p className="truncate text-sm font-medium text-content">{name}</p>
+          <p className="truncate text-[11px] text-faint">{token.name || 'Token'}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {token.movement_locked && <span className="rounded bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-medium text-orange-300">Locked</span>}
           {token.movement_override_allowed && <span className="rounded bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-medium text-violet-300">Override</span>}
-          <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-300">AC {token.armor_class}</span>
+          <span className="rounded bg-panel-raised px-1.5 py-0.5 text-[10px] font-medium text-muted">AC {token.armor_class}</span>
         </div>
       </div>
 
       {maxHp > 0 && (
         <div className="mt-2">
-          <div className="flex items-center justify-between text-[10px] text-zinc-500">
+          <div className="flex items-center justify-between text-[10px] text-faint">
             <span>HP</span>
             <span>
               {token.current_hp}
               {token.temp_hp > 0 ? ` (+${token.temp_hp})` : ''} / {maxHp}
             </span>
           </div>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-panel-raised">
             <div className={`h-full rounded-full ${hpColor}`} style={{ width: `${hpPct}%` }} />
           </div>
         </div>
@@ -365,7 +365,7 @@ function RowAction({ label, icon, onClick }: { label: string; icon: React.ReactN
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-[11px] font-medium text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100"
+      className="inline-flex items-center gap-1 rounded-md border border-border-strong bg-canvas px-2 py-1 text-[11px] font-medium text-muted transition hover:border-border-strong hover:text-content"
     >
       {icon}
       {label}

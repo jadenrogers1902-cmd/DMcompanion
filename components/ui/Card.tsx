@@ -2,7 +2,7 @@ import { type HTMLAttributes } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   padding?: 'xs' | 'sm' | 'md' | 'lg' | 'none'
-  tone?: 'default' | 'panel' | 'subtle'
+  tone?: 'default' | 'panel' | 'subtle' | 'overlay' | 'interactive' | 'live' | 'dm' | 'player'
   rounded?: 'lg' | 'xl'
 }
 
@@ -15,9 +15,14 @@ const paddingClasses = {
 }
 
 const toneClasses = {
-  default: 'bg-zinc-900 border border-zinc-800',
-  panel: 'bg-zinc-900 border border-zinc-800',
-  subtle: 'bg-zinc-950 border border-zinc-800',
+  default: 'border border-border bg-panel shadow-[inset_0_1px_rgb(242_236_255/0.025)]',
+  panel: 'border border-border bg-panel-raised/75 shadow-[inset_0_1px_rgb(242_236_255/0.025)]',
+  subtle: 'border border-border bg-shell/90',
+  overlay: 'border border-border-strong bg-overlay/95 shadow-2xl backdrop-blur-xl',
+  interactive: 'border border-border bg-panel transition hover:border-accent/50 hover:bg-panel-raised',
+  live: 'border border-live/45 bg-live/8',
+  dm: 'border border-dm-only/40 bg-dm-only/8',
+  player: 'border border-player-safe/40 bg-player-safe/8',
 }
 
 const roundedClasses = {
@@ -65,7 +70,7 @@ export function CardTitle({
   className?: string
 }) {
   return (
-    <h2 className={`text-lg font-semibold text-zinc-100 ${className}`}>
+    <h2 className={`text-lg font-semibold text-content ${className}`}>
       {children}
     </h2>
   )
@@ -79,7 +84,7 @@ export function CardEyebrow({
   className?: string
 }) {
   return (
-    <p className={`text-[11px] font-semibold uppercase tracking-wide text-zinc-500 ${className}`}>
+    <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] text-faint ${className}`}>
       {children}
     </p>
   )
@@ -93,7 +98,7 @@ export function CardDescription({
   className?: string
 }) {
   return (
-    <p className={`text-xs text-zinc-500 ${className}`}>
+    <p className={`text-xs leading-relaxed text-faint ${className}`}>
       {children}
     </p>
   )

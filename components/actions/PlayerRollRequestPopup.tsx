@@ -520,23 +520,23 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
   }
 
   return (
-    <aside className="fixed inset-x-3 bottom-24 z-50 mx-auto max-w-sm rounded-xl border border-amber-500/30 bg-zinc-950 p-4 shadow-2xl shadow-black/40 md:bottom-5 md:left-[16.5rem] md:right-auto md:mx-0 md:w-80 md:max-h-[calc(100vh-2.5rem)] md:overflow-y-auto">
+    <aside className="fixed inset-x-3 bottom-24 z-50 mx-auto max-w-sm rounded-xl border border-accent/30 bg-canvas p-4 shadow-2xl shadow-black/40 md:bottom-5 md:left-[16.5rem] md:right-auto md:mx-0 md:w-80 md:max-h-[calc(100vh-2.5rem)] md:overflow-y-auto">
       {item && (
         <>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardEyebrow className="text-amber-300">
+              <CardEyebrow className="text-accent">
                 {isAttackRoll ? 'Attack roll requested' : 'Roll requested'}
               </CardEyebrow>
-              <h2 className="mt-1 text-base font-semibold text-zinc-100">{item.actionSummary}</h2>
-              {item.characterName && <p className="mt-0.5 text-xs text-zinc-500">{item.characterName}</p>}
+              <h2 className="mt-1 text-base font-semibold text-content">{item.actionSummary}</h2>
+              {item.characterName && <p className="mt-0.5 text-xs text-faint">{item.characterName}</p>}
             </div>
-            {!realtimeReady && <span className="text-[10px] text-zinc-600">Polling</span>}
+            {!realtimeReady && <span className="text-[10px] text-faint">Polling</span>}
           </div>
 
           {!outcome && (
             <Card tone="panel" rounded="lg" padding="xs" className="mt-3">
-              <p className="text-sm text-zinc-200">{item.label}</p>
+              <p className="text-sm text-content">{item.label}</p>
               <CardDescription className="mt-1">
                 {isHpEffectRoll
                   ? `${hpEffect?.kind === 'healing' ? 'Healing' : 'Damage'} ${hpEffect?.formula}`
@@ -544,22 +544,22 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
                 {!isAttackRoll && !isHpEffectRoll && item.target_number !== null ? ` / Target ${item.target_number}` : ''}
               </CardDescription>
               <CardDescription className="mt-1 capitalize">{item.advantage_state.replace('_', ' ')}</CardDescription>
-              {item.locationName && <CardDescription className="mt-1 text-zinc-600">Location: {item.locationName}</CardDescription>}
+              {item.locationName && <CardDescription className="mt-1 text-faint">Location: {item.locationName}</CardDescription>}
               {((item.modifier_breakdown ?? []).length > 0 || (item.modifier_notes ?? []).length > 0 || (item.modifier_warnings ?? []).length > 0) && (
-                <details className="mt-2 rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-1.5">
-                  <summary className="cursor-pointer text-[11px] text-zinc-400">
+                <details className="mt-2 rounded-md border border-border bg-canvas/70 px-2 py-1.5">
+                  <summary className="cursor-pointer text-[11px] text-muted">
                     Modifier details
                   </summary>
                   {(item.modifier_breakdown ?? []).length > 0 && (
-                    <ul className="mt-2 list-disc pl-4 text-[11px] text-zinc-500">
+                    <ul className="mt-2 list-disc pl-4 text-[11px] text-faint">
                       {(item.modifier_breakdown ?? []).map((line) => <li key={line}>{line}</li>)}
                     </ul>
                   )}
                   {(item.modifier_notes ?? []).length > 0 && (
-                    <p className="mt-2 text-[11px] text-zinc-500">{(item.modifier_notes ?? []).join(' ')}</p>
+                    <p className="mt-2 text-[11px] text-faint">{(item.modifier_notes ?? []).join(' ')}</p>
                   )}
                   {(item.modifier_warnings ?? []).length > 0 && (
-                    <p className="mt-2 text-[11px] text-amber-200">{(item.modifier_warnings ?? []).join(' ')}</p>
+                    <p className="mt-2 text-[11px] text-accent">{(item.modifier_warnings ?? []).join(' ')}</p>
                   )}
                 </details>
               )}
@@ -571,10 +571,10 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
       {!item && outcome && (
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardEyebrow className="text-amber-300">Roll result</CardEyebrow>
-            <h2 className="mt-1 text-base font-semibold text-zinc-100">{outcome.title}</h2>
+            <CardEyebrow className="text-accent">Roll result</CardEyebrow>
+            <h2 className="mt-1 text-base font-semibold text-content">{outcome.title}</h2>
           </div>
-          {!realtimeReady && <span className="text-[10px] text-zinc-600">Polling</span>}
+          {!realtimeReady && <span className="text-[10px] text-faint">Polling</span>}
         </div>
       )}
 
@@ -586,7 +586,7 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
             type="button"
             disabled={busy}
             onClick={rollForMe}
-            className="rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-50"
+            className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
           >
             Roll for Me
           </button>
@@ -594,7 +594,7 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
             type="button"
             disabled={busy}
             onClick={() => setMode('manual')}
-            className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 disabled:opacity-50"
+            className="rounded-md border border-border-strong bg-panel px-3 py-2 text-sm font-semibold text-content transition hover:border-border-strong disabled:opacity-50"
           >
             I Rolled Manually
           </button>
@@ -602,8 +602,8 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
       )}
 
       {item && mode === 'rolling' && (
-        <div className="mt-4 flex items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10 py-6">
-          <div className="h-16 w-16 animate-pulse rounded-xl border border-amber-400/50 bg-zinc-950 text-center text-3xl font-bold leading-[4rem] text-amber-300">
+        <div className="mt-4 flex items-center justify-center rounded-lg border border-accent/30 bg-accent/10 py-6">
+          <div className="h-16 w-16 animate-pulse rounded-xl border border-accent/50 bg-canvas text-center text-3xl font-bold leading-[4rem] text-accent">
             {animationNumber ?? '?'}
           </div>
         </div>
@@ -611,7 +611,7 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
 
       {item && mode === 'manual' && (
         <div className="mt-4 flex flex-col gap-3">
-          <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+          <label className="flex flex-col gap-1.5 text-xs text-muted">
               {isHpEffectRoll ? 'Dice total' : 'Natural d20 roll'}
             <input
               type="number"
@@ -619,11 +619,11 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
               max={isHpEffectRoll ? undefined : 20}
               value={rollOne}
               onChange={(event) => setRollOne(event.target.value)}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+              className="rounded-md border border-border-strong bg-panel px-3 py-2 text-sm text-content outline-none focus:border-accent"
             />
           </label>
           {needsSecond && (
-            <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+            <label className="flex flex-col gap-1.5 text-xs text-muted">
               Second d20 roll
               <input
                 type="number"
@@ -631,11 +631,11 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
                 max={20}
                 value={rollTwo}
                 onChange={(event) => setRollTwo(event.target.value)}
-                className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                className="rounded-md border border-border-strong bg-panel px-3 py-2 text-sm text-content outline-none focus:border-accent"
               />
             </label>
           )}
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-faint">
             {isHpEffectRoll
               ? `Formula: ${hpEffect?.formula}. Enter the dice total before modifiers.`
               : `Used roll: ${used ?? '-'} / Modifier: ${formatModifier(item.modifier)} / Total: ${manualTotal ?? '-'}`}
@@ -644,7 +644,7 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
             <button
               type="button"
               onClick={() => setMode('choice')}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+              className="rounded-md border border-border-strong bg-panel px-3 py-2 text-sm text-content"
             >
               Back
             </button>
@@ -652,7 +652,7 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
               type="button"
               disabled={busy}
               onClick={submitManual}
-              className="rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-50"
+              className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent disabled:opacity-50"
             >
               Submit Roll
             </button>
@@ -664,14 +664,14 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
         <div className="mt-4 flex flex-col gap-3">
           <div className="rounded-md border border-emerald-800/60 bg-emerald-950/30 p-3">
             <p className="text-xs font-medium text-emerald-100">Attack hits. Damage needed.</p>
-            <p className="mt-1 text-xs text-zinc-400">
+            <p className="mt-1 text-xs text-muted">
               Damage formula: {pendingDamage.formula}
             </p>
             {pendingDamage.critical && (
-              <p className="mt-1 text-[11px] text-amber-200">Critical hit: damage dice are doubled; modifier is added once.</p>
+              <p className="mt-1 text-[11px] text-accent">Critical hit: damage dice are doubled; modifier is added once.</p>
             )}
           </div>
-          <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+          <label className="flex flex-col gap-1.5 text-xs text-muted">
             Damage dice total
             <input
               type="number"
@@ -679,14 +679,14 @@ export function PlayerRollRequestPopup({ userId }: { userId: string }) {
               max={pendingDamage.diceCount * pendingDamage.dieSize}
               value={damageDiceTotal}
               onChange={(event) => setDamageDiceTotal(event.target.value)}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+              className="rounded-md border border-border-strong bg-panel px-3 py-2 text-sm text-content outline-none focus:border-accent"
             />
           </label>
           <button
             type="button"
             disabled={busy}
             onClick={submitManualDamage}
-            className="rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-50"
+            className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent disabled:opacity-50"
           >
             Submit Damage
           </button>

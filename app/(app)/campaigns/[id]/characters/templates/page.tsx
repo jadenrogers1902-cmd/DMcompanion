@@ -39,15 +39,15 @@ export default async function CharacterTemplatesPage({ params }: PageProps) {
       <div className="mb-8">
         <Link
           href={`/campaigns/${id}/characters`}
-          className="mb-4 flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300"
+          className="mb-4 flex items-center gap-1.5 text-sm text-faint hover:text-content"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
           Back to characters
         </Link>
-        <h1 className="text-2xl font-bold text-zinc-100">Starter Character Templates</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-500">
+        <h1 className="text-2xl font-bold text-content">Starter Character Templates</h1>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-faint">
           Choose a Starter Set profile, review the full sheet detail, then save your own finalized copy for {campaign.name}.
         </p>
       </div>

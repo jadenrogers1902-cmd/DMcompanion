@@ -55,7 +55,7 @@ export function AbilitiesTab({ characterId, abilities, canEdit }: AbilitiesTabPr
       {canEdit && showForm && (
         <form
           onSubmit={handleAdd}
-          className="flex flex-col gap-4 p-4 rounded-lg bg-zinc-950 border border-zinc-800"
+          className="flex flex-col gap-4 p-4 rounded-lg bg-shell border border-border"
         >
           {error && <p className="text-sm text-red-400">{error}</p>}
           <Input label="Ability / Feature name" name="name" placeholder="Second Wind" required />
@@ -89,30 +89,30 @@ export function AbilitiesTab({ characterId, abilities, canEdit }: AbilitiesTabPr
           {abilities.map((ability) => (
             <li
               key={ability.id}
-              className="flex items-start justify-between gap-3 p-3 rounded-lg bg-zinc-950 border border-zinc-800"
+              className="flex items-start justify-between gap-3 p-3 rounded-lg bg-shell border border-border"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-zinc-200">{ability.name}</span>
+                  <span className="text-sm font-medium text-content">{ability.name}</span>
                   {ability.source && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">{ability.source}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-panel-raised text-muted">{ability.source}</span>
                   )}
                   {ability.uses && (
-                    <span className="text-xs text-zinc-500">{ability.uses}</span>
+                    <span className="text-xs text-faint">{ability.uses}</span>
                   )}
                   {ability.reset_type && (
-                    <span className="text-xs text-zinc-600">· {ability.reset_type}</span>
+                    <span className="text-xs text-faint">· {ability.reset_type}</span>
                   )}
                 </div>
                 {ability.description && (
-                  <p className="text-xs text-zinc-500 mt-1">{ability.description}</p>
+                  <p className="text-xs text-faint mt-1">{ability.description}</p>
                 )}
               </div>
               {canEdit && (
                 <button
                   type="button"
                   onClick={() => handleDelete(ability.id)}
-                  className="text-zinc-600 hover:text-red-400 shrink-0"
+                  className="text-faint hover:text-red-400 shrink-0"
                   aria-label="Delete ability"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

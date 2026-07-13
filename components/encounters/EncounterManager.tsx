@@ -42,7 +42,7 @@ interface EncounterManagerProps {
 }
 
 function hpTone(current: number, max: number) {
-  if (max <= 0) return 'bg-zinc-700'
+  if (max <= 0) return 'bg-control'
   const pct = current / max
   if (pct <= 0.25) return 'bg-red-500'
   if (pct <= 0.5) return 'bg-orange-500'
@@ -154,17 +154,17 @@ export function EncounterManager({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-zinc-100">{encounter.name}</h1>
+            <h1 className="text-2xl font-bold text-content">{encounter.name}</h1>
             <Badge variant={statusVariant(encounter.status)}>
               {encounter.status}
             </Badge>
             {encounter.map_id && (
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-faint">
                 {maps.find((m) => m.id === encounter.map_id)?.name ?? 'Linked map'}
               </span>
             )}
           </div>
-          <p className="text-sm text-zinc-500 mt-1">
+          <p className="text-sm text-faint mt-1">
             Round {encounter.current_round}
             {current ? ` - ${current.name}'s turn` : ' - no active turn'}
           </p>
@@ -215,10 +215,10 @@ export function EncounterManager({
 
       <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5">
         <aside className="flex flex-col gap-4">
-          <section className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-            <h2 className="text-sm font-semibold text-zinc-200 mb-3">Turn Order</h2>
+          <section className="bg-panel border border-border rounded-lg p-4">
+            <h2 className="text-sm font-semibold text-content mb-3">Turn Order</h2>
             {ordered.length === 0 ? (
-              <p className="text-sm text-zinc-500">No participants yet.</p>
+              <p className="text-sm text-faint">No participants yet.</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {ordered.map((p, index) => {
@@ -228,18 +228,18 @@ export function EncounterManager({
                       key={p.id}
                       className={`flex items-center gap-3 rounded-md border px-3 py-2 ${
                         isCurrent
-                          ? 'border-amber-500 bg-amber-500/10'
-                          : 'border-zinc-800 bg-zinc-950'
+                          ? 'border-accent bg-accent/10'
+                          : 'border-border bg-shell'
                       }`}
                     >
-                      <span className="w-6 text-center text-xs text-zinc-500">
+                      <span className="w-6 text-center text-xs text-faint">
                         {index + 1}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-zinc-100">
+                        <p className="truncate text-sm font-medium text-content">
                           {p.name}
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-faint">
                           Init {p.initiative ?? '-'}
                         </p>
                       </div>
@@ -252,8 +252,8 @@ export function EncounterManager({
           </section>
 
           {isDM && (
-            <section className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-              <h2 className="text-sm font-semibold text-zinc-200 mb-3">
+            <section className="bg-panel border border-border rounded-lg p-4">
+              <h2 className="text-sm font-semibold text-content mb-3">
                 Add Participants
               </h2>
               <div className="flex flex-col gap-3">
@@ -313,7 +313,7 @@ export function EncounterManager({
           {isDM && (
             <form
               action={handleManual}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-6 gap-3"
+              className="bg-panel border border-border rounded-lg p-4 grid grid-cols-1 md:grid-cols-6 gap-3"
             >
               <div className="md:col-span-2">
                 <Input name="name" label="Manual participant" placeholder="Goblin" />
@@ -356,14 +356,14 @@ export function EncounterManager({
             return (
               <section
                 key={participant.id}
-                className={`rounded-lg border bg-zinc-900 p-4 ${
-                  isCurrent ? 'border-amber-500' : 'border-zinc-800'
+                className={`rounded-lg border bg-panel p-4 ${
+                  isCurrent ? 'border-accent' : 'border-border'
                 } ${participant.is_defeated ? 'opacity-60' : ''}`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-zinc-100">{participant.name}</h3>
+                      <h3 className="font-semibold text-content">{participant.name}</h3>
                       <Badge variant={participant.participant_type === 'enemy' ? 'warning' : 'default'}>
                         {participant.participant_type}
                       </Badge>
@@ -374,7 +374,7 @@ export function EncounterManager({
                       )}
                     </div>
                     {participant.notes && (
-                      <p className="text-sm text-zinc-500 mt-1">{participant.notes}</p>
+                      <p className="text-sm text-faint mt-1">{participant.notes}</p>
                     )}
                   </div>
 
@@ -472,7 +472,7 @@ export function EncounterManager({
                   )}
                 </div>
 
-                <div className="mt-3 h-2 rounded-full bg-zinc-800 overflow-hidden">
+                <div className="mt-3 h-2 rounded-full bg-panel-raised overflow-hidden">
                   <div
                     className={`h-full ${hpTone(participant.current_hp, participant.max_hp)}`}
                     style={{ width: `${pct}%` }}
@@ -519,13 +519,13 @@ export function EncounterManager({
                             ),
                           )
                         }
-                        className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-200 disabled:cursor-default"
+                        className="rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-xs text-accent disabled:cursor-default"
                       >
                         {condition.name}
                       </button>
                     ))}
                     {participant.encounter_conditions.length === 0 && (
-                      <span className="text-xs text-zinc-600">No conditions</span>
+                      <span className="text-xs text-faint">No conditions</span>
                     )}
                   </div>
 
@@ -610,9 +610,9 @@ export function EncounterManager({
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2">
-      <p className="text-xs text-zinc-600">{label}</p>
-      <p className="text-sm font-medium text-zinc-200">{value}</p>
+    <div className="rounded-md border border-border bg-shell px-3 py-2">
+      <p className="text-xs text-faint">{label}</p>
+      <p className="text-sm font-medium text-content">{value}</p>
     </div>
   )
 }

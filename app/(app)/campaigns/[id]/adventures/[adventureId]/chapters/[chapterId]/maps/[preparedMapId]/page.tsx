@@ -145,7 +145,7 @@ export default async function PreparedMapEditorPage({ params, searchParams }: Pa
       {breadcrumbs}
       <Link
         href={`/campaigns/${id}/adventures/${adventureId}/chapters/${chapterId}/maps/${preparedMapId}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-amber-400 hover:text-amber-300"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-accent hover:text-accent"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />

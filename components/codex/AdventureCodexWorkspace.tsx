@@ -139,8 +139,8 @@ function sourceBadge(source: string) {
 function NotionFirstEmptyState({ campaignId }: { campaignId: string }) {
   return (
     <Card className="border-dashed">
-      <h2 className="text-base font-semibold text-zinc-100">Connect a Notion table</h2>
-      <p className="mt-2 text-sm text-zinc-400">
+      <h2 className="text-base font-semibold text-content">Connect a Notion table</h2>
+      <p className="mt-2 text-sm text-muted">
         Connect a Notion table to start building this Adventure Codex. Campaign
         content is managed in Notion and synced here.
       </p>
@@ -152,7 +152,7 @@ function NotionFirstEmptyState({ campaignId }: { campaignId: string }) {
           <Button size="sm" variant="secondary">Manage Mappings</Button>
         </Link>
       </div>
-      <p className="mt-3 text-xs text-zinc-600">
+      <p className="mt-3 text-xs text-faint">
         Use Notion Sync to pull mapped tables, and Open in Notion (on a record) to
         edit the source content.
       </p>
@@ -222,7 +222,7 @@ function PlayerRevealedInfo({ docs }: { docs: PlayerVisibleCampaignDoc[] }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <CardEyebrow>Codex</CardEyebrow>
-          <h1 className="text-2xl font-bold text-zinc-100">Revealed Info</h1>
+          <h1 className="text-2xl font-bold text-content">Revealed Info</h1>
           <CardDescription className="mt-1 text-sm">
             Campaign details your DM has marked safe or revealed.
           </CardDescription>
@@ -239,7 +239,7 @@ function PlayerRevealedInfo({ docs }: { docs: PlayerVisibleCampaignDoc[] }) {
 
       {filtered.length === 0 ? (
         <Card className="border-dashed">
-          <p className="text-sm text-zinc-500">Nothing has been revealed here yet.</p>
+          <p className="text-sm text-faint">Nothing has been revealed here yet.</p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -247,19 +247,19 @@ function PlayerRevealedInfo({ docs }: { docs: PlayerVisibleCampaignDoc[] }) {
             <Card key={doc.id} tone="panel">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  <p className="text-xs font-medium uppercase tracking-wide text-faint">
                     {campaignDocTypeLabel(doc.doc_type)}
                   </p>
-                  <h2 className="mt-1 text-lg font-semibold text-zinc-100">{doc.title}</h2>
+                  <h2 className="mt-1 text-lg font-semibold text-content">{doc.title}</h2>
                 </div>
                 {visibilityBadge(doc.visibility)}
               </div>
               {doc.reveal_message && (
-                <p className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                <p className="mt-3 rounded-lg border border-accent/20 bg-accent/10 px-3 py-2 text-sm text-accent">
                   {doc.reveal_message}
                 </p>
               )}
-              <p className="mt-3 whitespace-pre-wrap text-sm text-zinc-400">
+              <p className="mt-3 whitespace-pre-wrap text-sm text-muted">
                 {safeSnippet(doc.player_summary)}
               </p>
               {doc.tags.length > 0 && (
@@ -378,15 +378,15 @@ function DMCodexDashboard({
     <div className="grid gap-5 xl:grid-cols-[24rem_minmax(0,1fr)]">
       <div className="flex min-w-0 flex-col gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Adventure Codex</h1>
-          <p className="mt-1 text-sm text-zinc-500">
+          <h1 className="text-2xl font-bold text-content">Adventure Codex</h1>
+          <p className="mt-1 text-sm text-faint">
             One card per mapped Notion table. Notion owns the content; Companion owns
             display, visibility, reveals, and live links.
           </p>
           <div className="mt-2 flex flex-wrap gap-3">
             <Link
               href={`/campaigns/${campaignId}/codex/sync`}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-400 hover:text-amber-300"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.75h1.875A2.625 2.625 0 0121 6.375v11.25a2.625 2.625 0 01-2.625 2.625H5.625A2.625 2.625 0 013 17.625V6.375A2.625 2.625 0 015.625 3.75H7.5m9 0v3.375m0-3.375h-9m0 0v3.375m0 0h9m-9 0H6.75m10.5 0H18" />
@@ -395,7 +395,7 @@ function DMCodexDashboard({
             </Link>
             <Link
               href={`/campaigns/${campaignId}/codex/notion`}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-400 hover:text-amber-300"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -404,7 +404,7 @@ function DMCodexDashboard({
             </Link>
             <Link
               href={`/campaigns/${campaignId}/codex/schema`}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-400 hover:text-amber-300"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -530,7 +530,7 @@ function CodexTableCard({
   }
 
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900">
+    <div className="rounded-lg border border-border bg-panel">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -540,12 +540,12 @@ function CodexTableCard({
         <span className="text-base leading-none">{group.docType ? docTypeIcon(group.docType) : group.kind === 'manual' ? '🗒️' : '⚠️'}</span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
-            <span className="truncate text-sm font-semibold text-zinc-100">{group.title}</span>
-            <span className="shrink-0 rounded-full bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-400">
+            <span className="truncate text-sm font-semibold text-content">{group.title}</span>
+            <span className="shrink-0 rounded-full bg-panel-raised px-1.5 py-0.5 text-[11px] text-muted">
               {group.docs.length}
             </span>
           </span>
-          <span className="mt-0.5 block truncate text-[11px] text-zinc-500">
+          <span className="mt-0.5 block truncate text-[11px] text-faint">
             {group.kind === 'mapping'
               ? `${campaignDocTypeLabel(group.docType ?? '')} · Notion`
               : group.kind === 'manual'
@@ -561,7 +561,7 @@ function CodexTableCard({
           <Badge variant="warning">Stale</Badge>
         )}
         <svg
-          className={`h-4 w-4 shrink-0 text-zinc-500 transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`h-4 w-4 shrink-0 text-faint transition-transform ${open ? 'rotate-90' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -572,15 +572,15 @@ function CodexTableCard({
       </button>
 
       {open && (
-        <div className="border-t border-zinc-800 px-3 py-3">
-          <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500">
+        <div className="border-t border-border px-3 py-3">
+          <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-faint">
             {group.kind === 'mapping' && (
-              <span>Mapping: <span className="text-zinc-300">{group.mapping?.enabled ? 'Active' : 'Disabled'}</span></span>
+              <span>Mapping: <span className="text-muted">{group.mapping?.enabled ? 'Active' : 'Disabled'}</span></span>
             )}
-            <span>Adventure: <span className="text-zinc-300">{adventureName ?? 'Not linked'}</span></span>
-            <span>Last synced: <span className="text-zinc-300">{lastSynced ? new Date(lastSynced).toLocaleString() : 'Never'}</span></span>
-            <span>Live links: <span className="text-zinc-300">{liveObjectCount}</span></span>
-            <span>Record links: <span className="text-zinc-300">{recordLinkCount}</span></span>
+            <span>Adventure: <span className="text-muted">{adventureName ?? 'Not linked'}</span></span>
+            <span>Last synced: <span className="text-muted">{lastSynced ? new Date(lastSynced).toLocaleString() : 'Never'}</span></span>
+            <span>Live links: <span className="text-muted">{liveObjectCount}</span></span>
+            <span>Record links: <span className="text-muted">{recordLinkCount}</span></span>
             {group.kind === 'unmapped' && <span className="text-yellow-400">{group.docs.length} stale</span>}
             {failedCount > 0 && <span className="text-red-400">{failedCount} failed sync</span>}
           </div>
@@ -603,19 +603,19 @@ function CodexTableCard({
                 href={notionDatabaseUrl(group.mapping.notion_database_id)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-200 hover:border-amber-500/50"
+                className="inline-flex items-center rounded-md border border-border-strong bg-shell px-2.5 py-1.5 text-xs text-content hover:border-accent/50"
               >
                 Open Notion Table
               </a>
               <Link
                 href={`/campaigns/${campaignId}/codex/notion`}
-                className="inline-flex items-center rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-200 hover:border-amber-500/50"
+                className="inline-flex items-center rounded-md border border-border-strong bg-shell px-2.5 py-1.5 text-xs text-content hover:border-accent/50"
               >
                 Manage Mapping
               </Link>
               <Link
                 href={`/campaigns/${campaignId}/codex/schema?table=${group.mapping.notion_database_id}`}
-                className="inline-flex items-center rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-200 hover:border-amber-500/50"
+                className="inline-flex items-center rounded-md border border-border-strong bg-shell px-2.5 py-1.5 text-xs text-content hover:border-accent/50"
               >
                 View Relationships
               </Link>
@@ -627,7 +627,7 @@ function CodexTableCard({
           )}
 
           {matchingDocs.length === 0 ? (
-            <p className="text-xs text-zinc-600">
+            <p className="text-xs text-faint">
               {group.docs.length === 0 ? 'No records synced yet. Sync this table from Notion.' : 'No entries match the search.'}
             </p>
           ) : (
@@ -639,14 +639,14 @@ function CodexTableCard({
                   onClick={() => onSelect(doc.id)}
                   className={`rounded-md border px-2.5 py-2 text-left transition ${
                     selectedId === doc.id
-                      ? 'border-amber-500/60 bg-amber-500/10'
-                      : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'
+                      ? 'border-accent/60 bg-accent/10'
+                      : 'border-border bg-shell hover:border-border-strong'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="min-w-0">
-                      <span className="block truncate text-sm text-zinc-100">{doc.title}</span>
-                      <span className="mt-0.5 block truncate text-[11px] text-zinc-500">
+                      <span className="block truncate text-sm text-content">{doc.title}</span>
+                      <span className="mt-0.5 block truncate text-[11px] text-faint">
                         {campaignDocTypeLabel(doc.doc_type)}
                       </span>
                     </span>
@@ -734,12 +734,12 @@ function CreateDocCard({ campaignId }: { campaignId: string }) {
 // local-only notes / legacy data. Existing manual records are unaffected.
 function AdvancedManualRecords({ campaignId }: { campaignId: string }) {
   return (
-    <details className="rounded-lg border border-zinc-800 bg-zinc-950">
-      <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200">
+    <details className="rounded-lg border border-border bg-shell">
+      <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium text-muted hover:text-content">
         Advanced: Local Manual Records
       </summary>
-      <div className="border-t border-zinc-800 p-3">
-        <p className="mb-3 text-xs text-zinc-500">
+      <div className="border-t border-border p-3">
+        <p className="mb-3 text-xs text-faint">
           Manual records are local Companion-only records. Notion remains the main
           source for campaign content. Use these only for local notes or legacy data.
         </p>
@@ -861,20 +861,20 @@ function CodexRecordPanel({
   return (
     <Card>
       <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-3 border-b border-zinc-800 pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap gap-2">
               {visibilityBadge(doc.visibility)}
               {statusBadge(doc.status)}
               {sourceBadge(doc.source)}
             </div>
-            <h2 className="mt-3 text-2xl font-bold text-zinc-100">{doc.title}</h2>
-            <p className="mt-1 text-sm text-zinc-500">
+            <h2 className="mt-3 text-2xl font-bold text-content">{doc.title}</h2>
+            <p className="mt-1 text-sm text-faint">
               {campaignDocTypeLabel(doc.doc_type)}
-              {tableName && <span className="text-zinc-600"> · {tableName}</span>}
+              {tableName && <span className="text-faint"> · {tableName}</span>}
             </p>
             {isNotion && (
-              <p className="mt-1 text-xs text-zinc-600">
+              <p className="mt-1 text-xs text-faint">
                 Sync: {doc.sync_status}
                 {doc.last_synced_at && ` · last ${new Date(doc.last_synced_at).toLocaleString()}`}
               </p>
@@ -886,7 +886,7 @@ function CodexRecordPanel({
                 href={doc.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 hover:border-amber-500/50"
+                className="inline-flex items-center rounded-md border border-border-strong bg-panel px-3 py-1.5 text-sm text-content hover:border-accent/50"
               >
                 Open in Notion
               </a>
@@ -901,12 +901,12 @@ function CodexRecordPanel({
         )}
 
         {/* Companion display settings — never edits Notion content. */}
-        <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+        <section className="rounded-lg border border-border bg-shell p-4">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-zinc-100">Display Settings (Companion)</h3>
+            <h3 className="text-sm font-semibold text-content">Display Settings (Companion)</h3>
             <Button size="sm" onClick={saveSettings} loading={busy === 'save'}>Save</Button>
           </div>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-xs text-faint">
             {isNotion
               ? 'Edits Companion-side display only (visibility, status, tags). The record’s content is managed in Notion — use Open in Notion.'
               : 'Local manual record — fully editable in Companion.'}
@@ -959,37 +959,37 @@ function CodexRecordPanel({
 
         {/* Read-only mirror of Notion content. */}
         {isNotion && (
-          <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-            <h3 className="text-sm font-semibold text-zinc-100">Content (from Notion, read-only)</h3>
+          <section className="rounded-lg border border-border bg-shell p-4">
+            <h3 className="text-sm font-semibold text-content">Content (from Notion, read-only)</h3>
             {doc.dm_summary && (
               <div className="mt-3">
-                <p className="text-[11px] uppercase tracking-wide text-amber-300/80">DM summary</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-300">{doc.dm_summary}</p>
+                <p className="text-[11px] uppercase tracking-wide text-accent/80">DM summary</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{doc.dm_summary}</p>
               </div>
             )}
             {doc.player_summary && (
               <div className="mt-3">
-                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Player-safe summary</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-300">{doc.player_summary}</p>
+                <p className="text-[11px] uppercase tracking-wide text-faint">Player-safe summary</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{doc.player_summary}</p>
               </div>
             )}
             {doc.dm_notes && (
               <details className="mt-3">
-                <summary className="cursor-pointer text-xs text-amber-400">DM notes</summary>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-400">{doc.dm_notes}</p>
+                <summary className="cursor-pointer text-xs text-accent">DM notes</summary>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{doc.dm_notes}</p>
               </details>
             )}
             {!doc.dm_summary && !doc.player_summary && !doc.dm_notes && (
-              <p className="mt-2 text-xs text-zinc-600">No synced content yet. Sync this table from Notion Sync.</p>
+              <p className="mt-2 text-xs text-faint">No synced content yet. Sync this table from Notion Sync.</p>
             )}
           </section>
         )}
 
         <NotionLinkSection campaignId={campaignId} doc={doc} />
 
-        <section className="rounded-lg border border-amber-500/20 bg-amber-500/[0.04] p-4">
-          <h3 className="text-sm font-semibold text-zinc-100">Reveal to Players</h3>
-          <p className="mt-1 text-xs text-zinc-500">
+        <section className="rounded-lg border border-accent/20 bg-accent/[0.04] p-4">
+          <h3 className="text-sm font-semibold text-content">Reveal to Players</h3>
+          <p className="mt-1 text-xs text-faint">
             Sends a live notification and shares the player-safe summary. DM notes
             stay private. Save edits first so players see the latest summary.
           </p>
@@ -1006,8 +1006,8 @@ function CodexRecordPanel({
         </section>
 
         {/* Relationships grouped by linked record's entity type. */}
-        <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-          <h3 className="text-sm font-semibold text-zinc-100">Related Records</h3>
+        <section className="rounded-lg border border-border bg-shell p-4">
+          <h3 className="text-sm font-semibold text-content">Related Records</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_13rem_auto]">
             <Select aria-label="Target Codex record" value={targetDocId} onChange={(e) => setTargetDocId(e.target.value)}>
               <option value="">Choose record</option>
@@ -1026,21 +1026,21 @@ function CodexRecordPanel({
           </div>
           <div className="mt-4 flex flex-col gap-3">
             {relatedByType.length === 0 ? (
-              <p className="text-sm text-zinc-600">No related records linked yet.</p>
+              <p className="text-sm text-faint">No related records linked yet.</p>
             ) : (
               relatedByType.map(([type, items]) => (
                 <div key={type}>
-                  <p className="text-[11px] uppercase tracking-wide text-zinc-500">{campaignDocTypeLabel(type)}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-faint">{campaignDocTypeLabel(type)}</p>
                   <div className="mt-1.5 flex flex-col gap-1.5">
                     {items.map(({ link, other }) => (
-                      <div key={link.id} className="flex items-center justify-between gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1.5">
+                      <div key={link.id} className="flex items-center justify-between gap-2 rounded-md border border-border bg-panel px-2.5 py-1.5">
                         <div className="min-w-0">
-                          <p className="truncate text-sm text-zinc-100">{other.title}</p>
-                          <p className="text-[11px] text-zinc-600">{campaignDocRelationLabel(link.relationship_type)}</p>
+                          <p className="truncate text-sm text-content">{other.title}</p>
+                          <p className="text-[11px] text-faint">{campaignDocRelationLabel(link.relationship_type)}</p>
                         </div>
                         <div className="flex shrink-0 gap-1.5">
-                          <button type="button" onClick={() => onSelect(other.id)} className="rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:border-amber-500/50">Open</button>
-                          <button type="button" onClick={() => removeLink(link.id)} className="rounded border border-zinc-700 px-2 py-1 text-[11px] text-red-300 hover:border-red-500/50" disabled={busy === `rm-${link.id}`}>Remove</button>
+                          <button type="button" onClick={() => onSelect(other.id)} className="rounded border border-border-strong px-2 py-1 text-[11px] text-content hover:border-accent/50">Open</button>
+                          <button type="button" onClick={() => removeLink(link.id)} className="rounded border border-border-strong px-2 py-1 text-[11px] text-red-300 hover:border-red-500/50" disabled={busy === `rm-${link.id}`}>Remove</button>
                         </div>
                       </div>
                     ))}
@@ -1052,25 +1052,25 @@ function CodexRecordPanel({
         </section>
 
         {/* Companion-side live object links. */}
-        <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-          <h3 className="text-sm font-semibold text-zinc-100">Linked Live Objects</h3>
-          <p className="mt-1 text-xs text-zinc-500">
+        <section className="rounded-lg border border-border bg-shell p-4">
+          <h3 className="text-sm font-semibold text-content">Linked Live Objects</h3>
+          <p className="mt-1 text-xs text-faint">
             Companion-side links to live map objects. These never change Notion.
           </p>
           <LiveObjectLinker campaignId={campaignId} docId={doc.id} liveObjects={liveObjects} />
           <div className="mt-3 flex flex-col gap-2">
             {liveLinks.length === 0 ? (
-              <p className="text-sm text-zinc-600">No live map, token, or object links yet.</p>
+              <p className="text-sm text-faint">No live map, token, or object links yet.</p>
             ) : (
               liveLinks.map((link) => (
-                <div key={link.id} className="flex items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2">
+                <div key={link.id} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-panel px-3 py-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm text-zinc-100">{link.live_object_label || 'Linked app object'}</p>
-                    <p className="mt-0.5 text-xs text-zinc-500">
+                    <p className="truncate text-sm text-content">{link.live_object_label || 'Linked app object'}</p>
+                    <p className="mt-0.5 text-xs text-faint">
                       {link.live_object_type ? campaignDocTypeLabel(link.live_object_type) : 'Live object'} · {campaignDocRelationLabel(link.relationship_type)}
                     </p>
                   </div>
-                  <button type="button" onClick={() => removeLink(link.id)} className="shrink-0 rounded border border-zinc-700 px-2 py-1 text-[11px] text-red-300 hover:border-red-500/50" disabled={busy === `rm-${link.id}`}>Remove</button>
+                  <button type="button" onClick={() => removeLink(link.id)} className="shrink-0 rounded border border-border-strong px-2 py-1 text-[11px] text-red-300 hover:border-red-500/50" disabled={busy === `rm-${link.id}`}>Remove</button>
                 </div>
               ))
             )}
@@ -1123,10 +1123,10 @@ function LiveObjectLinker({
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-      <p className="mb-2 text-[11px] uppercase tracking-wide text-zinc-500">Link to a live object</p>
+    <div className="mt-3 rounded-lg border border-border bg-panel p-3">
+      <p className="mb-2 text-[11px] uppercase tracking-wide text-faint">Link to a live object</p>
       {liveObjects.length === 0 ? (
-        <p className="text-xs text-zinc-600">No live maps or tokens in this campaign yet. Create them on the Live Map.</p>
+        <p className="text-xs text-faint">No live maps or tokens in this campaign yet. Create them on the Live Map.</p>
       ) : (
         <>
           <div className="grid gap-2 sm:grid-cols-[10rem_1fr_auto]">
@@ -1152,7 +1152,7 @@ function LiveObjectLinker({
             </Select>
             <Button type="button" size="sm" onClick={attach} disabled={!targetId} loading={busy}>Link</Button>
           </div>
-          <p className="mt-2 text-[11px] text-zinc-600">
+          <p className="mt-2 text-[11px] text-faint">
             Room/sub-location nodes and quest markers link as a Map object or Token.
           </p>
         </>
@@ -1216,16 +1216,16 @@ function NotionLinkSection({ campaignId, doc }: { campaignId: string; doc: Campa
   }
 
   return (
-    <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+    <section className="rounded-lg border border-border bg-shell p-4">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-zinc-100">Notion Link</h3>
+        <h3 className="text-sm font-semibold text-content">Notion Link</h3>
         {isLinked ? (
           <Badge variant="player">Notion linked</Badge>
         ) : (
           <Badge variant="default">Not linked</Badge>
         )}
       </div>
-      <p className="mt-1 text-xs text-zinc-500">
+      <p className="mt-1 text-xs text-faint">
         DM-only reference to the Notion page. Players only ever see the app-cached
         player-safe summary, never this link. Sync pulls the latest mapped fields
         from Notion; your visibility, reveal state, and links are preserved.
@@ -1237,7 +1237,7 @@ function NotionLinkSection({ campaignId, doc }: { campaignId: string; doc: Campa
             Sync from Notion
           </Button>
           {doc.last_synced_at && (
-            <span className="text-[11px] text-zinc-600">
+            <span className="text-[11px] text-faint">
               Last synced {new Date(doc.last_synced_at).toLocaleString()}
               {doc.sync_status === 'failed' && <span className="text-red-400"> (failed)</span>}
             </span>
@@ -1246,7 +1246,7 @@ function NotionLinkSection({ campaignId, doc }: { campaignId: string; doc: Campa
             href={doc.source_url ?? '#'}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:border-amber-500/50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border-strong bg-panel px-3 py-1.5 text-xs font-medium text-content transition hover:border-accent/50"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -1254,7 +1254,7 @@ function NotionLinkSection({ campaignId, doc }: { campaignId: string; doc: Campa
             Open in Notion
           </a>
           {doc.source_linked_at && (
-            <span className="text-[11px] text-zinc-600">
+            <span className="text-[11px] text-faint">
               Linked {new Date(doc.source_linked_at).toLocaleDateString()}
             </span>
           )}

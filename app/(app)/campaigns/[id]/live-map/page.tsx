@@ -49,7 +49,7 @@ const MapIcon = (
 const backLink = (id: string, name: string) => (
   <Link
     href={`/campaigns/${id}`}
-    className="text-sm text-zinc-500 hover:text-zinc-300 flex items-center gap-1.5 mb-4"
+    className="text-sm text-faint hover:text-muted flex items-center gap-1.5 mb-4"
   >
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -97,7 +97,7 @@ export default async function MapsPage({ params }: PageProps) {
       return (
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
           {backLink(id, campaign.name)}
-          <h1 className="text-2xl font-bold text-zinc-100 mb-6">Adventure</h1>
+          <h1 className="text-2xl font-bold text-content mb-6">Adventure</h1>
           <EmptyState
             icon={MapIcon}
             title="No map shared yet"
@@ -224,8 +224,8 @@ export default async function MapsPage({ params }: PageProps) {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         {backLink(id, campaign.name)}
-        <p className="text-xs uppercase tracking-wide text-zinc-600 mb-1">Adventure</p>
-        <h1 className="text-2xl font-bold text-zinc-100 mb-4">{activeMap.name}</h1>
+        <p className="text-xs uppercase tracking-wide text-faint mb-1">Adventure</p>
+        <h1 className="text-2xl font-bold text-content mb-4">{activeMap.name}</h1>
         {stableImageUrl ? (
           <PlayerMapView
             key={activeMap.id}
@@ -282,10 +282,10 @@ export default async function MapsPage({ params }: PageProps) {
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl font-bold text-zinc-100">Live Map</h1>
+              <h1 className="text-2xl font-bold text-content">Live Map</h1>
               <Badge variant="dm">DM</Badge>
             </div>
-            <p className="text-sm text-zinc-500 mt-1">
+            <p className="text-sm text-faint mt-1">
               Your live session dashboard. Upload maps, configure the grid, place tokens, and run the active scene.
             </p>
           </div>
@@ -317,9 +317,9 @@ export default async function MapsPage({ params }: PageProps) {
                 mapName={m.name}
               />
               <Link href={`/campaigns/${id}/live-map/${m.id}`}>
-                <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-600 transition-colors h-full">
-                  <h3 className="font-semibold text-zinc-100 pr-8">{m.name}</h3>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
+                <div className="p-4 rounded-xl bg-panel border border-border hover:border-border-strong transition-colors h-full">
+                  <h3 className="font-semibold text-content pr-8">{m.name}</h3>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-faint">
                     {m.is_active && <Badge variant="success">Active</Badge>}
                     <span>{m.width} × {m.height}px · 1 square = {m.grid_scale_feet}ft</span>
                   </div>

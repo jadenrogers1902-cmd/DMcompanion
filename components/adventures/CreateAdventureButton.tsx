@@ -55,20 +55,20 @@ export function CreateAdventureButton({ campaignId, size = 'sm' }: CreateAdventu
           onClick={close}
         >
           <div
-            className="w-full max-h-[90dvh] overflow-y-auto rounded-t-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-2xl sm:max-w-md sm:rounded-2xl"
+            className="w-full max-h-[90dvh] overflow-y-auto rounded-t-2xl border border-border bg-canvas p-5 shadow-2xl sm:max-w-md sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-zinc-100">New Adventure</h2>
-                <p className="mt-0.5 text-sm text-zinc-500">
+                <h2 className="text-lg font-semibold text-content">New Adventure</h2>
+                <p className="mt-0.5 text-sm text-faint">
                   Start a prep workspace for maps, chapters, and encounters.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={close}
-                className="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+                className="rounded-md p-1 text-faint hover:bg-panel-raised hover:text-content"
                 aria-label="Close"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

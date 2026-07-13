@@ -40,7 +40,7 @@ export default async function CharacterTemplateDetailPage({ params }: PageProps)
       <div className="mb-6">
         <Link
           href={`/campaigns/${id}/characters/templates`}
-          className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300"
+          className="flex items-center gap-1.5 text-sm text-faint hover:text-content"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />

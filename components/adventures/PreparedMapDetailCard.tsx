@@ -82,13 +82,13 @@ export function PreparedMapDetailCard({
             {map.is_hub && <Badge variant="success">Hub</Badge>}
             <Badge variant="default">{map.tokens.length} token{map.tokens.length === 1 ? '' : 's'}</Badge>
           </div>
-          <h1 className="mt-2 text-2xl font-bold text-zinc-100">{map.title}</h1>
-          {map.description && <p className="mt-1 text-sm text-zinc-500">{map.description}</p>}
+          <h1 className="mt-2 text-2xl font-bold text-content">{map.title}</h1>
+          {map.description && <p className="mt-1 text-sm text-faint">{map.description}</p>}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
           <Link
             href={editHref}
-            className="inline-flex items-center gap-2 rounded-full border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20"
+            className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accent/20"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
@@ -122,7 +122,7 @@ export function PreparedMapDetailCard({
           <CardTitle>Sub-locations</CardTitle>
         </CardHeader>
         {subLocations.length === 0 ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-faint">
             No sub-locations yet. Tie a Location entry above, then link its sub-locations
             in the Adventure Codex — they appear here automatically.
           </p>
@@ -132,27 +132,27 @@ export function PreparedMapDetailCard({
               const childMapId = childMapIdByDocId.get(sub.id)
               const childMap = childMapId ? preparedMapById.get(childMapId) : undefined
               return (
-                <div key={sub.id} className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+                <div key={sub.id} className="rounded-lg border border-border bg-panel p-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="min-w-0 truncate text-sm font-semibold text-zinc-100">{sub.title}</p>
+                    <p className="min-w-0 truncate text-sm font-semibold text-content">{sub.title}</p>
                     <Badge variant="dm">{campaignDocTypeLabel(sub.doc_type)}</Badge>
                   </div>
                   {snippet(sub.dm_summary ?? sub.player_summary) && (
-                    <p className="mt-2 whitespace-pre-wrap text-xs text-zinc-400">
+                    <p className="mt-2 whitespace-pre-wrap text-xs text-muted">
                       {snippet(sub.dm_summary ?? sub.player_summary)}
                     </p>
                   )}
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Link
                       href={`/campaigns/${campaignId}/codex?doc=${sub.id}`}
-                      className="rounded border border-zinc-700 px-2.5 py-1 text-[11px] text-zinc-200 hover:border-amber-500/50"
+                      className="rounded border border-border-strong px-2.5 py-1 text-[11px] text-content hover:border-accent/50"
                     >
                       Open Codex
                     </Link>
                     {childMap && (
                       <Link
                         href={`/campaigns/${campaignId}/adventures/${childMap.adventure_id}/chapters/${childMap.chapter_id}/maps/${childMap.id}`}
-                        className="rounded border border-zinc-700 px-2.5 py-1 text-[11px] text-amber-300 hover:border-amber-500/50"
+                        className="rounded border border-border-strong px-2.5 py-1 text-[11px] text-accent hover:border-accent/50"
                       >
                         Open room map
                       </Link>
@@ -171,20 +171,20 @@ export function PreparedMapDetailCard({
           <CardTitle>Tokens on this map</CardTitle>
         </CardHeader>
         {map.tokens.length === 0 ? (
-          <p className="text-sm text-zinc-500">
-            No tokens placed yet. Use <span className="text-zinc-300">Edit Map and Tokens</span> to add them.
+          <p className="text-sm text-faint">
+            No tokens placed yet. Use <span className="text-muted">Edit Map and Tokens</span> to add them.
           </p>
         ) : (
           <div className="flex flex-col gap-2">
             {map.tokens.map((token) => {
               const doc = token.linked_campaign_doc_id ? docById.get(token.linked_campaign_doc_id) : null
               return (
-                <div key={token.id} className="flex items-start justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2">
+                <div key={token.id} className="flex items-start justify-between gap-3 rounded-lg border border-border bg-panel px-3 py-2">
                   <div className="flex min-w-0 items-start gap-2">
                     <span className="text-base leading-none">{token.icon || '•'}</span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-zinc-100">{token.name || 'Unnamed token'}</p>
-                      <p className="mt-0.5 text-[11px] text-zinc-500">
+                      <p className="truncate text-sm text-content">{token.name || 'Unnamed token'}</p>
+                      <p className="mt-0.5 text-[11px] text-faint">
                         {String(token.token_type)}
                         {doc ? ` · linked to ${campaignDocTypeLabel(doc.doc_type)}` : ' · not linked'}
                       </p>
@@ -194,7 +194,7 @@ export function PreparedMapDetailCard({
                     {doc && (
                       <Link
                         href={`/campaigns/${campaignId}/codex?doc=${doc.id}`}
-                        className="rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:border-amber-500/50"
+                        className="rounded border border-border-strong px-2 py-1 text-[11px] text-content hover:border-accent/50"
                       >
                         Open Codex
                       </Link>
@@ -204,7 +204,7 @@ export function PreparedMapDetailCard({
                         href={doc.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:border-amber-500/50"
+                        className="rounded border border-border-strong px-2 py-1 text-[11px] text-content hover:border-accent/50"
                       >
                         Open in Notion
                       </a>

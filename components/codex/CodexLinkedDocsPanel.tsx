@@ -124,12 +124,12 @@ export function DMLinkedCodexDocsPanel({
   }
 
   return (
-    <section className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+    <section className="rounded-lg border border-border bg-shell p-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-zinc-100">Linked Codex Docs</h3>
+        <h3 className="text-sm font-semibold text-content">Linked Codex Docs</h3>
         <Link
           href={`/campaigns/${campaignId}/codex`}
-          className="text-xs font-medium text-amber-400 hover:text-amber-300"
+          className="text-xs font-medium text-accent hover:text-accent-hover"
         >
           Open Codex
         </Link>
@@ -142,35 +142,35 @@ export function DMLinkedCodexDocsPanel({
 
       <div className="mt-3 flex flex-col gap-2.5">
         {attachedLinks.length === 0 ? (
-          <p className="text-xs text-zinc-600">No Codex docs linked to this object yet.</p>
+          <p className="text-xs text-faint">No Codex docs linked to this object yet.</p>
         ) : (
           attachedLinks.map((link) => {
             const doc = docById.get(link.source_doc_id)
             if (!doc) return null
             return (
-              <div key={link.id} className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+              <div key={link.id} className="rounded-lg border border-border bg-panel p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-zinc-100">{doc.title}</p>
-                    <p className="mt-1 text-xs text-zinc-500">
+                    <p className="truncate text-sm font-semibold text-content">{doc.title}</p>
+                    <p className="mt-1 text-xs text-faint">
                       {campaignDocTypeLabel(doc.doc_type)} - {campaignDocRelationLabel(link.relationship_type)}
                     </p>
                   </div>
                   {visibilityBadge(doc.visibility)}
                 </div>
                 {doc.source && (
-                  <p className="mt-2 text-[11px] text-zinc-600">Source: {doc.source}</p>
+                  <p className="mt-2 text-[11px] text-faint">Source: {doc.source}</p>
                 )}
                 {doc.dm_summary && (
-                  <p className="mt-2 whitespace-pre-wrap text-xs text-amber-100/90">{doc.dm_summary}</p>
+                  <p className="mt-2 whitespace-pre-wrap text-xs text-accent/90">{doc.dm_summary}</p>
                 )}
                 {doc.player_summary && (
-                  <p className="mt-2 whitespace-pre-wrap text-xs text-zinc-300">{doc.player_summary}</p>
+                  <p className="mt-2 whitespace-pre-wrap text-xs text-muted">{doc.player_summary}</p>
                 )}
                 {doc.dm_notes && (
                   <details className="mt-2">
-                    <summary className="cursor-pointer text-xs text-amber-400">DM notes</summary>
-                    <p className="mt-1 whitespace-pre-wrap text-xs text-zinc-400">{doc.dm_notes}</p>
+                    <summary className="cursor-pointer text-xs text-accent">DM notes</summary>
+                    <p className="mt-1 whitespace-pre-wrap text-xs text-muted">{doc.dm_notes}</p>
                   </details>
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -187,8 +187,8 @@ export function DMLinkedCodexDocsPanel({
                     Remove
                   </Button>
                 </div>
-                <div className="mt-3 border-t border-zinc-800 pt-3">
-                  <p className="mb-2 text-[11px] uppercase tracking-wide text-zinc-600">Reveal player-safe summary</p>
+                <div className="mt-3 border-t border-border pt-3">
+                  <p className="mb-2 text-[11px] uppercase tracking-wide text-faint">Reveal player-safe summary</p>
                   <CodexRevealControls
                     players={players}
                     compact
@@ -211,7 +211,7 @@ export function DMLinkedCodexDocsPanel({
         )}
       </div>
 
-      <div className="mt-4 border-t border-zinc-800 pt-3">
+      <div className="mt-4 border-t border-border pt-3">
         <Input
           label="Search Codex docs"
           value={query}
@@ -278,20 +278,19 @@ export function PlayerLinkedCodexDocsPanel({
   if (attached.length === 0) return null
 
   return (
-    <div className="mt-3 border-t border-zinc-800 pt-3">
-      <p className="mb-2 text-[11px] uppercase tracking-wide text-zinc-600">Revealed info</p>
+    <div className="mt-3 border-t border-border pt-3">
+      <p className="mb-2 text-[11px] uppercase tracking-wide text-faint">Revealed info</p>
       <div className="flex flex-col gap-2">
         {attached.map(({ link, doc }) => (
-          <div key={link.link_id} className="rounded-md border border-zinc-800 bg-zinc-950/80 px-2.5 py-2">
+          <div key={link.link_id} className="rounded-md border border-border bg-shell/80 px-2.5 py-2">
             <div className="flex items-start justify-between gap-2">
-              <p className="min-w-0 truncate text-xs font-semibold text-zinc-100">{doc.title}</p>
-              <span className="shrink-0 text-[10px] text-zinc-600">{campaignDocTypeLabel(doc.doc_type)}</span>
+              <p className="min-w-0 truncate text-xs font-semibold text-content">{doc.title}</p>
+              <span className="shrink-0 text-[10px] text-faint">{campaignDocTypeLabel(doc.doc_type)}</span>
             </div>
-            <p className="mt-1 whitespace-pre-wrap text-xs text-zinc-400">{doc.player_summary}</p>
+            <p className="mt-1 whitespace-pre-wrap text-xs text-muted">{doc.player_summary}</p>
           </div>
         ))}
       </div>
     </div>
   )
 }
-

@@ -69,18 +69,18 @@ export function Sidebar({ profile }: SidebarProps) {
 
   return (
     <aside
-      className={`hidden h-screen shrink-0 flex-col border-r border-zinc-800 bg-zinc-950 transition-[width] duration-200 md:flex ${
+      className={`hidden h-screen shrink-0 flex-col border-r border-border bg-shell/95 shadow-[12px_0_44px_rgb(0_0_0/0.16)] backdrop-blur-xl transition-[width] duration-200 md:flex ${
         collapsed ? 'w-16' : 'w-60'
       }`}
     >
       {/* Logo */}
-      <div className={`flex items-center gap-3 border-b border-zinc-800 px-3 py-4 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30">
-          <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <div className={`flex items-center gap-3 border-b border-border px-3 py-4 ${collapsed ? 'justify-center' : ''}`}>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/40 bg-accent/10 shadow-[0_0_24px_rgb(184_167_255/0.1)]">
+          <svg className="h-4 w-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
         </div>
-        {!collapsed && <span className="font-semibold text-zinc-100 text-sm">DM Companion</span>}
+        {!collapsed && <span className="font-display text-lg font-semibold tracking-wide text-content">DM Companion</span>}
       </div>
 
       {/* Nav */}
@@ -99,8 +99,8 @@ export function Sidebar({ profile }: SidebarProps) {
                 ${collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'}
                 ${
                   isActive
-                    ? 'bg-zinc-800 text-zinc-100'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
+                    ? 'bg-accent/12 text-accent ring-1 ring-inset ring-accent/20'
+                    : 'text-muted hover:bg-hover/65 hover:text-content'
                 }
               `.trim()}
             >
@@ -110,8 +110,8 @@ export function Sidebar({ profile }: SidebarProps) {
           )
         })}
         {campaignNavItems.length > 0 && (
-          <div className="mt-5 pt-4 border-t border-zinc-900">
-            {!collapsed && <p className="px-3 mb-2 text-[11px] uppercase tracking-wide text-zinc-600">
+          <div className="mt-5 border-t border-border pt-4">
+            {!collapsed && <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-faint">
               Current Campaign
             </p>}
             <div className="flex flex-col gap-1">
@@ -128,11 +128,11 @@ export function Sidebar({ profile }: SidebarProps) {
                   const itemLive = (item as { live?: boolean }).live === true
                   const stateClass = itemLive
                     ? isActive
-                      ? 'bg-red-500/20 text-red-200 ring-1 ring-red-500/40'
-                      : 'text-red-300 hover:bg-red-500/10 hover:text-red-200'
+                      ? 'bg-live/15 text-live ring-1 ring-live/40'
+                      : 'text-live hover:bg-live/10 hover:text-live'
                     : isActive
-                      ? 'bg-zinc-800 text-zinc-100'
-                      : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'
+                      ? 'bg-accent/12 text-accent ring-1 ring-inset ring-accent/20'
+                      : 'text-faint hover:bg-hover/65 hover:text-content'
                   return (
                   <Link
                     key={item.href}
@@ -146,8 +146,8 @@ export function Sidebar({ profile }: SidebarProps) {
                   >
                     {itemLive && (
                       <span className="relative flex h-2 w-2 shrink-0">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-70" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-live" />
                       </span>
                     )}
                     {collapsed ? item.short : item.label}
@@ -161,27 +161,27 @@ export function Sidebar({ profile }: SidebarProps) {
       </nav>
 
       {/* User / logout */}
-      <div className="border-t border-zinc-800 px-2 py-3">
+      <div className="border-t border-border px-2 py-3">
         <button
           type="button"
           onClick={() => setCollapsed((value) => !value)}
-          className="mb-2 flex w-full items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-2 text-xs text-zinc-400 transition hover:text-zinc-100"
+          className="mb-2 flex w-full items-center justify-center rounded-lg border border-border bg-panel px-2 py-2 text-xs text-faint transition hover:border-border-strong hover:bg-panel-raised hover:text-content"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? '>>' : 'Collapse'}
         </button>
         <div className={`flex items-center gap-3 px-2 py-2 mb-1 ${collapsed ? 'justify-center' : ''}`}>
-          <div className="w-7 h-7 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-xs font-semibold shrink-0">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-accent/40 bg-accent/15 text-xs font-semibold text-accent">
             {profile?.display_name?.[0]?.toUpperCase() ?? '?'}
           </div>
-          {!collapsed && <span className="text-sm text-zinc-300 truncate">
+          {!collapsed && <span className="truncate text-sm text-muted">
             {profile?.display_name ?? 'Adventurer'}
           </span>}
         </div>
         <form action={logout}>
           <button
             type="submit"
-            className={`flex w-full items-center rounded-lg text-sm text-zinc-500 transition-colors hover:bg-zinc-900 hover:text-zinc-300 ${
+            className={`flex w-full items-center rounded-lg text-sm text-faint transition-colors hover:bg-hover/65 hover:text-muted ${
               collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'
             }`}
             title={collapsed ? 'Sign out' : undefined}

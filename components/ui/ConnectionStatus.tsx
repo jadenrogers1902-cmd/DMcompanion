@@ -26,7 +26,10 @@ export function ConnectionStatus() {
   if (online) return null
 
   return (
-    <div className="fixed top-3 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-amber-700 bg-amber-950 px-4 py-2 text-sm font-medium text-amber-100 shadow-lg">
+    <div
+      role="status"
+      className="fixed top-3 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-warning/45 bg-overlay/95 px-4 py-2 text-sm font-medium text-warning shadow-2xl backdrop-blur-xl"
+    >
       Connection lost. Changes may not save until you are back online.
     </div>
   )

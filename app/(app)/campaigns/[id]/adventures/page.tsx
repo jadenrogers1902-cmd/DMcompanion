@@ -77,7 +77,7 @@ export default async function AdventuresPage({ params }: PageProps) {
       <div className="mb-8">
         <Link
           href={`/campaigns/${id}`}
-          className="text-sm text-zinc-500 hover:text-zinc-300 flex items-center gap-1.5 mb-4"
+          className="text-sm text-faint hover:text-muted flex items-center gap-1.5 mb-4"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -87,10 +87,10 @@ export default async function AdventuresPage({ params }: PageProps) {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl font-bold text-zinc-100">Adventure Maker</h1>
+              <h1 className="text-2xl font-bold text-content">Adventure Maker</h1>
               <Badge variant="dm">DM</Badge>
             </div>
-            <p className="text-sm text-zinc-500 mt-1">
+            <p className="text-sm text-faint mt-1">
               Prep adventures, chapters, maps, and encounters before the session — then run them
               on the Live Map.
             </p>
@@ -110,17 +110,17 @@ export default async function AdventuresPage({ params }: PageProps) {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {adventures.map((adventure) => (
             <Link key={adventure.id} href={`/campaigns/${id}/adventures/${adventure.id}`}>
-              <div className="flex h-full flex-col rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition-colors hover:border-zinc-600">
+              <div className="flex h-full flex-col rounded-xl border border-border bg-panel p-4 transition-colors hover:border-border-strong">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-zinc-100">{adventure.title}</h3>
+                  <h3 className="font-semibold text-content">{adventure.title}</h3>
                   <Badge variant={adventureStatusBadgeVariant(adventure.status)}>
                     {adventureStatusLabel(adventure.status)}
                   </Badge>
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-sm text-zinc-500">
+                <p className="mt-1.5 line-clamp-2 text-sm text-faint">
                   {adventure.description || 'No description yet.'}
                 </p>
-                <div className="mt-auto flex items-center gap-3 pt-3 text-xs text-zinc-600">
+                <div className="mt-auto flex items-center gap-3 pt-3 text-xs text-faint">
                   <span>
                     {chapterCounts[adventure.id] ?? 0}{' '}
                     {(chapterCounts[adventure.id] ?? 0) === 1 ? 'chapter' : 'chapters'}

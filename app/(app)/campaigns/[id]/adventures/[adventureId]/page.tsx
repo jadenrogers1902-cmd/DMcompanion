@@ -79,13 +79,13 @@ export default async function AdventureDetailPage({ params }: PageProps) {
 
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-zinc-100">Chapters</h2>
+          <h2 className="text-lg font-semibold text-content">Chapters</h2>
           {chapters.length > 0 && (
             <CreateChapterButton campaignId={id} adventureId={adventureId} />
           )}
         </div>
         {chapters.length === 0 ? (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50">
+          <div className="rounded-xl border border-border bg-panel/50">
             <EmptyState
               icon={ChapterIcon}
               title="No chapters yet"

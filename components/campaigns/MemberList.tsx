@@ -9,7 +9,7 @@ interface MemberListProps {
 export function MemberList({ members, currentUserId }: MemberListProps) {
   if (members.length === 0) {
     return (
-      <p className="text-sm text-zinc-500 py-2">No members yet.</p>
+      <p className="text-sm text-faint py-2">No members yet.</p>
     )
   }
 
@@ -21,14 +21,14 @@ export function MemberList({ members, currentUserId }: MemberListProps) {
           className="flex items-center justify-between gap-3"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 text-xs font-semibold shrink-0">
+            <div className="w-8 h-8 rounded-full bg-panel-raised border border-border-strong flex items-center justify-center text-muted text-xs font-semibold shrink-0">
               {member.profiles?.display_name?.[0]?.toUpperCase() ?? '?'}
             </div>
             <div>
-              <p className="text-sm font-medium text-zinc-200">
+              <p className="text-sm font-medium text-content">
                 {member.profiles?.display_name ?? 'Unknown'}
                 {member.user_id === currentUserId && (
-                  <span className="text-zinc-500 font-normal"> (you)</span>
+                  <span className="text-faint font-normal"> (you)</span>
                 )}
               </p>
             </div>

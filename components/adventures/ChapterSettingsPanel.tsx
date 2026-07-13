@@ -90,13 +90,13 @@ export function ChapterSettingsPanel({ chapter }: ChapterSettingsPanelProps) {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
-          <h1 className="text-2xl font-bold text-zinc-100">{chapter.title}</h1>
+          <h1 className="text-2xl font-bold text-content">{chapter.title}</h1>
           <Badge variant={adventureStatusBadgeVariant(chapter.status)}>
             {adventureStatusLabel(chapter.status)}
           </Badge>
         </div>
         {chapter.description && (
-          <p className="max-w-2xl text-sm text-zinc-400">{chapter.description}</p>
+          <p className="max-w-2xl text-sm text-muted">{chapter.description}</p>
         )}
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
@@ -117,7 +117,7 @@ export function ChapterSettingsPanel({ chapter }: ChapterSettingsPanelProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex max-w-xl flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+      <div className="flex max-w-xl flex-col gap-4 rounded-xl border border-border bg-panel p-4">
         <Input
           label="Title"
           value={title}

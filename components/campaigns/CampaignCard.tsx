@@ -9,9 +9,9 @@ interface CampaignCardProps {
 export function CampaignCard({ campaign }: CampaignCardProps) {
   return (
     <Link href={`/campaigns/${campaign.id}`}>
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-600 hover:bg-zinc-800/50 transition-all cursor-pointer group">
+      <div className="bg-panel border border-border rounded-xl p-5 hover:border-border-strong hover:bg-hover/50 transition-all cursor-pointer group">
         <div className="flex items-start justify-between gap-3 mb-3">
-          <h3 className="font-semibold text-zinc-100 group-hover:text-amber-300 transition-colors leading-snug">
+          <h3 className="font-semibold text-content group-hover:text-accent-hover transition-colors leading-snug">
             {campaign.name}
           </h3>
           <Badge variant={campaign.member_role === 'dm' ? 'dm' : 'player'}>
@@ -19,11 +19,11 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
           </Badge>
         </div>
         {campaign.description && (
-          <p className="text-sm text-zinc-500 leading-relaxed line-clamp-2 mb-3">
+          <p className="text-sm text-faint leading-relaxed line-clamp-2 mb-3">
             {campaign.description}
           </p>
         )}
-        <div className="flex items-center gap-3 text-xs text-zinc-600">
+        <div className="flex items-center gap-3 text-xs text-faint">
           <span>{campaign.member_count} {campaign.member_count === 1 ? 'member' : 'members'}</span>
           <span>·</span>
           <span>

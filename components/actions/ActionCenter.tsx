@@ -78,7 +78,7 @@ function statusTone(status: string) {
   if (status === 'resolved' || status === 'approved') return 'border-emerald-700/60 bg-emerald-950/20'
   if (status === 'denied' || status === 'cancelled') return 'border-red-800/60 bg-red-950/20'
   if (status === 'rolled_waiting_for_dm' || status === 'resolving') return 'border-blue-700/60 bg-blue-950/20'
-  return 'border-amber-800/60 bg-amber-950/20'
+  return 'border-accent/60 bg-accent/20'
 }
 
 function actionTypeIcon(actionType: string) {
@@ -149,10 +149,10 @@ function RollResultPanel({ result }: { result: ActionRollResult }) {
     }`}>
       <RollOutcomeEffects display={display} reducedMotion={reducedMotion} />
       <div className="relative flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-medium text-zinc-200">Roll Result</p>
+        <p className="text-xs font-medium text-content">Roll Result</p>
         <RollOutcomeBadge display={display} />
       </div>
-      <div className="relative mt-2 grid grid-cols-2 gap-2 text-xs text-zinc-300">
+      <div className="relative mt-2 grid grid-cols-2 gap-2 text-xs text-muted">
         <span>Mode: {result.roll_mode}</span>
         <span>Natural: {result.natural_roll}</span>
         {result.second_natural_roll !== null && <span>Second: {result.second_natural_roll}</span>}
@@ -162,7 +162,7 @@ function RollResultPanel({ result }: { result: ActionRollResult }) {
         {result.target_number !== null && <span>Target: {result.target_number}</span>}
         <span className="capitalize">Result: {result.result.replace(/_/g, ' ')}</span>
       </div>
-      <p className="relative mt-2 text-[11px] text-zinc-500">
+      <p className="relative mt-2 text-[11px] text-faint">
         Submitted: {new Date(result.created_at).toLocaleString()}
       </p>
     </div>
@@ -174,19 +174,19 @@ function RollRequestSummary({ request }: { request: ActionRollRequest }) {
   const warnings = request.modifier_warnings ?? []
 
   return (
-    <div className="mt-3 rounded-md border border-amber-800/60 bg-amber-950/30 p-3 text-xs text-amber-100">
+    <div className="mt-3 rounded-md border border-accent/60 bg-accent/30 p-3 text-xs text-accent">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-medium">Roll requested. Waiting for player response.</span>
         <span>{formatModifier(request.modifier)}</span>
       </div>
-      <p className="mt-1 text-amber-200/80">{request.label}</p>
+      <p className="mt-1 text-accent/80">{request.label}</p>
       {breakdown.length > 0 && (
-        <ul className="mt-2 list-disc pl-4 text-[11px] text-amber-100/75">
+        <ul className="mt-2 list-disc pl-4 text-[11px] text-accent/75">
           {breakdown.map((line) => <li key={line}>{line}</li>)}
         </ul>
       )}
       {warnings.length > 0 && (
-        <p className="mt-2 text-[11px] text-amber-200">{warnings.join(' ')}</p>
+        <p className="mt-2 text-[11px] text-accent">{warnings.join(' ')}</p>
       )}
     </div>
   )
@@ -222,17 +222,17 @@ function AttackResultPanel({
     }`}>
       <RollOutcomeEffects display={display} reducedMotion={reducedMotion} />
       <div className="relative flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-medium text-zinc-200">Attack Result</p>
+        <p className="text-xs font-medium text-content">Attack Result</p>
         <RollOutcomeBadge display={display} />
       </div>
       {isDM && detail ? (
-        <pre className="relative mt-2 whitespace-pre-wrap rounded-md border border-zinc-800 bg-zinc-950 p-2 text-[11px] leading-relaxed text-zinc-300">
+        <pre className="relative mt-2 whitespace-pre-wrap rounded-md border border-border bg-canvas p-2 text-[11px] leading-relaxed text-muted">
           {detail.dm_summary}
         </pre>
       ) : (
         <p className={`relative mt-2 text-xs ${display.textClass}`}>{result.player_visible_summary}</p>
       )}
-      <div className="relative mt-2 grid grid-cols-2 gap-2 text-[11px] text-zinc-500">
+      <div className="relative mt-2 grid grid-cols-2 gap-2 text-[11px] text-faint">
         <span>Weapon: {result.weapon_name}</span>
         <span>Total: {result.attack_total}</span>
         <span>Natural: {result.natural_roll}</span>
@@ -246,7 +246,7 @@ function AttackResultPanel({
         </div>
       )}
       {isDM && result.damage_total !== null && (
-        <p className="mt-2 text-[11px] text-zinc-600">
+        <p className="mt-2 text-[11px] text-faint">
           A pending HP update has been queued below and applies when you approve this rolled result.
         </p>
       )}
@@ -308,16 +308,16 @@ function SuggestedStateUpdatePanel({
 
   if (update.status !== 'pending_dm_review') {
     return (
-      <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-950 p-3">
+      <div className="mt-3 rounded-md border border-border bg-canvas p-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-medium text-zinc-400">Map Update</p>
+          <p className="text-xs font-medium text-muted">Map Update</p>
           <Badge variant={update.status === 'applied' ? 'success' : 'default'}>
             {update.status === 'applied' ? 'Applied' : 'Rejected'}
           </Badge>
         </div>
-        <p className="mt-1 text-xs text-zinc-500">{update.summary}</p>
+        <p className="mt-1 text-xs text-faint">{update.summary}</p>
         {update.status === 'applied' && update.applied_at && (
-          <p className="mt-1 text-[11px] text-zinc-600">
+          <p className="mt-1 text-[11px] text-faint">
             Applied {new Date(update.applied_at).toLocaleString()} — audit trail recorded.
           </p>
         )}
@@ -326,12 +326,12 @@ function SuggestedStateUpdatePanel({
   }
 
   return (
-    <div className="mt-3 rounded-md border border-amber-800/60 bg-amber-950/20 p-3">
-      <p className="text-xs font-medium text-amber-200">
+    <div className="mt-3 rounded-md border border-accent/60 bg-accent/20 p-3">
+      <p className="text-xs font-medium text-accent">
         {isDamage || isHealing ? 'Pending HP Update' : `Suggested ${isAwareness ? 'Awareness' : 'Object'} Update`}
       </p>
-      <p className="mt-1 text-xs text-amber-100">{update.summary}</p>
-      <div className="mt-2 grid grid-cols-1 gap-1 text-[11px] text-zinc-400 sm:grid-cols-2">
+      <p className="mt-1 text-xs text-accent">{update.summary}</p>
+      <div className="mt-2 grid grid-cols-1 gap-1 text-[11px] text-muted sm:grid-cols-2">
         {(isDamage || isHealing) && (
           <span>
             {update.target_name ?? 'Token'} HP: {StateUpdateValue(before.current_hp)} -&gt; {StateUpdateValue(after.current_hp)}
@@ -351,20 +351,20 @@ function SuggestedStateUpdatePanel({
       </div>
 
       {(isDamage || isHealing) ? (
-        <p className="mt-3 rounded-md border border-amber-700/50 bg-zinc-950 px-2 py-1.5 text-[11px] text-amber-100">
+        <p className="mt-3 rounded-md border border-accent/50 bg-canvas px-2 py-1.5 text-[11px] text-accent">
           This HP change applies automatically when you approve the rolled result.
         </p>
       ) : editing ? (
-        <div className="mt-3 grid gap-2 rounded-md border border-zinc-800 bg-zinc-950 p-2">
+        <div className="mt-3 grid gap-2 rounded-md border border-border bg-canvas p-2">
           {isDamage && (
             <>
-              <label className="text-[11px] text-zinc-500">
+              <label className="text-[11px] text-faint">
                 New HP
                 <input
                   type="number"
                   value={editedHp}
                   onChange={(event) => setEditedHp(event.target.value)}
-                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100"
+                  className="mt-1 w-full rounded-md border border-border-strong bg-panel px-2 py-1 text-xs text-content"
                 />
               </label>
               <Checkbox
@@ -375,13 +375,13 @@ function SuggestedStateUpdatePanel({
             </>
           )}
           {isObject && (
-            <label className="text-[11px] text-zinc-500">
+            <label className="text-[11px] text-faint">
               New object state
               <input
                 type="text"
                 value={editedObjectState}
                 onChange={(event) => setEditedObjectState(event.target.value)}
-                className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100"
+                className="mt-1 w-full rounded-md border border-border-strong bg-panel px-2 py-1 text-xs text-content"
               />
             </label>
           )}
@@ -416,7 +416,7 @@ function SuggestedStateUpdatePanel({
       )}
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
       {!TOKEN_UPDATE_TYPES.has(update.update_type) && (
-        <p className="mt-2 text-[11px] text-zinc-600">
+        <p className="mt-2 text-[11px] text-faint">
           Custom updates are recorded for audit only and do not automatically change token/object state.
         </p>
       )}
@@ -426,17 +426,17 @@ function SuggestedStateUpdatePanel({
 
 function HpEffectResultPanel({ result }: { result: ActionHpEffectResult }) {
   return (
-    <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-950 p-3">
+    <div className="mt-3 rounded-md border border-border bg-canvas p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-medium text-zinc-200">
+        <p className="text-xs font-medium text-content">
           {result.effect_kind === 'healing' ? 'Healing Result' : 'Damage Result'}
         </p>
         <Badge variant={result.effect_kind === 'healing' ? 'success' : 'default'}>
           {result.total}
         </Badge>
       </div>
-      <p className="mt-2 text-xs text-zinc-300">{result.player_visible_summary}</p>
-      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-zinc-500">
+      <p className="mt-2 text-xs text-muted">{result.player_visible_summary}</p>
+      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-faint">
         <span>Formula: {result.formula}</span>
         <span>Roll: {result.dice_rolled.join(', ') || '-'}</span>
       </div>
@@ -526,17 +526,17 @@ function actionPhase(intent: IntentDetails): {
 function ActionPhaseStrip({ intent }: { intent: IntentDetails }) {
   const phase = actionPhase(intent)
   return (
-    <div className="mb-3 rounded-md border border-zinc-800 bg-zinc-950 p-3">
+    <div className="mb-3 rounded-md border border-border bg-canvas p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-faint">
           Action phase (synced with player)
         </p>
         {phase.waitingOn !== 'none' && !phase.ended && (
           <span
             className={`rounded-md border px-1.5 py-0.5 text-[10px] font-medium ${
               phase.waitingOn === 'dm'
-                ? 'border-amber-800/60 bg-amber-950/40 text-amber-300'
-                : 'border-blue-800/60 bg-blue-950/40 text-blue-300'
+                ? 'border-dm-only/60 bg-dm-only/15 text-dm-only'
+                : 'border-player-safe/60 bg-player-safe/15 text-player-safe'
             }`}
           >
             {phase.waitingOn === 'dm' ? 'Waiting on you' : 'Waiting on player'}
@@ -552,12 +552,14 @@ function ActionPhaseStrip({ intent }: { intent: IntentDetails }) {
               key={stepLabel}
               className={`flex-1 rounded-full px-2 py-1 text-center text-[10px] font-medium ${
                 phase.ended
-                  ? 'bg-zinc-900 text-zinc-600'
+                  ? 'bg-panel text-faint'
                   : active
-                    ? 'border border-amber-500/40 bg-amber-500/20 text-amber-200'
+                    ? phase.waitingOn === 'dm'
+                      ? 'border border-dm-only/40 bg-dm-only/15 text-dm-only'
+                      : 'border border-player-safe/40 bg-player-safe/15 text-player-safe'
                     : done
                       ? 'bg-emerald-500/15 text-emerald-300'
-                      : 'bg-zinc-900 text-zinc-600'
+                      : 'bg-panel text-faint'
               }`}
             >
               {stepLabel}
@@ -565,7 +567,7 @@ function ActionPhaseStrip({ intent }: { intent: IntentDetails }) {
           )
         })}
       </div>
-      <p className="mt-2 text-xs text-zinc-400">{phase.label}</p>
+      <p className="mt-2 text-xs text-muted">{phase.label}</p>
     </div>
   )
 }
@@ -633,16 +635,16 @@ function DMActionQueue({
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Action Queue</h1>
-          <p className="text-sm text-zinc-500 mt-1">
+          <h1 className="text-2xl font-bold text-content">Action Queue</h1>
+          <p className="text-sm text-faint mt-1">
             Review player intent and decide what happens at the table.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
-          <span className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-300">
+          <span className="rounded-md border border-border bg-panel px-3 py-2 text-muted">
             {openCount} active
           </span>
-          <span className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-300">
+          <span className="rounded-md border border-border bg-panel px-3 py-2 text-muted">
             {waitingForDmCount} need DM
           </span>
           {nudgedCount > 0 && (
@@ -679,27 +681,27 @@ function DMActionQueue({
             return (
               <article
                 key={intent.id}
-                className={`rounded-lg border bg-zinc-900/80 shadow-sm transition-colors ${
+                className={`rounded-lg border bg-panel/80 shadow-sm transition-colors ${
                   nudged
                     ? 'action-nudge-highlight'
                     : expanded
-                      ? 'border-amber-500/50'
-                      : 'border-zinc-800 hover:border-zinc-700'
+                      ? 'border-accent/50'
+                      : 'border-border hover:border-border-strong'
                 }`}
               >
                 <button
                   type="button"
                   onClick={() => openCard(expanded ? null : intent.id)}
-                  className="grid w-full grid-cols-1 gap-3 px-4 py-3 text-left transition hover:bg-zinc-800/35 md:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.55fr)_minmax(10rem,0.5fr)_auto]"
+                  className="grid w-full grid-cols-1 gap-3 px-4 py-3 text-left transition hover:bg-panel-raised/35 md:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.55fr)_minmax(10rem,0.5fr)_auto]"
                   aria-expanded={expanded}
                 >
                   <div className="flex min-w-0 items-start gap-3">
                     <span className={`mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border ${statusTone(intent.status)}`}>
-                      <Icon className="h-4 w-4 text-zinc-100" aria-hidden="true" />
+                      <Icon className="h-4 w-4 text-content" aria-hidden="true" />
                     </span>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-sm font-semibold text-zinc-100">{intent.action_type}</h2>
+                        <h2 className="text-sm font-semibold text-content">{intent.action_type}</h2>
                         <Badge variant={statusVariant(intent.status)} className="capitalize">{statusLabel(intent.status)}</Badge>
                         {nudged && (
                           <span className="inline-flex items-center gap-1 rounded-md border border-red-600 bg-red-950/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-300">
@@ -708,43 +710,43 @@ function DMActionQueue({
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-xs text-zinc-500">
+                      <p className="mt-1 text-xs text-faint">
                         {intent.actor_profile?.display_name ?? 'Player'}
                         {intent.actor_character?.name ? ` / ${intent.actor_character.name}` : ''}
                       </p>
                       {intent.message && (
-                        <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{intent.message}</p>
+                        <p className="mt-1 line-clamp-2 text-xs text-muted">{intent.message}</p>
                       )}
                       {toolPhrase && (
-                        <p className="mt-1 line-clamp-2 text-xs font-medium text-amber-200">{toolPhrase}</p>
+                        <p className="mt-1 line-clamp-2 text-xs font-medium text-accent">{toolPhrase}</p>
                       )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-xs md:block">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-zinc-600">Target</p>
-                      <p className="mt-0.5 text-zinc-300">
+                      <p className="text-[10px] uppercase tracking-wide text-faint">Target</p>
+                      <p className="mt-0.5 text-muted">
                         {intent.target_token?.name || intent.target_token?.token_type || 'None'}
                       </p>
                     </div>
                     <div className="md:mt-2">
-                      <p className="text-[10px] uppercase tracking-wide text-zinc-600">Range</p>
-                      <p className="mt-0.5 text-zinc-400">{intent.distance_feet ?? '-'} ft / {intent.range_feet ?? '-'} ft</p>
+                      <p className="text-[10px] uppercase tracking-wide text-faint">Range</p>
+                      <p className="mt-0.5 text-muted">{intent.distance_feet ?? '-'} ft / {intent.range_feet ?? '-'} ft</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-xs md:block">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-zinc-600">Received</p>
-                      <p className="mt-0.5 flex items-center gap-1.5 text-zinc-400">
+                      <p className="text-[10px] uppercase tracking-wide text-faint">Received</p>
+                      <p className="mt-0.5 flex items-center gap-1.5 text-muted">
                         <Clock3 className="h-3 w-3" aria-hidden="true" />
                         {formatDateTime(intent.created_at)}
                       </p>
                     </div>
                     <div className="md:mt-2">
-                      <p className="text-[10px] uppercase tracking-wide text-zinc-600">Roll state</p>
-                      <p className="mt-0.5 text-zinc-400">
+                      <p className="text-[10px] uppercase tracking-wide text-faint">Roll state</p>
+                      <p className="mt-0.5 text-muted">
                         {submittedRoll
                           ? `${submittedRoll.total} (${submittedRoll.result.replace(/_/g, ' ')})`
                           : waitingRoll
@@ -756,16 +758,16 @@ function DMActionQueue({
 
                   <div className="flex items-center justify-between gap-3 md:justify-end">
                     {pendingLabel && (
-                      <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-800/60 bg-amber-950/25 px-2 py-1 text-[11px] text-amber-200">
+                      <span className="inline-flex items-center gap-1.5 rounded-md border border-accent/60 bg-accent/25 px-2 py-1 text-[11px] text-accent">
                         <CircleAlert className="h-3 w-3" aria-hidden="true" />
                         Attention
                       </span>
                     )}
                     {isFinalStatus(intent.status) && (
-                      <CheckCircle2 className="h-4 w-4 text-zinc-500" aria-hidden="true" />
+                      <CheckCircle2 className="h-4 w-4 text-faint" aria-hidden="true" />
                     )}
                     <ChevronDown
-                      className={`h-4 w-4 shrink-0 text-zinc-500 transition-transform ${expanded ? 'rotate-180 text-amber-300' : ''}`}
+                      className={`h-4 w-4 shrink-0 text-faint transition-transform ${expanded ? 'rotate-180 text-accent' : ''}`}
                       aria-hidden="true"
                     />
                   </div>
@@ -773,17 +775,17 @@ function DMActionQueue({
 
                 <div className={`grid transition-[grid-template-rows] duration-200 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                   <div className="overflow-hidden">
-                    <div className="border-t border-zinc-800 px-4 pb-4 pt-3">
+                    <div className="border-t border-border px-4 pb-4 pt-3">
                       <ActionPhaseStrip intent={intent} />
 
                       {pendingLabel && (
-                        <p className="mb-3 rounded-md border border-amber-800/60 bg-amber-950/25 px-3 py-2 text-xs text-amber-100">
+                        <p className="mb-3 rounded-md border border-accent/60 bg-accent/25 px-3 py-2 text-xs text-accent">
                           {pendingLabel}
                         </p>
                       )}
 
                       {intent.target_token && (
-                        <div className="mb-3 grid gap-2 rounded-md border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-400 sm:grid-cols-3">
+                        <div className="mb-3 grid gap-2 rounded-md border border-border bg-canvas p-3 text-xs text-muted sm:grid-cols-3">
                           <span>Target: {intent.target_token.name || intent.target_token.token_type}</span>
                           <span>{intent.selected_tool_type ?? 'Tool'}: {intent.selected_tool_name ?? 'None selected'}</span>
                           <span>HP {intent.target_token.current_hp}/{intent.target_token.max_hp}{intent.target_token.temp_hp > 0 ? ` +${intent.target_token.temp_hp} temp` : ''}</span>
@@ -792,20 +794,20 @@ function DMActionQueue({
                       )}
 
                       {toolPhrase && (
-                        <p className="mb-3 rounded-md border border-amber-800/50 bg-amber-950/20 p-3 text-sm text-amber-100">
+                        <p className="mb-3 rounded-md border border-accent/50 bg-accent/20 p-3 text-sm text-accent">
                           {toolPhrase}
                         </p>
                       )}
 
                       {intent.message && (
-                        <p className="mb-3 rounded-md border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
+                        <p className="mb-3 rounded-md border border-border bg-canvas p-3 text-sm text-muted">
                           {intent.message}
                         </p>
                       )}
 
                       {intent.action_results?.length ? (
-                        <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-950 p-3">
-                          <p className="mb-2 text-xs font-medium text-zinc-400">Results</p>
+                        <div className="mt-3 rounded-md border border-border bg-canvas p-3">
+                          <p className="mb-2 text-xs font-medium text-muted">Results</p>
                           {intent.action_results.map((result) => (
                             <p key={result.id} className="text-xs text-emerald-200">
                               {result.result_summary}
@@ -840,7 +842,7 @@ function DMActionQueue({
                         <SuggestedStateUpdatePanel key={update.id} campaignId={campaignId} update={update} />
                       ))}
 
-                      <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
+                      <div className="mt-3 rounded-lg border border-border bg-canvas/70 p-3">
                         <ActionQueueDmControls
                           campaignId={campaignId}
                           intentId={intent.id}
@@ -856,11 +858,11 @@ function DMActionQueue({
                         />
                       </div>
                       {intent.action_type === 'Attack' && intent.status === 'approved' && (
-                        <p className="mt-2 text-xs text-amber-200">
+                        <p className="mt-2 text-xs text-accent">
                           Waiting for the player to choose an attack option and roll. No second DM approval is required.
                         </p>
                       )}
-                      <p className="mt-2 text-[11px] text-zinc-600">
+                      <p className="mt-2 text-[11px] text-faint">
                         Approve resolves the request and reveals your response to the player. Rolled damage or healing applies its pending HP update at the same time.
                       </p>
                     </div>
@@ -872,13 +874,13 @@ function DMActionQueue({
         </div>
       )}
       {(visibleActionResults.length > 0 || visibleCombatLogs.length > 0) && (
-        <section className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-          <h2 className="text-sm font-semibold text-zinc-200">Recent Action Log</h2>
+        <section className="rounded-lg border border-border bg-panel p-4">
+          <h2 className="text-sm font-semibold text-content">Recent Action Log</h2>
           <div className="mt-3 grid gap-2">
             {visibleActionResults.slice(0, 8).map((result) => (
-              <div key={result.id} className="rounded-md border border-zinc-800 bg-zinc-950 p-3">
-                <p className="text-xs text-zinc-500">{result.action_type} / {result.result_type}</p>
-                <p className="text-sm text-zinc-300">{result.result_summary}</p>
+              <div key={result.id} className="rounded-md border border-border bg-canvas p-3">
+                <p className="text-xs text-faint">{result.action_type} / {result.result_type}</p>
+                <p className="text-sm text-muted">{result.result_summary}</p>
               </div>
             ))}
           </div>
@@ -890,9 +892,9 @@ function DMActionQueue({
 
 function EmptyActionState({ title, detail }: { title: string; detail: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-zinc-800 bg-zinc-900 p-8 text-center">
-      <h2 className="font-semibold text-zinc-200">{title}</h2>
-      <p className="text-sm text-zinc-500 mt-1">{detail}</p>
+    <div className="rounded-lg border border-dashed border-border bg-panel p-8 text-center">
+      <h2 className="font-semibold text-content">{title}</h2>
+      <p className="text-sm text-faint mt-1">{detail}</p>
     </div>
   )
 }

@@ -38,9 +38,9 @@ interface CharacterSheetProps {
 
 function CoreStat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex flex-col items-center justify-center py-2.5 rounded-lg bg-zinc-950 border border-zinc-800">
-      <span className="text-lg font-bold text-zinc-100">{value}</span>
-      <span className="text-[10px] text-zinc-500 uppercase tracking-wider text-center px-1">{label}</span>
+    <div className="flex flex-col items-center justify-center py-2.5 rounded-lg bg-shell border border-border">
+      <span className="text-lg font-bold text-content">{value}</span>
+      <span className="text-[10px] text-faint uppercase tracking-wider text-center px-1">{label}</span>
     </div>
   )
 }
@@ -93,13 +93,13 @@ export function CharacterSheet({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-bold text-zinc-100">{character.name}</h1>
+            <h1 className="text-2xl font-bold text-content">{character.name}</h1>
             {isOwner && <Badge variant="player">Your character</Badge>}
             {!isOwner && isDM && ownerName && (
               <Badge variant="default">{ownerName}</Badge>
             )}
           </div>
-          {subtitle && <p className="text-sm text-zinc-500 mt-1">{subtitle}</p>}
+          {subtitle && <p className="text-sm text-faint mt-1">{subtitle}</p>}
         </div>
         {isOwner && (
           <div className="flex gap-2 shrink-0">
@@ -153,13 +153,13 @@ export function CharacterSheet({
                 return (
                   <div
                     key={key}
-                    className="flex flex-col items-center py-2 rounded-lg bg-zinc-950 border border-zinc-800"
+                    className="flex flex-col items-center py-2 rounded-lg bg-shell border border-border"
                   >
-                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                    <span className="text-[10px] text-faint uppercase tracking-wider">
                       {ABILITY_LABELS[key]}
                     </span>
-                    <span className="text-lg font-bold text-zinc-100 leading-tight">{score}</span>
-                    <span className="text-xs text-amber-400/80 font-mono">{formatMod(mod)}</span>
+                    <span className="text-lg font-bold text-content leading-tight">{score}</span>
+                    <span className="text-xs text-accent/80 font-mono">{formatMod(mod)}</span>
                   </div>
                 )
               })}
@@ -212,11 +212,11 @@ export function CharacterSheet({
                   id: 'notes',
                   label: 'Notes',
                   content: character.notes ? (
-                    <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                    <p className="text-sm text-muted whitespace-pre-wrap leading-relaxed">
                       {character.notes}
                     </p>
                   ) : (
-                    <p className="text-sm text-zinc-600">No notes yet.</p>
+                    <p className="text-sm text-faint">No notes yet.</p>
                   ),
                 },
               ]}

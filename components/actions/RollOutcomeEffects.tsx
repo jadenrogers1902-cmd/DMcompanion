@@ -153,56 +153,56 @@ export function PlayerRollOutcomePanel({
 
       <div className="relative flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs font-medium text-zinc-400">{data.title}</p>
+          <p className="text-xs font-medium text-muted">{data.title}</p>
           <h3 className={`mt-0.5 text-base font-bold ${display.textClass}`}>{display.label}</h3>
         </div>
         <RollOutcomeBadge display={display} />
       </div>
 
-      <dl className="relative mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-300 sm:grid-cols-4">
+      <dl className="relative mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted sm:grid-cols-4">
         <div>
-          <dt className="text-[10px] uppercase tracking-wide text-zinc-500">Natural roll</dt>
-          <dd className="font-semibold text-zinc-100">
+          <dt className="text-[10px] uppercase tracking-wide text-faint">Natural roll</dt>
+          <dd className="font-semibold text-content">
             {data.naturalRoll}
             {secondRollText}
           </dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-wide text-zinc-500">Used</dt>
-          <dd className="font-semibold text-zinc-100">{data.usedNaturalRoll}</dd>
+          <dt className="text-[10px] uppercase tracking-wide text-faint">Used</dt>
+          <dd className="font-semibold text-content">{data.usedNaturalRoll}</dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-wide text-zinc-500">Modifier</dt>
-          <dd className="font-semibold text-zinc-100">{modifierText}</dd>
+          <dt className="text-[10px] uppercase tracking-wide text-faint">Modifier</dt>
+          <dd className="font-semibold text-content">{modifierText}</dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-wide text-zinc-500">Total</dt>
+          <dt className="text-[10px] uppercase tracking-wide text-faint">Total</dt>
           <dd className={`text-sm font-bold ${display.textClass}`}>{data.total}</dd>
         </div>
       </dl>
 
       {data.targetNumber !== null && (
-        <p className="relative mt-1.5 text-[11px] text-zinc-500">Target number: {data.targetNumber}</p>
+        <p className="relative mt-1.5 text-[11px] text-faint">Target number: {data.targetNumber}</p>
       )}
 
-      <p className="relative mt-2 text-sm text-zinc-100">{data.summary}</p>
+      <p className="relative mt-2 text-sm text-content">{data.summary}</p>
 
       {typeof data.damageTotal === 'number' && (
-        <p className="relative mt-1 text-xs text-zinc-300">
-          Damage dealt: <span className="font-semibold text-zinc-100">{data.damageTotal}</span>
+        <p className="relative mt-1 text-xs text-muted">
+          Damage dealt: <span className="font-semibold text-content">{data.damageTotal}</span>
           {data.damageType ? ` ${data.damageType}` : ''}
         </p>
       )}
 
       {data.reviewPending && (
-        <p className="relative mt-3 rounded-md border border-amber-700/50 bg-amber-950/30 px-2.5 py-1.5 text-[11px] font-medium text-amber-200">
+        <p className="relative mt-3 rounded-md border border-accent/50 bg-accent/30 px-2.5 py-1.5 text-[11px] font-medium text-accent">
           Waiting for DM Review — your result is locked in and visible here while the DM reviews
           this action.
         </p>
       )}
 
       {!data.reviewPending && data.resolved && (
-        <p className="relative mt-3 rounded-md border border-zinc-700 bg-zinc-900/60 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300">
+        <p className="relative mt-3 rounded-md border border-border-strong bg-panel/60 px-2.5 py-1.5 text-[11px] font-medium text-muted">
           The DM has resolved this action. This is your final result.
         </p>
       )}
@@ -211,7 +211,7 @@ export function PlayerRollOutcomePanel({
         <button
           type="button"
           onClick={onContinue}
-          className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-100 transition hover:border-zinc-500"
+          className="rounded-md border border-border-strong bg-panel px-3 py-1.5 text-xs font-semibold text-content transition hover:border-border-strong"
         >
           Continue
         </button>

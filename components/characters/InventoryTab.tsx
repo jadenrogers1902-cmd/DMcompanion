@@ -55,7 +55,7 @@ export function InventoryTab({ characterId, items, canEdit }: InventoryTabProps)
       {canEdit && showForm && (
         <form
           onSubmit={handleAdd}
-          className="flex flex-col gap-4 p-4 rounded-lg bg-zinc-950 border border-zinc-800"
+          className="flex flex-col gap-4 p-4 rounded-lg bg-shell border border-border"
         >
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -83,13 +83,13 @@ export function InventoryTab({ characterId, items, canEdit }: InventoryTabProps)
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex items-start justify-between gap-3 p-3 rounded-lg bg-zinc-950 border border-zinc-800"
+              className="flex items-start justify-between gap-3 p-3 rounded-lg bg-shell border border-border"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-zinc-200">{item.name}</span>
+                  <span className="text-sm font-medium text-content">{item.name}</span>
                   {item.quantity > 1 && (
-                    <span className="text-xs text-zinc-500">×{item.quantity}</span>
+                    <span className="text-xs text-faint">×{item.quantity}</span>
                   )}
                   {item.equipped && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">Equipped</span>
@@ -98,18 +98,18 @@ export function InventoryTab({ characterId, items, canEdit }: InventoryTabProps)
                     <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-400">Magical</span>
                   )}
                   {!item.visible_to_dm && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-700/50 text-zinc-400">Hidden from DM</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-control/50 text-muted">Hidden from DM</span>
                   )}
                 </div>
                 {item.description && (
-                  <p className="text-xs text-zinc-500 mt-1">{item.description}</p>
+                  <p className="text-xs text-faint mt-1">{item.description}</p>
                 )}
               </div>
               {canEdit && (
                 <button
                   type="button"
                   onClick={() => handleDelete(item.id)}
-                  className="text-zinc-600 hover:text-red-400 shrink-0"
+                  className="text-faint hover:text-red-400 shrink-0"
                   aria-label="Delete item"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

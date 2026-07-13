@@ -144,7 +144,7 @@ export function NotionSettingsCard({ campaignId }: { campaignId: string }) {
       </CardHeader>
 
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-faint">
           Connect a Notion internal integration so the app can sync your campaign
           documentation into the Adventure Codex. The token is stored on the server
           only — it is never shown again, sent to the browser, or visible to players.
@@ -170,7 +170,7 @@ export function NotionSettingsCard({ campaignId }: { campaignId: string }) {
         )}
 
         {status?.configured && (
-          <div className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs text-zinc-400">
+          <div className="rounded-lg border border-border bg-shell px-3 py-2.5 text-xs text-muted">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <span>
                 Last test:{' '}
@@ -180,7 +180,7 @@ export function NotionSettingsCard({ campaignId }: { campaignId: string }) {
                       ? 'text-emerald-400'
                       : status.lastTestStatus === 'failed'
                         ? 'text-red-400'
-                        : 'text-zinc-400'
+                        : 'text-muted'
                   }
                 >
                   {status.lastTestStatus === 'never' ? 'not tested yet' : status.lastTestStatus}
@@ -236,13 +236,13 @@ export function NotionSettingsCard({ campaignId }: { campaignId: string }) {
         </div>
 
         {status?.configured && (
-          <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+          <div className="rounded-lg border border-border bg-shell p-3">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-zinc-100">Auto-sync from Notion</p>
-                <p className="mt-0.5 text-xs text-zinc-500">
+                <p className="text-sm font-medium text-content">Auto-sync from Notion</p>
+                <p className="mt-0.5 text-xs text-faint">
                   When a Notion webhook is configured, edits sync automatically into
-                  the Codex. Requires the webhook endpoint + <code className="text-zinc-400">NOTION_WEBHOOK_SECRET</code>.
+                  the Codex. Requires the webhook endpoint + <code className="text-muted">NOTION_WEBHOOK_SECRET</code>.
                 </p>
               </div>
               <Button
@@ -255,10 +255,10 @@ export function NotionSettingsCard({ campaignId }: { campaignId: string }) {
               </Button>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-faint">
               <span>
                 Auto-sync:{' '}
-                <span className={status.autoSyncEnabled ? 'text-emerald-400' : 'text-zinc-400'}>
+                <span className={status.autoSyncEnabled ? 'text-emerald-400' : 'text-muted'}>
                   {status.autoSyncEnabled ? 'on' : 'off'}
                 </span>
               </span>

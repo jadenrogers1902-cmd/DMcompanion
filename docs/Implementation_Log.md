@@ -1,5 +1,35 @@
 # Implementation Log
 
+## Option 3 - Moonlit Grimoire Theme Revamp (2026-07-12)
+
+### What Changed
+
+- Replaced the legacy Zinc/Amber presentation with a semantic Moonlit Grimoire palette across public auth, shared navigation, campaign pages, DM tools, player tools, map workspaces, floating overlays, and Center Screen.
+- Added a restrained display face for product/campaign headings while retaining Geist for dense controls and body text.
+- Kept gameplay colors (map art, token selections, HP/outcomes, fog/grid/room/wall indicators) behaviorally separate from the application theme.
+- Added `scripts/audit-theme-legacy.mjs` and the `audit:theme` package command. The guard scans `app/` and `components/` for non-allowlisted legacy `zinc-*` and `amber-*` utilities with file/line evidence.
+- Added a baseline route/role/feature matrix and a final QA report that distinguishes code inspection, public browser proof, authenticated runtime proof, and blocked coverage.
+- Expanded public Playwright smoke coverage for registration controls, rendered semantic palette tokens, and narrow-mobile overflow.
+
+### Compatibility And Data Boundaries
+
+- This is a presentation migration: routes, server-action signatures, API response contracts, database schema, RLS, Storage access, and realtime channel contracts are unchanged.
+- DM-only Codex/source data continues to be separated from player-safe publications/RPCs. Center Screen remains a player-safe projection.
+- Existing product quirks are preserved, including the player Settings redirect and the current version-1 JSON export scope.
+
+### QA Performed
+
+- Theme audit, TypeScript, ESLint, and the Next.js production build passed on 2026-07-12. See `docs/QA_Reports/OPTION3_THEME_FINAL_QA.md` for exact command results and unresolved runtime coverage.
+- The theme audit reports zero non-allowlisted legacy theme utilities.
+- The public Playwright command hung in its configured dev-server lifecycle without producing a test result and was terminated; no public browser pass is claimed.
+- Authenticated DM/player, multi-context realtime, privacy, and complete responsive evidence require disposable fixture credentials and must not be inferred from static checks.
+
+### Known Risks
+
+- Live Map, Player Tabletop, prepared-map, and Center Screen surfaces have dense overlay/z-index/scroll behavior that requires authenticated browser validation after visual migration.
+- The current Playwright authenticated suite focuses on the DM action queue and does not yet provide complete DM + two-player parity coverage.
+- Automated axe coverage was not added because `@axe-core/playwright` is not currently installed; accessibility acceptance remains a documented manual gate.
+
 ## Live Map Egress Reduction Pass
 
 Date: 2026-06-28

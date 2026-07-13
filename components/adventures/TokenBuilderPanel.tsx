@@ -83,16 +83,16 @@ function Collapsible({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <section className="rounded-lg border border-zinc-800 bg-zinc-950">
+    <section className="rounded-lg border border-border bg-canvas">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-zinc-900"
+        className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-panel"
         aria-expanded={open}
       >
         <span className="flex items-center gap-2">
           <svg
-            className={`h-3.5 w-3.5 text-zinc-500 transition-transform ${open ? 'rotate-90' : ''}`}
+            className={`h-3.5 w-3.5 text-faint transition-transform ${open ? 'rotate-90' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -100,11 +100,11 @@ function Collapsible({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
-          <span className="text-sm font-semibold text-zinc-100">{title}</span>
+          <span className="text-sm font-semibold text-content">{title}</span>
         </span>
         {badge}
       </button>
-      {open && <div className="border-t border-zinc-800 p-3">{children}</div>}
+      {open && <div className="border-t border-border p-3">{children}</div>}
     </section>
   )
 }
@@ -166,10 +166,10 @@ export function TokenBuilderPanel({
   const placedTokens = tokens.slice().reverse()
 
   return (
-    <aside className="flex min-h-0 flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+    <aside className="flex min-h-0 flex-col gap-4 rounded-xl border border-border bg-panel p-4">
       <div>
-        <h2 className="text-lg font-semibold text-zinc-100">Map Builder Tokens</h2>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h2 className="text-lg font-semibold text-content">Map Builder Tokens</h2>
+        <p className="mt-1 text-sm text-faint">
           Add linked characters, enemies, objects, and world elements to this map.
         </p>
       </div>
@@ -178,7 +178,7 @@ export function TokenBuilderPanel({
         title="Dynamic Tokens"
         badge={<Badge variant="player">{dynamicDocs.length}</Badge>}
       >
-        <p className="text-xs text-zinc-500">Live-aware entity tokens linked to Codex records.</p>
+        <p className="text-xs text-faint">Live-aware entity tokens linked to Codex records.</p>
 
         <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
           <Input
@@ -207,10 +207,10 @@ export function TokenBuilderPanel({
           </Select>
         </div>
 
-        <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-          <h4 className="text-sm font-semibold text-zinc-100">Add Linked Token</h4>
+        <div className="mt-3 rounded-lg border border-border bg-panel p-3">
+          <h4 className="text-sm font-semibold text-content">Add Linked Token</h4>
           {availableTypes.length === 0 ? (
-            <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-500">
+            <div className="mt-3 rounded-lg border border-border bg-canvas p-3 text-sm text-faint">
               <p>No synced Codex entries found. Sync from Notion or create Codex entries first.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link href={`/campaigns/${campaignId}/codex`}>
@@ -229,8 +229,8 @@ export function TokenBuilderPanel({
                   onClick={() => setActiveType('')}
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                     activeType === ''
-                      ? 'border-amber-500/70 bg-amber-500/15 text-amber-200'
-                      : 'border-zinc-700 bg-zinc-950 text-zinc-400 hover:border-zinc-500'
+                      ? 'border-accent/70 bg-accent/15 text-accent'
+                      : 'border-border-strong bg-canvas text-muted hover:border-border-strong'
                   }`}
                 >
                   All
@@ -242,8 +242,8 @@ export function TokenBuilderPanel({
                   onClick={() => setActiveType(type)}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                       activeType === type
-                        ? 'border-amber-500/70 bg-amber-500/15 text-amber-200'
-                        : 'border-zinc-700 bg-zinc-950 text-zinc-400 hover:border-zinc-500'
+                        ? 'border-accent/70 bg-accent/15 text-accent'
+                        : 'border-border-strong bg-canvas text-muted hover:border-border-strong'
                     }`}
                   >
                     {campaignDocTypeLabel(type)}
@@ -251,9 +251,9 @@ export function TokenBuilderPanel({
                 ))}
               </div>
 
-              <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-zinc-800">
+              <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-border">
                 <table className="min-w-full text-left text-xs">
-                  <thead className="sticky top-0 bg-zinc-950 text-zinc-500">
+                  <thead className="sticky top-0 bg-canvas text-faint">
                     <tr>
                       <th className="px-3 py-2 font-medium">Name</th>
                       <th className="px-3 py-2 font-medium">Type</th>
@@ -263,20 +263,20 @@ export function TokenBuilderPanel({
                       <th className="px-3 py-2 text-right font-medium">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-800">
+                  <tbody className="divide-y divide-border">
                     {visibleDocs.slice(0, 80).map((doc) => {
                       const isLinked = linkedDocIds.has(doc.id)
                       return (
-                        <tr key={doc.id} className="bg-zinc-900/70">
+                        <tr key={doc.id} className="bg-panel/70">
                           <td className="max-w-[12rem] px-3 py-2">
-                            <div className="truncate font-medium text-zinc-100">{doc.title}</div>
-                            <div className="text-[11px] text-zinc-600">{sourceLabel(doc.source)}</div>
+                            <div className="truncate font-medium text-content">{doc.title}</div>
+                            <div className="text-[11px] text-faint">{sourceLabel(doc.source)}</div>
                           </td>
-                          <td className="px-3 py-2 text-zinc-400">{campaignDocTypeLabel(doc.doc_type)}</td>
-                          <td className="hidden max-w-[10rem] px-3 py-2 text-zinc-500 sm:table-cell">
+                          <td className="px-3 py-2 text-muted">{campaignDocTypeLabel(doc.doc_type)}</td>
+                          <td className="hidden max-w-[10rem] px-3 py-2 text-faint sm:table-cell">
                             <span className="line-clamp-1">{doc.tags.join(', ') || 'None'}</span>
                           </td>
-                          <td className="hidden px-3 py-2 text-zinc-500 xl:table-cell">{doc.status}</td>
+                          <td className="hidden px-3 py-2 text-faint xl:table-cell">{doc.status}</td>
                           <td className="px-3 py-2">
                             <Badge variant={isLinked ? 'success' : 'default'}>{isLinked ? 'Yes' : 'No'}</Badge>
                           </td>
@@ -296,7 +296,7 @@ export function TokenBuilderPanel({
                     })}
                     {visibleDocs.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-3 py-6 text-center text-sm text-zinc-500">
+                        <td colSpan={6} className="px-3 py-6 text-center text-sm text-faint">
                           No Codex entries match these filters.
                         </td>
                       </tr>
@@ -305,7 +305,7 @@ export function TokenBuilderPanel({
                 </table>
               </div>
               {!hasImage && (
-                <p className="mt-2 text-xs text-zinc-600">Add a background map image before placing tokens.</p>
+                <p className="mt-2 text-xs text-faint">Add a background map image before placing tokens.</p>
               )}
             </>
           )}
@@ -313,7 +313,7 @@ export function TokenBuilderPanel({
       </Collapsible>
 
       <Collapsible title="Transport Tokens">
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-faint">
           Travel points. Players tap a transport token to move the party to the map you link it to —
           they vote in party mode, or enter directly when alone.
         </p>
@@ -325,13 +325,13 @@ export function TokenBuilderPanel({
         >
           🌀 Add Transport
         </button>
-        <p className="mt-2 text-xs text-zinc-600">
+        <p className="mt-2 text-xs text-faint">
           After placing it, open the token to pick its destination map.
         </p>
       </Collapsible>
 
       <Collapsible title="Static Tokens">
-        <p className="text-xs text-zinc-500">Fixed objects the DM can place and players cannot move.</p>
+        <p className="text-xs text-faint">Fixed objects the DM can place and players cannot move.</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {STATIC_TEMPLATES.map((template) => (
             <button
@@ -339,7 +339,7 @@ export function TokenBuilderPanel({
               type="button"
               disabled={!hasImage}
               onClick={() => onAddStaticToken(template)}
-              className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full border border-border-strong bg-panel px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-border-strong hover:text-content disabled:cursor-not-allowed disabled:opacity-50"
             >
               {template.label}
             </button>
@@ -348,7 +348,7 @@ export function TokenBuilderPanel({
       </Collapsible>
 
       <Collapsible title="World Objects">
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-faint">
           Static objects default to DM-only or hidden states. Visible objects can still be inspected or routed through DM approval after deployment.
         </p>
       </Collapsible>
@@ -361,7 +361,7 @@ export function TokenBuilderPanel({
               type="button"
               disabled={!hasImage}
               onClick={() => onAddStaticToken(template)}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-300 hover:border-zinc-500 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md border border-border-strong bg-panel px-3 py-1.5 text-xs text-muted hover:border-border-strong hover:text-content disabled:cursor-not-allowed disabled:opacity-50"
             >
               {template.label}
             </button>
@@ -372,7 +372,7 @@ export function TokenBuilderPanel({
       {placedTokens.length > 0 && (
         <Collapsible
           title="Placed Tokens"
-          badge={<span className="text-xs text-zinc-500">{placedTokens.length}</span>}
+          badge={<span className="text-xs text-faint">{placedTokens.length}</span>}
         >
           <div className="flex flex-col gap-1.5">
             {placedTokens.map((token) => {
@@ -383,8 +383,8 @@ export function TokenBuilderPanel({
                   key={token.id}
                   className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm ${
                     isSelected
-                      ? 'border-amber-500/60 bg-amber-500/10 text-zinc-100'
-                      : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-600'
+                      ? 'border-accent/60 bg-accent/10 text-content'
+                      : 'border-border bg-panel text-muted hover:border-border-strong'
                   }`}
                 >
                   <button
@@ -399,12 +399,12 @@ export function TokenBuilderPanel({
                       {token.icon || meta.icon}
                     </span>
                     <span className="min-w-0 flex-1 truncate">{token.name || meta.label}</span>
-                    <span className="text-[10px] uppercase text-zinc-600">{token.is_dynamic ? 'Dynamic' : 'Static'}</span>
+                    <span className="text-[10px] uppercase text-faint">{token.is_dynamic ? 'Dynamic' : 'Static'}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => onRemoveToken(token.id)}
-                    className="shrink-0 rounded-md p-1 text-zinc-600 hover:bg-zinc-800 hover:text-red-400"
+                    className="shrink-0 rounded-md p-1 text-faint hover:bg-panel-raised hover:text-red-400"
                     aria-label={`Remove ${token.name || meta.label}`}
                     title="Remove token"
                   >

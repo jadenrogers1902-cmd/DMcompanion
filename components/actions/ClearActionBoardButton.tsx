@@ -68,16 +68,16 @@ export function ClearActionBoardButton({
           aria-modal="true"
           aria-labelledby="clear-action-board-title"
         >
-          <div className="w-full max-w-md rounded-lg border border-zinc-700 bg-zinc-950 p-4 shadow-2xl shadow-black/50">
-            <h2 id="clear-action-board-title" className="text-base font-semibold text-zinc-100">
+          <div className="w-full max-w-md rounded-lg border border-border-strong bg-canvas p-4 shadow-2xl shadow-black/50">
+            <h2 id="clear-action-board-title" className="text-base font-semibold text-content">
               Clear Action Board?
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+            <p className="mt-2 text-sm leading-relaxed text-muted">
               This removes all action requests from the DM board, clears the latest-action preview,
               resets queue counts, and removes linked roll/result board state for this campaign.
             </p>
             {count > 0 && (
-              <p className="mt-2 text-xs text-amber-200">
+              <p className="mt-2 text-xs text-accent">
                 {count} action {count === 1 ? 'request' : 'requests'} will be cleared.
               </p>
             )}
@@ -94,7 +94,7 @@ export function ClearActionBoardButton({
                   setConfirming(false)
                   setError(null)
                 }}
-                className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 disabled:opacity-50"
+                className="rounded-md border border-border-strong bg-panel px-3 py-2 text-sm font-semibold text-content transition hover:border-border-strong disabled:opacity-50"
               >
                 Cancel
               </button>

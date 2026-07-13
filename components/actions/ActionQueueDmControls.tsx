@@ -272,7 +272,7 @@ export function ActionQueueDmControls({
       )}
 
       {FINAL_STATUSES.includes(status) && (
-        <p className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-500">
+        <p className="rounded-md border border-border bg-canvas px-3 py-2 text-xs text-faint">
           This action is {status}; decision buttons are disabled.
         </p>
       )}
@@ -298,7 +298,7 @@ export function ActionQueueDmControls({
           className={compact ? 'text-xs' : undefined}
         />
         {noteSaving && (
-          <span className="absolute right-2 top-1 text-[10px] text-zinc-500">
+          <span className="absolute right-2 top-1 text-[10px] text-faint">
             Saving...
           </span>
         )}
@@ -307,15 +307,15 @@ export function ActionQueueDmControls({
       <Card tone="subtle" rounded="lg" padding="xs">
         <CardEyebrow>Roll request</CardEyebrow>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5 text-xs text-zinc-400 sm:col-span-2">
+          <label className="flex flex-col gap-1.5 text-xs text-muted sm:col-span-2">
             Roll label
             <input
               value={rollLabel}
               onChange={(event) => setRollLabel(event.target.value)}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+              className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
             />
           </label>
-          <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+          <label className="flex flex-col gap-1.5 text-xs text-muted">
             Roll type
             <select
               value={rollType}
@@ -324,7 +324,7 @@ export function ActionQueueDmControls({
                 setRollType(nextType)
                 setOverrideModifier(nextType === 'custom' || nextType === 'generic')
               }}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+              className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
             >
               <option value="generic">Generic</option>
               <option value="ability_check">Ability check</option>
@@ -337,12 +337,12 @@ export function ActionQueueDmControls({
             </select>
           </label>
           {rollType === 'ability_check' && (
-            <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+            <label className="flex flex-col gap-1.5 text-xs text-muted">
               Ability
               <select
                 value={selectedAbility}
                 onChange={(event) => setSelectedAbility(event.target.value as AbilityKey)}
-                className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
               >
                 {(options?.abilities ?? []).map((ability) => (
                   <option key={ability.value} value={ability.value}>{ability.label}</option>
@@ -351,12 +351,12 @@ export function ActionQueueDmControls({
             </label>
           )}
           {rollType === 'skill_check' && (
-            <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+            <label className="flex flex-col gap-1.5 text-xs text-muted">
               Skill
               <select
                 value={selectedSkill}
                 onChange={(event) => setSelectedSkill(event.target.value)}
-                className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
               >
                 {(options?.skills ?? []).map((skill) => (
                   <option key={skill.value} value={skill.value}>{skill.label}</option>
@@ -365,12 +365,12 @@ export function ActionQueueDmControls({
             </label>
           )}
           {rollType === 'saving_throw' && (
-            <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+            <label className="flex flex-col gap-1.5 text-xs text-muted">
               Save
               <select
                 value={selectedSave}
                 onChange={(event) => setSelectedSave(event.target.value as AbilityKey)}
-                className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
               >
                 {(options?.savingThrows ?? []).map((ability) => (
                   <option key={ability.value} value={ability.value}>{ability.label}</option>
@@ -380,12 +380,12 @@ export function ActionQueueDmControls({
           )}
           {rollType === 'tool_check' && (
             <>
-              <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+              <label className="flex flex-col gap-1.5 text-xs text-muted">
                 Tool
                 <select
                   value={selectedTool}
                   onChange={(event) => setSelectedTool(event.target.value)}
-                  className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                  className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
                 >
                   <option value="">Manual tool</option>
                   {(options?.tools ?? []).map((tool) => (
@@ -393,12 +393,12 @@ export function ActionQueueDmControls({
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+              <label className="flex flex-col gap-1.5 text-xs text-muted">
                 Tool ability
                 <select
                   value={selectedAbility}
                   onChange={(event) => setSelectedAbility(event.target.value as AbilityKey)}
-                  className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                  className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
                 >
                   {(options?.abilities ?? []).map((ability) => (
                     <option key={ability.value} value={ability.value}>{ability.label}</option>
@@ -408,12 +408,12 @@ export function ActionQueueDmControls({
             </>
           )}
           {rollType === 'weapon_attack' && (
-            <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+            <label className="flex flex-col gap-1.5 text-xs text-muted">
               Weapon or attack
               <select
                 value={selectedWeaponId}
                 onChange={(event) => setSelectedWeaponId(event.target.value)}
-                className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
               >
                 <option value="">No saved weapon</option>
                 {(options?.weapons ?? []).map((weapon) => (
@@ -423,12 +423,12 @@ export function ActionQueueDmControls({
             </label>
           )}
           {rollType === 'spell_attack' && (
-            <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+            <label className="flex flex-col gap-1.5 text-xs text-muted">
               Spell
               <select
                 value={selectedSpellId}
                 onChange={(event) => setSelectedSpellId(event.target.value)}
-                className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
               >
                 <option value="">Character spell attack</option>
                 {(options?.spells ?? []).map((spell) => (
@@ -437,29 +437,29 @@ export function ActionQueueDmControls({
               </select>
             </label>
           )}
-          <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+          <label className="flex flex-col gap-1.5 text-xs text-muted">
             Advantage
             <select
               value={advantageState}
               onChange={(event) => setAdvantageState(event.target.value as AdvantageState)}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+              className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
             >
               <option value="normal">Normal</option>
               <option value="advantage">Advantage</option>
               <option value="disadvantage">Disadvantage</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+          <label className="flex flex-col gap-1.5 text-xs text-muted">
             Modifier
             <input
               type="number"
               value={effectiveModifier}
               disabled={!overrideModifier}
               onChange={(event) => setModifier(Number(event.target.value) || 0)}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500 disabled:text-zinc-500"
+              className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent disabled:text-faint"
             />
           </label>
-          <label className="flex flex-col gap-1.5 text-xs text-zinc-400">
+          <label className="flex flex-col gap-1.5 text-xs text-muted">
             {isAttackRoll ? 'Target AC' : 'DC'}
             <input
               type="number"
@@ -468,19 +468,19 @@ export function ActionQueueDmControls({
               value={targetNumber}
               onChange={(event) => setTargetNumber(event.target.value)}
               placeholder={isAttackRoll ? 'Optional' : 'Optional 0-20'}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+              className="rounded-md border border-border-strong bg-panel px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
             />
           </label>
         </div>
         {!isAttackRoll && (
-          <p className="mt-2 text-[11px] text-zinc-500">
+          <p className="mt-2 text-[11px] text-faint">
             DC is optional, but when entered it must be 0-20.
           </p>
         )}
         {isAttackRoll && (
-          <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-900 p-3">
-            <p className="text-xs font-medium text-zinc-300">Attack resolution</p>
-            <div className="mt-2 grid grid-cols-1 gap-2 text-[11px] text-zinc-500 sm:grid-cols-2">
+          <div className="mt-3 rounded-md border border-border bg-panel p-3">
+            <p className="text-xs font-medium text-muted">Attack resolution</p>
+            <div className="mt-2 grid grid-cols-1 gap-2 text-[11px] text-faint sm:grid-cols-2">
               <span>Target: {options?.targetName ?? 'Unknown'}</span>
               <span>
                 AC source: {options?.targetArmorClassSource === 'token' ? `Token AC ${options.targetArmorClass}` : 'Manual/unknown'}
@@ -493,46 +493,46 @@ export function ActionQueueDmControls({
               )}
             </div>
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <label className="flex items-center gap-2 text-[11px] text-zinc-400">
+              <label className="flex items-center gap-2 text-[11px] text-muted">
                 <input
                   type="checkbox"
                   checked={revealTargetACToPlayers}
                   onChange={(event) => setRevealTargetACToPlayers(event.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-950"
+                  className="h-3.5 w-3.5 rounded border-border-strong bg-canvas"
                 />
                 Reveal AC
               </label>
-              <label className="flex items-center gap-2 text-[11px] text-zinc-400">
+              <label className="flex items-center gap-2 text-[11px] text-muted">
                 <input
                   type="checkbox"
                   checked={autoRollDamageOnHit}
                   onChange={(event) => setAutoRollDamageOnHit(event.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-950"
+                  className="h-3.5 w-3.5 rounded border-border-strong bg-canvas"
                 />
                 Auto damage
               </label>
-              <label className="flex items-center gap-2 text-[11px] text-zinc-400">
+              <label className="flex items-center gap-2 text-[11px] text-muted">
                 <input
                   type="checkbox"
                   checked={requireDmReviewBeforeReveal}
                   onChange={(event) => setRequireDmReviewBeforeReveal(event.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-950"
+                  className="h-3.5 w-3.5 rounded border-border-strong bg-canvas"
                 />
                 DM review
               </label>
             </div>
             {!revealTargetACToPlayers && targetNumber.trim() && options?.targetArmorClassSource !== 'token' && (
-              <p className="mt-2 text-[11px] text-amber-200">
+              <p className="mt-2 text-[11px] text-accent">
                 Manual AC is only hidden when it can be resolved from target token data. Reveal AC or leave hit/miss unresolved for unknown targets.
               </p>
             )}
           </div>
         )}
         {!isAttackRoll && (
-          <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-900 p-3">
+          <div className="mt-3 rounded-md border border-border bg-panel p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-medium text-zinc-300">HP effect</p>
-              <p className="text-[11px] text-zinc-500">Applies when you approve the rolled result.</p>
+              <p className="text-xs font-medium text-muted">HP effect</p>
+              <p className="text-[11px] text-faint">Applies when you approve the rolled result.</p>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {(['none', 'damage', 'healing'] as const).map((kind) => (
@@ -542,8 +542,8 @@ export function ActionQueueDmControls({
                   onClick={() => setHpEffectKind(kind)}
                   className={`rounded-md border px-2 py-1.5 text-xs font-semibold transition ${
                     hpEffectKind === kind
-                      ? 'border-amber-400 bg-amber-500/15 text-amber-100'
-                      : 'border-zinc-700 bg-zinc-950 text-zinc-400 hover:border-zinc-500'
+                      ? 'border-accent bg-accent/15 text-accent'
+                      : 'border-border-strong bg-canvas text-muted hover:border-border-strong'
                   }`}
                 >
                   {kind === 'none' ? 'None' : kind === 'damage' ? 'Damage' : 'Healing'}
@@ -551,48 +551,48 @@ export function ActionQueueDmControls({
               ))}
             </div>
             {hpEffectKind !== 'none' && (
-              <label className="mt-3 flex flex-col gap-1.5 text-xs text-zinc-400">
+              <label className="mt-3 flex flex-col gap-1.5 text-xs text-muted">
                 Formula
                 <input
                   value={hpEffectFormula}
                   onChange={(event) => setHpEffectFormula(event.target.value)}
                   placeholder={hpEffectKind === 'healing' ? '1d8+3' : '2d6'}
-                  className="rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                  className="rounded-md border border-border-strong bg-canvas px-2.5 py-2 text-sm text-content outline-none focus:border-accent"
                 />
-                <span className="text-[11px] text-zinc-500">
+                <span className="text-[11px] text-faint">
                   {hpEffectKind === 'healing' ? 'Healing' : 'Damage'} target: {options?.targetName ?? 'selected token'}
                 </span>
               </label>
             )}
           </div>
         )}
-        <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-900 p-3">
+        <div className="mt-3 rounded-md border border-border bg-panel p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-medium text-zinc-300">
+            <p className="text-xs font-medium text-muted">
               {ROLL_TYPE_LABELS[rollType]} modifier: {formatRollModifier(effectiveModifier)}
             </p>
-            <label className="flex items-center gap-2 text-[11px] text-zinc-500">
+            <label className="flex items-center gap-2 text-[11px] text-faint">
               <input
                 type="checkbox"
                 checked={overrideModifier}
                 onChange={(event) => setOverrideModifier(event.target.checked)}
-                className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-950"
+                className="h-3.5 w-3.5 rounded border-border-strong bg-canvas"
               />
               Override
             </label>
           </div>
           {modifierResult?.breakdown.length ? (
-            <ul className="mt-2 list-disc pl-4 text-[11px] text-zinc-400">
+            <ul className="mt-2 list-disc pl-4 text-[11px] text-muted">
               {modifierResult.breakdown.map((line) => <li key={line}>{line}</li>)}
             </ul>
           ) : (
-            <p className="mt-2 text-[11px] text-zinc-600">No character modifier data is applied.</p>
+            <p className="mt-2 text-[11px] text-faint">No character modifier data is applied.</p>
           )}
           {modifierResult?.notes.length ? (
-            <p className="mt-2 text-[11px] text-zinc-500">{modifierResult.notes.join(' ')}</p>
+            <p className="mt-2 text-[11px] text-faint">{modifierResult.notes.join(' ')}</p>
           ) : null}
           {modifierResult?.warnings.length ? (
-            <div className="mt-2 rounded-md border border-amber-800/50 bg-amber-950/20 px-2 py-1.5 text-[11px] text-amber-200">
+            <div className="mt-2 rounded-md border border-accent/50 bg-accent/20 px-2 py-1.5 text-[11px] text-accent">
               {modifierResult.warnings.join(' ')}
             </div>
           ) : null}
@@ -627,7 +627,7 @@ export function ActionQueueDmControls({
         </Button>
       </div>
 
-      <CardDescription className="text-[11px] leading-relaxed text-zinc-600">
+      <CardDescription className="text-[11px] leading-relaxed text-faint">
         Dismissal and popup controls never mark a request resolved by themselves. Approve resolves
         without a roll; Request Roll asks the player for a roll or reroll. Reviewing an outcome?
         Resolve Result completes it, and Deny cancels it.

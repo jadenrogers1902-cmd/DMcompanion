@@ -10,13 +10,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses = {
   primary:
-    'bg-amber-500 text-zinc-950 hover:bg-amber-400 font-semibold disabled:opacity-50',
+    'bg-accent text-on-accent hover:bg-accent-hover font-semibold shadow-[0_8px_24px_rgb(184_167_255/0.14)] disabled:opacity-50 disabled:shadow-none',
   secondary:
-    'bg-zinc-700 text-zinc-100 hover:bg-zinc-600 border border-zinc-600 disabled:opacity-50',
+    'border border-border-strong bg-control text-content hover:border-accent/55 hover:bg-hover disabled:opacity-50',
   ghost:
-    'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-50',
+    'text-muted hover:bg-hover hover:text-content disabled:opacity-50',
   danger:
-    'bg-red-800/40 text-red-300 hover:bg-red-700/50 border border-red-800/60 disabled:opacity-50',
+    'border border-danger/45 bg-danger/10 text-danger hover:bg-danger/18 disabled:opacity-50',
 }
 
 const sizeClasses = {
@@ -43,7 +43,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={`
-          inline-flex items-center justify-center gap-2 transition-colors cursor-pointer
+          inline-flex cursor-pointer items-center justify-center gap-2 transition-[color,background-color,border-color,box-shadow]
+          disabled:cursor-not-allowed
           ${variantClasses[variant]} ${sizeClasses[size]} ${className}
         `.trim()}
         {...props}

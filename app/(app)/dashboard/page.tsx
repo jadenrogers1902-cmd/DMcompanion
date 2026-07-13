@@ -66,8 +66,8 @@ export default async function DashboardPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Your Campaigns</h1>
-          <p className="text-sm text-zinc-500 mt-1">Manage your adventures</p>
+          <h1 className="text-2xl font-bold text-content">Your Campaigns</h1>
+          <p className="text-sm text-faint mt-1">Manage your adventures</p>
         </div>
         <div className="flex gap-2">
           <Link href="/join">
@@ -115,7 +115,7 @@ export default async function DashboardPage() {
         <div className="flex flex-col gap-8">
           {dmCampaigns.length > 0 && (
             <section>
-              <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+              <h2 className="text-xs font-semibold text-faint uppercase tracking-wider mb-3">
                 Dungeon Master
               </h2>
               <div className="flex flex-col gap-3">
@@ -128,7 +128,7 @@ export default async function DashboardPage() {
 
           {playerCampaigns.length > 0 && (
             <section>
-              <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+              <h2 className="text-xs font-semibold text-faint uppercase tracking-wider mb-3">
                 Playing In
               </h2>
               <div className="flex flex-col gap-3">

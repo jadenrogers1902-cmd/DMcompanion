@@ -51,7 +51,7 @@ export function DMUtilityPanel({
         <button
           type="button"
           onClick={() => setCollapsed(false)}
-          className="sticky top-4 flex h-11 w-11 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-sm font-semibold text-zinc-300 shadow-lg transition hover:border-zinc-600"
+          className="sticky top-4 flex h-11 w-11 items-center justify-center rounded-lg border border-dm-only/40 bg-panel text-sm font-semibold text-dm-only shadow-xl transition hover:border-dm-only/70 hover:bg-panel-raised"
           aria-label="Open DM utility panel"
         >
           DM
@@ -66,17 +66,17 @@ export function DMUtilityPanel({
         tone="subtle"
         rounded="xl"
         padding="sm"
-        className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto bg-zinc-950/95 shadow-xl"
+        className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto border-border-strong bg-overlay/95 shadow-2xl backdrop-blur-xl"
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardEyebrow className="text-zinc-600">DM Utility</CardEyebrow>
+            <CardEyebrow className="text-dm-only">DM Utility</CardEyebrow>
             <CardTitle className="truncate text-sm">{campaignName}</CardTitle>
           </div>
           <button
             type="button"
             onClick={() => setCollapsed(true)}
-            className="rounded-md px-2 py-1 text-xs text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200"
+            className="rounded-md px-2 py-1 text-xs text-faint transition hover:bg-hover hover:text-content"
           >
             Hide panel
           </button>
@@ -85,31 +85,31 @@ export function DMUtilityPanel({
         <div className="grid gap-2">
           <Card tone="panel" rounded="lg" padding="xs">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm text-zinc-300">Realtime</span>
+              <span className="text-sm text-muted">Realtime</span>
               <Badge variant={online ? 'success' : 'warning'}>{online ? 'Live' : 'Offline'}</Badge>
             </div>
-            <CardDescription className="mt-1 text-zinc-600">
+            <CardDescription className="mt-1 text-faint">
               Realtime views refetch when subscribed campaign rows change.
             </CardDescription>
           </Card>
 
           <Card tone="panel" rounded="lg" padding="xs">
             <CardDescription>Active scene</CardDescription>
-            <p className="mt-1 truncate text-sm font-medium text-zinc-100">
+            <p className="mt-1 truncate text-sm font-medium text-content">
               {activeMapName || 'No active map'}
             </p>
           </Card>
 
           <Link
             href={`/campaigns/${campaignId}/actions`}
-            className="transition hover:border-amber-500/60"
+            className="transition"
           >
-            <Card tone="panel" rounded="lg" padding="xs" className="transition hover:border-amber-500/60">
+            <Card tone="interactive" rounded="lg" padding="xs">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-zinc-100">Action requests</span>
+                <span className="text-sm font-medium text-content">Action requests</span>
                 <Badge variant={pendingRequests > 0 ? 'warning' : 'default'}>{pendingRequests}</Badge>
               </div>
-              <CardDescription className="mt-1 text-zinc-600">Approve, deny, ask for rolls, or resolve.</CardDescription>
+              <CardDescription className="mt-1 text-faint">Approve, deny, ask for rolls, or resolve.</CardDescription>
             </Card>
           </Link>
         </div>
@@ -140,8 +140,8 @@ export function DMUtilityPanel({
 function Metric({ label, value }: { label: string; value: number }) {
   return (
     <Card tone="panel" rounded="lg" padding="xs">
-      <p className="text-lg font-semibold text-zinc-100">{value}</p>
-      <CardDescription className="text-zinc-600">{label}</CardDescription>
+      <p className="text-lg font-semibold text-content">{value}</p>
+      <CardDescription className="text-faint">{label}</CardDescription>
     </Card>
   )
 }
@@ -150,7 +150,7 @@ function QuickLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition hover:border-zinc-600 hover:text-zinc-100"
+      className="rounded-lg border border-border bg-panel-raised/65 px-3 py-2 text-sm text-muted transition hover:border-accent/45 hover:bg-hover hover:text-content"
     >
       {label}
     </Link>

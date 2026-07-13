@@ -50,7 +50,7 @@ export default async function NewEncounterPage({ params }: PageProps) {
     <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
       <Link
         href={`/campaigns/${id}/encounters`}
-        className="text-sm text-zinc-500 hover:text-zinc-300 flex items-center gap-1.5 mb-4"
+        className="text-sm text-faint hover:text-content flex items-center gap-1.5 mb-4"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -59,13 +59,13 @@ export default async function NewEncounterPage({ params }: PageProps) {
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-100">New Encounter</h1>
-        <p className="text-sm text-zinc-500 mt-1">
+        <h1 className="text-2xl font-bold text-content">New Encounter</h1>
+        <p className="text-sm text-faint mt-1">
           Create a manual combat tracker for {campaign.name}.
         </p>
       </div>
 
-      <form action={create} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex flex-col gap-5">
+      <form action={create} className="bg-panel border border-border rounded-xl p-6 flex flex-col gap-5">
         <Input
           label="Encounter name"
           name="name"

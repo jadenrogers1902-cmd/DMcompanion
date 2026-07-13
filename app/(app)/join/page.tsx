@@ -30,20 +30,20 @@ export default function JoinPage() {
       <div className="mb-8">
         <Link
           href="/dashboard"
-          className="text-sm text-zinc-500 hover:text-zinc-300 flex items-center gap-1.5 mb-4"
+          className="text-sm text-faint hover:text-content flex items-center gap-1.5 mb-4"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
           Back to campaigns
         </Link>
-        <h1 className="text-2xl font-bold text-zinc-100">Join a Campaign</h1>
-        <p className="text-sm text-zinc-500 mt-1">
+        <h1 className="text-2xl font-bold text-content">Join a Campaign</h1>
+        <p className="text-sm text-faint mt-1">
           Enter the invite code your Dungeon Master gave you.
         </p>
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+      <div className="bg-panel border border-border rounded-xl p-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {error && <Alert message={error} />}
 
@@ -66,9 +66,9 @@ export default function JoinPage() {
         </form>
       </div>
 
-      <p className="text-sm text-zinc-500 text-center mt-6">
+      <p className="text-sm text-faint text-center mt-6">
         Want to run a campaign instead?{' '}
-        <Link href="/campaigns/new" className="text-amber-400 hover:text-amber-300">
+        <Link href="/campaigns/new" className="text-accent hover:text-accent-hover">
           Create one
         </Link>
       </p>

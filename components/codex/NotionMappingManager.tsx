@@ -244,12 +244,12 @@ export function NotionMappingManager({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-100">Table Mappings</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="text-2xl font-bold text-content">Table Mappings</h1>
+        <p className="mt-1 text-sm text-faint">
           Map each Notion source table onto an Adventure Codex table type. All synced
           content defaults to DM-only — players never see a mapped field unless
           you explicitly reveal it.{' '}
-          <Link href={`/campaigns/${campaignId}/settings`} className="text-amber-400 hover:text-amber-300">
+          <Link href={`/campaigns/${campaignId}/settings`} className="text-accent hover:text-accent-hover">
             Manage the Notion connection
           </Link>
           .
@@ -257,8 +257,8 @@ export function NotionMappingManager({
       </div>
 
       {!serverReady && (
-        <Card className="border-amber-500/30 bg-amber-500/[0.04]">
-          <p className="text-sm text-amber-200">
+        <Card className="border-accent/30 bg-accent/[0.04]">
+          <p className="text-sm text-accent">
             Notion is not connected yet. Add and verify an integration token in
             campaign settings before creating mappings.
           </p>
@@ -293,8 +293,8 @@ export function NotionMappingManager({
           </div>
 
           {discoveredDatabases.length > 0 && (
-            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-              <p className="text-xs font-medium text-zinc-300">Databases found on that page</p>
+            <div className="rounded-lg border border-border bg-shell p-3">
+              <p className="text-xs font-medium text-muted">Databases found on that page</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {discoveredDatabases.map((db) => (
                   <Button
@@ -348,16 +348,16 @@ export function NotionMappingManager({
                 <PropertySelect label="Source URL (optional)" value={draft.source_url_property} options={propertyOptions} onChange={(v) => setDraft({ ...draft, source_url_property: v })} />
               </div>
 
-              <fieldset className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-                <legend className="px-1 text-xs font-medium text-zinc-400">Relation properties → related docs</legend>
+              <fieldset className="rounded-lg border border-border bg-shell p-3">
+                <legend className="px-1 text-xs font-medium text-muted">Relation properties → related docs</legend>
                 {propertyOptions.length === 0 ? (
-                  <p className="text-xs text-zinc-600">Load the database to choose relation properties.</p>
+                  <p className="text-xs text-faint">Load the database to choose relation properties.</p>
                 ) : (
                   <div className="grid gap-1.5 sm:grid-cols-2">
                     {propertyOptions.map((name) => {
                       const checked = draft.relation_properties.includes(name)
                       return (
-                        <label key={name} className="flex items-center gap-2 text-xs text-zinc-300">
+                        <label key={name} className="flex items-center gap-2 text-xs text-muted">
                           <input
                             type="checkbox"
                             checked={checked}
@@ -369,7 +369,7 @@ export function NotionMappingManager({
                                   : prev.relation_properties.filter((p) => p !== name),
                               }))
                             }
-                            className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900"
+                            className="h-3.5 w-3.5 rounded border-border-strong bg-panel"
                           />
                           <span className="truncate">{name}</span>
                         </label>
@@ -379,7 +379,7 @@ export function NotionMappingManager({
                 )}
               </fieldset>
 
-              <p className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-[11px] text-zinc-500">
+              <p className="rounded-md border border-border bg-shell px-3 py-2 text-[11px] text-faint">
                 Combat stats and ability scores should be mapped to DM notes only.
                 They are treated as DM reference text — Notion never controls live
                 combat, HP, AC, or initiative.
@@ -417,20 +417,20 @@ export function NotionMappingManager({
           </CardTitle>
         </CardHeader>
         {mappings.length === 0 ? (
-          <p className="text-sm text-zinc-500">No databases mapped yet.</p>
+          <p className="text-sm text-faint">No databases mapped yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {mappings.map((m) => (
-              <div key={m.id} className="flex items-start justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+              <div key={m.id} className="flex items-start justify-between gap-3 rounded-lg border border-border bg-panel p-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-semibold text-zinc-100">
+                    <p className="truncate text-sm font-semibold text-content">
                       {m.notion_database_name || 'Notion database'}
                     </p>
                     <Badge variant="dm">{campaignDocTypeLabel(m.doc_type)}</Badge>
                     {!m.enabled && <Badge variant="warning">Disabled</Badge>}
                   </div>
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="mt-1 text-xs text-faint">
                     {m.relation_properties.length} relation{m.relation_properties.length === 1 ? '' : 's'} mapped
                   </p>
                 </div>
@@ -478,7 +478,7 @@ function PropertySelect({
 
 function MappingPreviewCard({ preview, docType }: { preview: MappingPreview; docType: CampaignDocType }) {
   return (
-    <Card className="border-amber-500/20 bg-amber-500/[0.03]">
+    <Card className="border-accent/20 bg-accent/[0.03]">
       <CardHeader>
         <CardTitle>
           <span className="flex items-center gap-2">
@@ -489,33 +489,33 @@ function MappingPreviewCard({ preview, docType }: { preview: MappingPreview; doc
       </CardHeader>
       <div className="flex flex-col gap-4">
         <div>
-          <p className="text-[11px] uppercase tracking-wide text-zinc-600">Title</p>
-          <p className="text-sm text-zinc-100">{preview.title || <span className="text-zinc-600">No title mapped</span>}</p>
+          <p className="text-[11px] uppercase tracking-wide text-faint">Title</p>
+          <p className="text-sm text-content">{preview.title || <span className="text-faint">No title mapped</span>}</p>
         </div>
 
-        <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.05] p-3">
-          <p className="text-[11px] uppercase tracking-wide text-amber-300/80">DM-only</p>
+        <div className="rounded-lg border border-accent/20 bg-accent/[0.05] p-3">
+          <p className="text-[11px] uppercase tracking-wide text-accent/80">DM-only</p>
           {preview.dmFields.length === 0 ? (
-            <p className="mt-1 text-xs text-zinc-600">No DM-only fields mapped.</p>
+            <p className="mt-1 text-xs text-faint">No DM-only fields mapped.</p>
           ) : (
             preview.dmFields.map((f) => (
               <div key={f.label} className="mt-2">
-                <p className="text-[11px] font-medium text-amber-200/80">{f.label}</p>
-                <p className="whitespace-pre-wrap text-xs text-zinc-300">{f.value}</p>
+                <p className="text-[11px] font-medium text-accent/80">{f.label}</p>
+                <p className="whitespace-pre-wrap text-xs text-muted">{f.value}</p>
               </div>
             ))
           )}
         </div>
 
-        <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-          <p className="text-[11px] uppercase tracking-wide text-zinc-500">Player-safe</p>
+        <div className="rounded-lg border border-border bg-shell p-3">
+          <p className="text-[11px] uppercase tracking-wide text-faint">Player-safe</p>
           {preview.playerFields.length === 0 ? (
-            <p className="mt-1 text-xs text-zinc-600">No player-safe fields mapped (stays DM-only).</p>
+            <p className="mt-1 text-xs text-faint">No player-safe fields mapped (stays DM-only).</p>
           ) : (
             preview.playerFields.map((f) => (
               <div key={f.label} className="mt-2">
-                <p className="text-[11px] font-medium text-zinc-400">{f.label}</p>
-                <p className="whitespace-pre-wrap text-xs text-zinc-300">{f.value}</p>
+                <p className="text-[11px] font-medium text-muted">{f.label}</p>
+                <p className="whitespace-pre-wrap text-xs text-muted">{f.value}</p>
               </div>
             ))
           )}
@@ -529,13 +529,13 @@ function MappingPreviewCard({ preview, docType }: { preview: MappingPreview; doc
         </div>
 
         {preview.relations.length > 0 && (
-          <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-zinc-500">Relations</p>
+          <div className="rounded-lg border border-border bg-shell p-3">
+            <p className="text-[11px] uppercase tracking-wide text-faint">Relations</p>
             <div className="mt-2 flex flex-col gap-1">
               {preview.relations.map((rel) => (
-                <p key={rel.property} className="text-xs text-zinc-400">
-                  <span className="text-zinc-200">{rel.property}</span>: {rel.count} linked
-                  {rel.sample && <span className="text-zinc-600"> — {rel.sample}</span>}
+                <p key={rel.property} className="text-xs text-muted">
+                  <span className="text-content">{rel.property}</span>: {rel.count} linked
+                  {rel.sample && <span className="text-faint"> — {rel.sample}</span>}
                 </p>
               ))}
             </div>

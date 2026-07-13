@@ -36,8 +36,8 @@ export function InviteCode({ campaignId, initialCode }: InviteCodeProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
-        <div className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-3">
-          <span className="font-mono text-lg font-semibold text-amber-400 tracking-widest">
+        <div className="flex-1 bg-shell border border-border-strong rounded-lg px-4 py-3">
+          <span className="font-mono text-lg font-semibold text-accent tracking-widest">
             {code}
           </span>
         </div>
@@ -46,9 +46,9 @@ export function InviteCode({ campaignId, initialCode }: InviteCodeProps) {
         </Button>
       </div>
 
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-faint">
         Share this code with players. They can use it at{' '}
-        <span className="text-zinc-400 font-mono">/join</span>.
+        <span className="text-muted font-mono">/join</span>.
       </p>
 
       {error && <p className="text-xs text-red-400">{error}</p>}
@@ -58,7 +58,7 @@ export function InviteCode({ campaignId, initialCode }: InviteCodeProps) {
         size="sm"
         onClick={handleRegenerate}
         loading={regenerating}
-        className="self-start text-zinc-500"
+        className="self-start text-faint"
       >
         Regenerate code
       </Button>

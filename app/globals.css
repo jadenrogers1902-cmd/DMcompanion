@@ -1,35 +1,70 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #0c0c10;
-  --color-surface: #16161f;
-  --color-surface-2: #1e1e2a;
-  --color-border: #2e2e3e;
-  --color-border-subtle: #232330;
-  --color-foreground: #e8e8f0;
-  --color-muted: #6b6b80;
-  --color-primary: #d4a82a;
-  --color-primary-hover: #e8bb3a;
-  --color-primary-foreground: #0c0c10;
-  --color-danger: #e05252;
-  --color-success: #4caf82;
+  /* Moonlit Grimoire semantic palette. Keep these names role-based so
+     feature colors (maps, tokens, health, and user selections) stay distinct. */
+  --color-canvas: #100d16;
+  --color-shell: #14101c;
+  --color-panel: #1b1524;
+  --color-panel-raised: #241b30;
+  --color-overlay: #15101f;
+  --color-control: #241b30;
+  --color-hover: #2b2038;
+  --color-content: #f2ecff;
+  --color-muted: #b8acc7;
+  --color-faint: #80758f;
+  --color-on-accent: #100d16;
+  --color-accent-foreground: #100d16;
+  --color-border: #3a2c49;
+  --color-border-strong: #59436f;
+  --color-accent: #b8a7ff;
+  --color-accent-hover: #c9bdff;
+  --color-accent-soft: #7565a8;
+  --color-success: #67e8c2;
+  --color-warning: #f5c06a;
+  --color-danger: #f0719b;
+  --color-info: #7cc7ff;
+  --color-live: #ff6f91;
+  --color-player-safe: #67e8c2;
+  --color-dm-only: #f0719b;
+
+  /* Compatibility aliases for existing screens during the staged migration. */
+  --color-background: #100d16;
+  --color-surface: #1b1524;
+  --color-surface-2: #241b30;
+  --color-border-subtle: #2b2038;
+  --color-foreground: #f2ecff;
+  --color-primary: #b8a7ff;
+  --color-primary-hover: #c9bdff;
+  --color-primary-foreground: #100d16;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-cormorant-garamond);
+}
+
+:root {
+  color-scheme: dark;
 }
 
 html {
   height: 100%;
+  background: var(--color-canvas);
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   min-height: 100%;
+  background:
+    radial-gradient(circle at 82% -12%, rgb(184 167 255 / 0.12), transparent 38rem),
+    radial-gradient(circle at -8% 88%, rgb(103 232 194 / 0.05), transparent 34rem),
+    var(--color-canvas);
+  color: var(--color-content);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
 * {
   min-width: 0;
+  scrollbar-color: var(--color-border-strong) transparent;
 }
 
 p,
@@ -43,47 +78,55 @@ h6 {
   overflow-wrap: anywhere;
 }
 
+/* Display typography is reserved for page titles; dense interface headings
+   and controls stay in Geist for fast scanning. */
+main h1 {
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+::selection {
+  background: rgb(184 167 255 / 0.28);
+  color: var(--color-content);
+}
+
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+}
+
+.moonlit-panel {
+  background:
+    linear-gradient(145deg, rgb(184 167 255 / 0.035), transparent 48%),
+    rgb(27 21 36 / 0.94);
+  border: 1px solid rgb(89 67 111 / 0.72);
+  box-shadow:
+    0 24px 64px rgb(0 0 0 / 0.28),
+    inset 0 1px rgb(242 236 255 / 0.035);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 7px;
+  height: 7px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-muted);
+  background: var(--color-border-strong);
+  border-radius: 999px;
 }
 
-/* Soft gradient fills for filled pills/badges (blue / pink / orange family).
-   Outline / tinted pills stay flat — these only apply to solid fills. */
-.pill-blue {
-  background: linear-gradient(135deg, #2563eb, #38bdf8);
-  color: #fff;
-  border-color: transparent;
-}
-.pill-violet {
-  background: linear-gradient(135deg, #7c3aed, #c084fc);
-  color: #fff;
-  border-color: transparent;
-}
-.pill-emerald {
-  background: linear-gradient(135deg, #059669, #34d399);
-  color: #062a20;
-  border-color: transparent;
-}
-.pill-sunset {
-  background: linear-gradient(135deg, #ea580c, #f472b6);
-  color: #fff;
-  border-color: transparent;
-}
-.pill-rose {
-  background: linear-gradient(135deg, #e11d48, #fb7185);
-  color: #fff;
-  border-color: transparent;
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-faint);
 }
 
 /* Roll outcome effects (Player Roll Outcome Popup Styling) */
@@ -156,16 +199,16 @@ h6 {
   animation: roll-fx-shake-once 420ms ease-in-out 1;
 }
 
-/* Token "!" alert badge — pulses when a player has an active action request. */
+/* Token alert badge pulses when a player has an active action request. */
 @keyframes action-alert-pulse {
   0%,
   100% {
     transform: scale(1);
-    box-shadow: 0 0 6px rgba(220, 38, 38, 0.8);
+    box-shadow: 0 0 6px rgb(240 113 155 / 0.8);
   }
   50% {
     transform: scale(1.18);
-    box-shadow: 0 0 14px rgba(220, 38, 38, 1);
+    box-shadow: 0 0 14px rgb(240 113 155);
   }
 }
 
@@ -174,23 +217,29 @@ h6 {
   will-change: transform, box-shadow;
 }
 
-/* Nudged DM action card — red edge/glow until the DM opens or acts on it. */
+/* Nudged DM action card glows until the DM opens or acts on it. */
 @keyframes action-nudge-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.6), 0 0 12px -2px rgba(220, 38, 38, 0.45);
+    box-shadow: 0 0 0 1px rgb(240 113 155 / 0.6), 0 0 12px -2px rgb(240 113 155 / 0.42);
   }
   50% {
-    box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.9), 0 0 22px -2px rgba(248, 113, 113, 0.7);
+    box-shadow: 0 0 0 1px rgb(255 143 178 / 0.9), 0 0 22px -2px rgb(240 113 155 / 0.68);
   }
 }
 
 .action-nudge-highlight {
-  border-color: rgb(220, 38, 38) !important;
+  border-color: var(--color-dm-only) !important;
   animation: action-nudge-glow 1.4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
   .roll-fx-thumb,
   .roll-fx-flame,
   .roll-fx-shake-once,

@@ -240,7 +240,7 @@ const GUIDED_ACTION_TYPES: {
     label: 'Investigate',
     description: 'Study details, search for clues, inspect, or test a theory.',
     icon: <Search className="h-4 w-4" aria-hidden="true" />,
-    tone: 'border-amber-500/40 bg-amber-500/10 text-amber-100',
+    tone: 'border-accent/40 bg-accent/10 text-accent',
   },
   {
     type: 'Use Item',
@@ -261,7 +261,7 @@ const GUIDED_ACTION_TYPES: {
     label: 'Custom Action',
     description: 'Describe anything else you want the DM to adjudicate.',
     icon: <ScrollText className="h-4 w-4" aria-hidden="true" />,
-    tone: 'border-zinc-600 bg-zinc-900 text-zinc-100',
+    tone: 'border-border-strong bg-panel text-content',
   },
 ]
 
@@ -1669,7 +1669,7 @@ export function PlayerMapView({
     <div className="flex flex-col gap-3">
       {/* Status bar */}
       <div className="flex flex-wrap items-center gap-3 text-sm">
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-xs font-medium text-zinc-300">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 py-1 text-xs font-medium text-muted">
           <Users className="h-3.5 w-3.5" aria-hidden="true" />
           {mapState.travel_mode === 'group_party'
             ? `Group Party${mapState.group_movement_unlimited ? ' - infinite' : ' - 30 ft'}`
@@ -1690,7 +1690,7 @@ export function PlayerMapView({
             Movement locked by DM
           </span>
         ) : myControlled.length > 0 ? (
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-faint">
             {effectiveMapInteractionMode === 'move'
               ? combatMovementActive
                 ? 'Move mode: tap a square, then confirm.'
@@ -1700,7 +1700,7 @@ export function PlayerMapView({
                 : 'Hand mode: pan and pinch the map.'}
           </span>
         ) : (
-          <span className="text-xs text-zinc-600">
+          <span className="text-xs text-faint">
             You have no token to control on this map yet.
           </span>
         )}
@@ -1712,8 +1712,8 @@ export function PlayerMapView({
             if (!r) return null
             const left = Math.max(0, r.speed - r.used)
             return (
-              <span key={t.id} className="text-xs text-zinc-400">
-                <span className="text-zinc-200 font-medium">{t.name || 'Your token'}</span>
+              <span key={t.id} className="text-xs text-muted">
+                <span className="text-content font-medium">{t.name || 'Your token'}</span>
                 : {left} / {r.speed} ft left
               </span>
             )
@@ -1784,25 +1784,25 @@ export function PlayerMapView({
             masks so a room-mask or no-fog map isn't mislabeled as "not
             revealed". */}
         {globalFogEnabled && !hasRevealedAreas && !hasRoomRegions && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-zinc-900/95 border border-zinc-700 rounded-lg px-3.5 py-2 text-xs text-zinc-400 shadow-lg">
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-panel/95 border border-border-strong rounded-lg px-3.5 py-2 text-xs text-muted shadow-lg">
             The DM has not revealed this map yet.
           </div>
         )}
         {!globalFogEnabled && hasHiddenRooms && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-zinc-900/95 border border-zinc-700 rounded-lg px-3.5 py-2 text-xs text-zinc-400 shadow-lg">
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-panel/95 border border-border-strong rounded-lg px-3.5 py-2 text-xs text-muted shadow-lg">
             Some areas are hidden until you explore or the DM reveals them.
           </div>
         )}
 
         {selected && !isTransport && (
-          <div className="absolute bottom-16 left-3 right-3 z-10 max-w-sm bg-zinc-900/95 border border-zinc-700 rounded-lg p-3 shadow-lg sm:right-auto">
+          <div className="absolute bottom-16 left-3 right-3 z-10 max-w-sm bg-panel/95 border border-border-strong rounded-lg p-3 shadow-lg sm:right-auto">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <span
                   className="w-4 h-4 rounded-full border border-black/40 shrink-0"
                   style={{ backgroundColor: selected.color }}
                 />
-                <span className="text-sm font-medium text-zinc-100 truncate">
+                <span className="text-sm font-medium text-content truncate">
                   {selectedHiddenHint ? 'Something is here' : selected.name || 'Token'}
                 </span>
                 {controls(selected) && (
@@ -1812,7 +1812,7 @@ export function PlayerMapView({
               <button
                 type="button"
                 onClick={() => setSelectedId(null)}
-                className="shrink-0 text-zinc-500 hover:text-zinc-300"
+                className="shrink-0 text-faint hover:text-muted"
                 aria-label="Close token details"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1825,13 +1825,13 @@ export function PlayerMapView({
                 You can make out a presence or object here, but it has not been fully discovered yet.
               </p>
             ) : selected.public_description && (
-              <p className="text-xs text-zinc-300 mt-1.5">{selected.public_description}</p>
+              <p className="text-xs text-muted mt-1.5">{selected.public_description}</p>
             )}
             {!selectedHiddenHint && selected.notes && (
-              <p className="text-xs text-zinc-400 mt-1.5">{selected.notes}</p>
+              <p className="text-xs text-muted mt-1.5">{selected.notes}</p>
             )}
             {!selectedHiddenHint && selected.object_state && selected.object_state !== 'visible' && (
-              <p className="text-[11px] text-amber-400/80 mt-1 capitalize">
+              <p className="text-[11px] text-accent/80 mt-1 capitalize">
                 State: {selected.object_state}
               </p>
             )}
@@ -1847,8 +1847,8 @@ export function PlayerMapView({
 
             {/* Contextual action menu — only the actions the DM allowed */}
             {!selectedHiddenHint && !isTransport && contextualActions.length > 0 && (
-              <div className="mt-3 border-t border-zinc-800 pt-3">
-                <p className="text-[11px] uppercase tracking-wide text-zinc-600 mb-2">
+              <div className="mt-3 border-t border-border pt-3">
+                <p className="text-[11px] uppercase tracking-wide text-faint mb-2">
                   {nearestActor
                     ? `${nearestActor.distance} ft away — choose an action`
                     : 'Link a character to a token to act'}
@@ -1860,7 +1860,7 @@ export function PlayerMapView({
                         key={action}
                         type="button"
                         onClick={() => startActionDraft(action, selected.id)}
-                        className="rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-xs font-medium text-zinc-200 transition hover:border-amber-500/60 hover:text-amber-200 disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-200"
+                        className="rounded-md border border-border-strong bg-canvas px-2.5 py-1.5 text-xs font-medium text-content transition hover:border-accent/60 hover:text-accent disabled:opacity-40 disabled:hover:border-border-strong disabled:hover:text-content"
                       >
                         {action}
                       </button>
@@ -1870,7 +1870,7 @@ export function PlayerMapView({
                 <button
                   type="button"
                   onClick={() => openGuidedAction(selected.id)}
-                  className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-100 transition hover:border-amber-400 hover:bg-amber-500/20 disabled:opacity-40"
+                  className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-md border border-accent/50 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:border-accent hover:bg-accent/20 disabled:opacity-40"
                 >
                   <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
                   More actions
@@ -1889,7 +1889,7 @@ export function PlayerMapView({
             onClick={() => setSelectedId(null)}
           >
             <div
-              className="w-full max-w-xs rounded-2xl border border-violet-500/40 bg-zinc-950 p-5 shadow-2xl"
+              className="w-full max-w-xs rounded-2xl border border-violet-500/40 bg-canvas p-5 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start justify-between gap-3">
@@ -1899,7 +1899,7 @@ export function PlayerMapView({
                     <p className="text-[11px] uppercase tracking-wide text-violet-300/80">
                       {selectedHiddenHint ? 'Unrevealed portal' : 'Travel'}
                     </p>
-                    <p className="truncate text-base font-semibold text-zinc-100">
+                    <p className="truncate text-base font-semibold text-content">
                       {selectedHiddenHint ? 'Something is here' : selected.name || 'New location'}
                     </p>
                   </div>
@@ -1907,7 +1907,7 @@ export function PlayerMapView({
                 <button
                   type="button"
                   onClick={() => setSelectedId(null)}
-                  className="shrink-0 rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+                  className="shrink-0 rounded-md p-1 text-faint hover:bg-panel-raised hover:text-content"
                   aria-label="Close"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1921,11 +1921,11 @@ export function PlayerMapView({
                   You can tell there is something here, but it has not been fully discovered yet.
                 </p>
               ) : selected.public_description && (
-                <p className="mt-3 text-sm text-zinc-300">{selected.public_description}</p>
+                <p className="mt-3 text-sm text-muted">{selected.public_description}</p>
               )}
 
               {selectedHiddenHint ? (
-                <p className="mt-4 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-400">
+                <p className="mt-4 rounded-lg border border-border-strong bg-panel px-3 py-2 text-xs text-muted">
                   Move closer or wait for the DM to reveal this area before traveling.
                 </p>
               ) : mapState.travel_mode === 'combat' ? (
@@ -1935,7 +1935,7 @@ export function PlayerMapView({
               ) : (
                 <>
                   {transportNeedsVote && (
-                    <p className="mt-4 text-xs text-zinc-400">
+                    <p className="mt-4 text-xs text-muted">
                       Everyone must agree to travel — {transportTally.confirmed}/{transportVoters.size} confirmed
                       {transportTally.mine ? ' (you voted)' : ''}.
                     </p>
@@ -1983,8 +1983,8 @@ export function PlayerMapView({
             aria-label="Open character information"
             className={`flex h-12 w-12 items-center justify-center rounded-full border shadow-xl backdrop-blur transition active:scale-95 ${
               characterCardOpen
-                ? 'border-sky-300 bg-sky-400 text-zinc-950'
-                : 'border-zinc-700 bg-zinc-950/90 text-sky-200 hover:border-sky-400/70 hover:bg-zinc-900'
+                ? 'border-sky-300 bg-sky-400 text-on-accent'
+                : 'border-border-strong bg-canvas/90 text-sky-200 hover:border-sky-400/70 hover:bg-panel'
             }`}
           >
             <UserCircle className="h-6 w-6" aria-hidden="true" />
@@ -1999,8 +1999,8 @@ export function PlayerMapView({
             aria-label="Open interaction menu"
             className={`flex h-12 w-12 items-center justify-center rounded-full border shadow-xl backdrop-blur transition active:scale-95 ${
               interactionOpen
-                ? 'border-amber-400 bg-amber-500 text-zinc-950'
-                : 'border-zinc-700 bg-zinc-950/90 text-amber-200 hover:border-amber-500/70 hover:bg-zinc-900'
+                ? 'border-accent bg-accent text-on-accent'
+                : 'border-border-strong bg-canvas/90 text-accent hover:border-accent/70 hover:bg-panel'
             }`}
           >
             <Hand className="h-5 w-5" aria-hidden="true" />
@@ -2104,7 +2104,7 @@ export function PlayerMapView({
         )}
       </div>
 
-      <p className="text-xs text-zinc-600 text-center">
+      <p className="text-xs text-faint text-center">
         Hand: pan/pinch - Move: drag your token - Target: tap to interact - 1 square = {map.grid_scale_feet} ft
       </p>
 
@@ -2151,11 +2151,11 @@ function PendingMoveCard({
   onCancel: () => void
 }) {
   return (
-    <div className="absolute bottom-20 left-3 right-3 z-40 max-w-sm rounded-xl border border-zinc-700 bg-zinc-950/96 p-3 shadow-2xl shadow-black/50 backdrop-blur sm:right-auto">
+    <div className="absolute bottom-20 left-3 right-3 z-40 max-w-sm rounded-xl border border-border-strong bg-canvas/96 p-3 shadow-2xl shadow-black/50 backdrop-blur sm:right-auto">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-300">Confirm movement</p>
-          <p className="mt-1 text-sm font-semibold text-zinc-100">{move.tokenName}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-accent">Confirm movement</p>
+          <p className="mt-1 text-sm font-semibold text-content">{move.tokenName}</p>
         </div>
         <span
           className={`rounded-full border px-2 py-1 text-xs font-semibold ${
@@ -2167,7 +2167,7 @@ function PendingMoveCard({
           {move.feet} ft
         </span>
       </div>
-      <p className="mt-2 text-xs text-zinc-400">
+      <p className="mt-2 text-xs text-muted">
         {move.overLimit
           ? 'This is beyond your normal movement. The DM or server rules may reject it.'
           : move.remaining === null
@@ -2178,14 +2178,14 @@ function PendingMoveCard({
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-10 rounded-md border border-zinc-700 bg-zinc-900 px-3 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500"
+          className="min-h-10 rounded-md border border-border-strong bg-panel px-3 text-sm font-semibold text-content transition hover:border-border-strong"
         >
           Cancel
         </button>
         <button
           type="button"
           onClick={onConfirm}
-          className="min-h-10 rounded-md bg-amber-500 px-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+          className="min-h-10 rounded-md bg-accent px-3 text-sm font-semibold text-on-accent transition hover:bg-accent-hover"
         >
           Confirm Move
         </button>
@@ -2215,18 +2215,18 @@ function CharacterInfoCard({
   const summary = summaries.find((item) => item.character.id === selectedCharacterId) ?? summaries[0] ?? null
 
   return (
-    <div className="absolute bottom-[8.5rem] left-3 right-3 z-40 flex max-h-[min(35rem,calc(100%-10rem))] max-w-md flex-col overflow-hidden rounded-2xl border border-sky-400/30 bg-zinc-950/97 shadow-2xl shadow-black/55 backdrop-blur sm:right-auto sm:w-[26rem]">
-      <div className="flex items-start justify-between gap-3 border-b border-zinc-800 px-4 py-3">
+    <div className="absolute bottom-[8.5rem] left-3 right-3 z-40 flex max-h-[min(35rem,calc(100%-10rem))] max-w-md flex-col overflow-hidden rounded-2xl border border-sky-400/30 bg-canvas/97 shadow-2xl shadow-black/55 backdrop-blur sm:right-auto sm:w-[26rem]">
+      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-300">Character</p>
-          <h2 className="mt-1 truncate text-base font-bold text-zinc-50">
+          <h2 className="mt-1 truncate text-base font-bold text-content">
             {summary?.character.name ?? 'No character'}
           </h2>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
+          className="rounded-md p-1 text-faint transition hover:bg-panel-raised hover:text-content"
           aria-label="Close character card"
         >
           <X className="h-4 w-4" aria-hidden="true" />
@@ -2235,18 +2235,18 @@ function CharacterInfoCard({
 
       <div className="flex-1 overflow-y-auto p-4">
         {!summary ? (
-          <p className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-400">
+          <p className="rounded-lg border border-border bg-panel px-3 py-2 text-sm text-muted">
             No owned character is available for this campaign yet.
           </p>
         ) : (
           <div className="grid gap-3">
             {summaries.length > 1 && (
-              <label className="grid gap-1.5 text-xs font-medium text-zinc-300">
+              <label className="grid gap-1.5 text-xs font-medium text-muted">
                 Character
                 <select
                   value={summary.character.id}
                   onChange={(event) => onSelectCharacter(event.target.value)}
-                  className="min-h-10 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100 outline-none focus:border-sky-400"
+                  className="min-h-10 rounded-lg border border-border-strong bg-panel px-3 text-sm text-content outline-none focus:border-sky-400"
                 >
                   {summaries.map((item) => (
                     <option key={item.character.id} value={item.character.id}>
@@ -2266,7 +2266,7 @@ function CharacterInfoCard({
                 <MiniStat label="Level" value={summary.character.level} />
                 <MiniStat label="Passive" value={summary.character.passive_perception} />
               </div>
-              <p className="mt-2 text-xs text-zinc-400">
+              <p className="mt-2 text-xs text-muted">
                 {[summary.character.race, summary.character.class, summary.character.background].filter(Boolean).join(' - ') || 'No class details saved.'}
               </p>
             </CharacterSection>
@@ -2331,7 +2331,7 @@ function CharacterInfoCard({
             </CharacterSection>
 
             <CharacterSection title="Notes">
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted">
                 {summary.character.notes || 'No notes saved.'}
               </p>
             </CharacterSection>
@@ -2351,21 +2351,21 @@ function CharacterInfoCard({
 
 function CharacterSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   return (
-    <details open={defaultOpen} className="rounded-lg border border-zinc-800 bg-zinc-900/75">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-zinc-100">
+    <details open={defaultOpen} className="rounded-lg border border-border bg-panel/75">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-content">
         {title}
-        <ChevronDown className="h-4 w-4 text-zinc-500" aria-hidden="true" />
+        <ChevronDown className="h-4 w-4 text-faint" aria-hidden="true" />
       </summary>
-      <div className="border-t border-zinc-800 p-3">{children}</div>
+      <div className="border-t border-border p-3">{children}</div>
     </details>
   )
 }
 
 function MiniStat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-md border border-zinc-800 bg-zinc-950 px-2 py-2 text-center">
-      <p className="truncate text-sm font-bold text-zinc-100">{value}</p>
-      <p className="mt-0.5 truncate text-[10px] uppercase tracking-wide text-zinc-500">{label}</p>
+    <div className="rounded-md border border-border bg-canvas px-2 py-2 text-center">
+      <p className="truncate text-sm font-bold text-content">{value}</p>
+      <p className="mt-0.5 truncate text-[10px] uppercase tracking-wide text-faint">{label}</p>
     </div>
   )
 }
@@ -2377,14 +2377,14 @@ function SimpleRecordList({
   items: { id: string; title: string; meta?: string | null; body?: string | null }[]
   empty: string
 }) {
-  if (items.length === 0) return <p className="text-sm text-zinc-500">{empty}</p>
+  if (items.length === 0) return <p className="text-sm text-faint">{empty}</p>
   return (
     <div className="grid gap-2">
       {items.map((item) => (
-        <div key={item.id} className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2">
-          <p className="text-sm font-semibold text-zinc-100">{item.title}</p>
-          {item.meta && <p className="mt-0.5 text-[11px] text-amber-300/80">{item.meta}</p>}
-          {item.body && <p className="mt-1 text-xs leading-relaxed text-zinc-400">{item.body}</p>}
+        <div key={item.id} className="rounded-md border border-border bg-canvas px-3 py-2">
+          <p className="text-sm font-semibold text-content">{item.title}</p>
+          {item.meta && <p className="mt-0.5 text-[11px] text-accent/80">{item.meta}</p>}
+          {item.body && <p className="mt-1 text-xs leading-relaxed text-muted">{item.body}</p>}
         </div>
       ))}
     </div>
@@ -2408,7 +2408,7 @@ function MobileMapControls({
 }) {
   return (
     <div className="absolute left-3 top-3 z-30 flex max-w-[calc(100%-1.5rem)] flex-col gap-2">
-      <div className={`grid overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950/92 shadow-xl shadow-black/35 backdrop-blur ${showMove ? 'grid-cols-3' : 'grid-cols-2'}`}>
+      <div className={`grid overflow-hidden rounded-xl border border-border-strong bg-canvas/92 shadow-xl shadow-black/35 backdrop-blur ${showMove ? 'grid-cols-3' : 'grid-cols-2'}`}>
         <MobileModeButton
           active={mode === 'hand'}
           label="Hand"
@@ -2435,7 +2435,7 @@ function MobileMapControls({
         <button
           type="button"
           onClick={onCenter}
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-950/90 px-3 text-xs font-semibold text-zinc-100 shadow-lg shadow-black/30 backdrop-blur transition hover:border-amber-400/70 hover:text-amber-100"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border-strong bg-canvas/90 px-3 text-xs font-semibold text-content shadow-lg shadow-black/30 backdrop-blur transition hover:border-accent/70 hover:text-accent"
         >
           <LocateFixed className="h-4 w-4" aria-hidden="true" />
           Me
@@ -2443,7 +2443,7 @@ function MobileMapControls({
         <button
           type="button"
           onClick={onFit}
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-950/90 px-3 text-xs font-semibold text-zinc-100 shadow-lg shadow-black/30 backdrop-blur transition hover:border-amber-400/70 hover:text-amber-100"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border-strong bg-canvas/90 px-3 text-xs font-semibold text-content shadow-lg shadow-black/30 backdrop-blur transition hover:border-accent/70 hover:text-accent"
         >
           <MousePointer2 className="h-4 w-4" aria-hidden="true" />
           Fit
@@ -2473,8 +2473,8 @@ function MobileModeButton({
       onClick={onClick}
       className={`flex min-h-11 min-w-16 flex-col items-center justify-center gap-0.5 px-3 py-2 text-[11px] font-semibold transition disabled:opacity-40 ${
         active
-          ? 'bg-amber-500 text-zinc-950'
-          : 'border-r border-zinc-800 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100'
+          ? 'bg-accent text-on-accent'
+          : 'border-r border-border text-muted hover:bg-panel hover:text-content'
       }`}
       aria-pressed={active}
     >
@@ -2515,18 +2515,18 @@ function MenuItem({
       onMouseEnter={onMouseEnter}
       className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-45 ${
         active
-          ? 'border-amber-500/60 bg-amber-500/10'
-          : 'border-zinc-800 bg-zinc-900 hover:border-zinc-600 hover:bg-zinc-800/70'
+          ? 'border-accent/60 bg-accent/10'
+          : 'border-border bg-panel hover:border-border-strong hover:bg-panel-raised/70'
       }`}
     >
-      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-zinc-950 text-amber-200">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border-strong bg-canvas text-accent">
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-zinc-100">{title}</span>
-        <span className="mt-0.5 block text-xs leading-relaxed text-zinc-500">{description}</span>
+        <span className="block text-sm font-semibold text-content">{title}</span>
+        <span className="mt-0.5 block text-xs leading-relaxed text-faint">{description}</span>
       </span>
-      {trailing && <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-zinc-500" aria-hidden="true" />}
+      {trailing && <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-faint" aria-hidden="true" />}
     </button>
   )
 }
@@ -2628,7 +2628,7 @@ function InteractionMenu({
         onClick={() => setSection('announcement')}
         trailing={false}
       />
-      {talkFeedback && <p className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-amber-200">{talkFeedback}</p>}
+      {talkFeedback && <p className="rounded-md border border-border bg-canvas px-3 py-2 text-xs text-accent">{talkFeedback}</p>}
     </div>
   )
 
@@ -2662,8 +2662,8 @@ function InteractionMenu({
   const travelPanel = (
     <div className="grid gap-3">
       <div>
-        <p className="text-sm font-semibold text-zinc-100">Travel Options</p>
-        <p className="mt-0.5 text-xs text-zinc-500">
+        <p className="text-sm font-semibold text-content">Travel Options</p>
+        <p className="mt-0.5 text-xs text-faint">
           1 square is 5 ft. Standard travel movement is 30 ft unless the DM allows infinite movement.
         </p>
       </div>
@@ -2672,7 +2672,7 @@ function InteractionMenu({
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardEyebrow>Current mode</CardEyebrow>
-            <p className="mt-1 text-sm font-medium text-zinc-100">
+            <p className="mt-1 text-sm font-medium text-content">
               {map.travel_mode === 'group_party'
                 ? 'Group Party'
                 : map.travel_mode === 'combat'
@@ -2680,7 +2680,7 @@ function InteractionMenu({
                   : 'Freeroam'}
             </p>
           </div>
-          <span className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-[11px] text-zinc-400">
+          <span className="rounded-md border border-border-strong bg-canvas px-2 py-1 text-[11px] text-muted">
             {map.travel_mode === 'group_party'
               ? map.group_movement_unlimited ? 'Infinite' : '30 ft'
               : map.travel_mode === 'freeroam'
@@ -2701,8 +2701,8 @@ function InteractionMenu({
               onClick={() => updateTravelMode('group_party')}
               className={`rounded-md border px-3 py-2 text-xs font-semibold transition disabled:opacity-45 ${
                 map.travel_mode === 'group_party'
-                  ? 'border-amber-400/60 bg-amber-500/15 text-amber-100'
-                  : 'border-zinc-700 bg-zinc-950 text-zinc-200 hover:border-zinc-500'
+                  ? 'border-accent/60 bg-accent/15 text-accent'
+                  : 'border-border-strong bg-canvas text-content hover:border-border-strong'
               }`}
             >
               Group Party
@@ -2713,8 +2713,8 @@ function InteractionMenu({
               onClick={() => updateTravelMode('freeroam')}
               className={`rounded-md border px-3 py-2 text-xs font-semibold transition disabled:opacity-45 ${
                 map.travel_mode === 'freeroam'
-                  ? 'border-amber-400/60 bg-amber-500/15 text-amber-100'
-                  : 'border-zinc-700 bg-zinc-950 text-zinc-200 hover:border-zinc-500'
+                  ? 'border-accent/60 bg-accent/15 text-accent'
+                  : 'border-border-strong bg-canvas text-content hover:border-border-strong'
               }`}
             >
               Freeroam
@@ -2725,20 +2725,20 @@ function InteractionMenu({
 
       <Card tone="panel" rounded="lg" padding="xs">
         <CardEyebrow>Create party</CardEyebrow>
-        <label className="mt-3 block text-xs text-zinc-400">
+        <label className="mt-3 block text-xs text-muted">
           Party name
           <input
             value={partyName}
             onChange={(event) => setPartyName(event.target.value)}
-            className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+            className="mt-1 w-full rounded-md border border-border-strong bg-canvas px-3 py-2 text-sm text-content outline-none focus:border-accent"
           />
         </label>
-        <label className="mt-3 block text-xs text-zinc-400">
+        <label className="mt-3 block text-xs text-muted">
           Nominated leader
           <select
             value={nominatedLeaderId}
             onChange={(event) => setNominatedLeaderId(event.target.value)}
-            className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+            className="mt-1 w-full rounded-md border border-border-strong bg-canvas px-3 py-2 text-sm text-content outline-none focus:border-accent"
           >
             {allPlayerOptions.map((player) => (
               <option key={player.userId} value={player.userId}>{player.name}</option>
@@ -2747,7 +2747,7 @@ function InteractionMenu({
         </label>
         <div className="mt-3 grid gap-1.5">
           {allPlayerOptions.map((player) => (
-            <label key={player.userId} className="flex items-center justify-between gap-3 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300">
+            <label key={player.userId} className="flex items-center justify-between gap-3 rounded-md border border-border bg-canvas px-3 py-2 text-xs text-muted">
               <span>{player.name}</span>
               <input
                 type="checkbox"
@@ -2762,7 +2762,7 @@ function InteractionMenu({
           type="button"
           disabled={travelBusy === 'create' || selectedPartyMemberIds.length === 0}
           onClick={submitCreateParty}
-          className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-45"
+          className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-45"
         >
           <Users className="h-4 w-4" aria-hidden="true" />
           {travelBusy === 'create' ? 'Creating...' : 'Create Party'}
@@ -2782,9 +2782,9 @@ function InteractionMenu({
               const party = travelParties.find((item) => item.id === invite.party_id)
               if (!party) return null
               return (
-                <div key={invite.id} className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
-                  <p className="text-xs font-medium text-zinc-100">{party.name}</p>
-                  <p className="mt-1 text-[11px] text-zinc-500">
+                <div key={invite.id} className="rounded-md border border-border bg-canvas p-2">
+                  <p className="text-xs font-medium text-content">{party.name}</p>
+                  <p className="mt-1 text-[11px] text-faint">
                     Leader: {playerName(party.leader_user_id)}
                   </p>
                   <div className="mt-2 flex gap-2">
@@ -2792,7 +2792,7 @@ function InteractionMenu({
                       type="button"
                       disabled={travelBusy === party.id}
                       onClick={() => respondToPartyInvite(party.id, false)}
-                      className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 disabled:opacity-45"
+                      className="flex-1 rounded-md border border-border-strong bg-panel px-3 py-2 text-xs font-semibold text-content disabled:opacity-45"
                     >
                       Deny
                     </button>
@@ -2800,7 +2800,7 @@ function InteractionMenu({
                       type="button"
                       disabled={travelBusy === party.id}
                       onClick={() => respondToPartyInvite(party.id, true)}
-                      className="flex-1 rounded-md bg-amber-500 px-3 py-2 text-xs font-semibold text-zinc-950 disabled:opacity-45"
+                      className="flex-1 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-on-accent disabled:opacity-45"
                     >
                       Accept
                     </button>
@@ -2809,14 +2809,14 @@ function InteractionMenu({
               )
             })}
             {myParties.map((party) => (
-              <div key={party.id} className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2">
+              <div key={party.id} className="rounded-md border border-border bg-canvas px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-medium text-zinc-100">{party.name}</p>
-                  <span className="rounded-md border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 text-[10px] capitalize text-zinc-400">
+                  <p className="text-xs font-medium text-content">{party.name}</p>
+                  <span className="rounded-md border border-border-strong bg-panel px-1.5 py-0.5 text-[10px] capitalize text-muted">
                     {party.status.replace(/_/g, ' ')}
                   </span>
                 </div>
-                {party.dm_response && <p className="mt-1 text-xs text-amber-200">DM: {party.dm_response}</p>}
+                {party.dm_response && <p className="mt-1 text-xs text-accent">DM: {party.dm_response}</p>}
               </div>
             ))}
           </div>
@@ -2824,7 +2824,7 @@ function InteractionMenu({
       )}
 
       {travelFeedback && (
-        <p className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-amber-200">
+        <p className="rounded-md border border-border bg-panel px-3 py-2 text-xs text-accent">
           {travelFeedback}
         </p>
       )}
@@ -2834,14 +2834,14 @@ function InteractionMenu({
   const requestsPanel = (
     <div className="grid gap-3">
       <div>
-        <p className="text-sm font-semibold text-zinc-100">Action Center</p>
-        <p className="mt-0.5 text-xs text-zinc-500">Submit actions from the map and keep track of your open requests here.</p>
+        <p className="text-sm font-semibold text-content">Action Center</p>
+        <p className="mt-0.5 text-xs text-faint">Submit actions from the map and keep track of your open requests here.</p>
       </div>
       <Card tone="panel" rounded="lg" padding="xs">
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardEyebrow>Guided request</CardEyebrow>
-            <p className="mt-1 text-sm font-medium text-zinc-100">Take an action</p>
+            <p className="mt-1 text-sm font-medium text-content">Take an action</p>
             <CardDescription className="mt-1">
               Open the guided action request flow for DM review.
             </CardDescription>
@@ -2849,7 +2849,7 @@ function InteractionMenu({
           <button
             type="button"
             onClick={onTakeAction}
-            className="inline-flex min-h-10 items-center justify-center rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+            className="inline-flex min-h-10 items-center justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent transition hover:bg-accent-hover"
           >
             Open
           </button>
@@ -2857,8 +2857,8 @@ function InteractionMenu({
       </Card>
       {selected && contextualActions.length > 0 ? (
         <Card tone="panel" rounded="lg" padding="xs">
-          <p className="text-xs font-medium text-zinc-300">Selected: {selected.name || selected.token_type}</p>
-          <p className="mt-1 text-[11px] text-zinc-500">
+          <p className="text-xs font-medium text-muted">Selected: {selected.name || selected.token_type}</p>
+          <p className="mt-1 text-[11px] text-faint">
             {nearestActor ? `${nearestActor.distance} ft away` : 'Link a character to a token to act.'}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -2867,18 +2867,18 @@ function InteractionMenu({
                 key={action}
                 type="button"
                 onClick={() => onStartAction(action, selected.id)}
-                className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs font-semibold text-zinc-100 transition hover:border-amber-500/60 hover:text-amber-200 disabled:opacity-45"
+                className="rounded-md border border-border-strong bg-canvas px-3 py-2 text-xs font-semibold text-content transition hover:border-accent/60 hover:text-accent disabled:opacity-45"
               >
                 {action}
               </button>
             ))}
           </div>
-          <p className="mt-3 text-xs text-zinc-500">
+          <p className="mt-3 text-xs text-faint">
             Choosing an action opens the request card before anything is sent to the DM.
           </p>
         </Card>
       ) : (
-        <CardDescription className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-500">
+        <CardDescription className="rounded-lg border border-border bg-panel p-3 text-xs text-faint">
           Select an interactable token on the map to submit a quick action request.
         </CardDescription>
       )}
@@ -2886,19 +2886,19 @@ function InteractionMenu({
         <CardEyebrow>My requests</CardEyebrow>
         <div className="mt-2 grid gap-2">
           {requestsLoading ? (
-            <p className="text-xs text-zinc-500">Loading requests...</p>
+            <p className="text-xs text-faint">Loading requests...</p>
           ) : myRequests.length === 0 ? (
-            <p className="text-xs text-zinc-500">No action requests yet.</p>
+            <p className="text-xs text-faint">No action requests yet.</p>
           ) : (
             myRequests.map((request) => (
-              <div key={request.id} className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2">
+              <div key={request.id} className="rounded-md border border-border bg-canvas px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-medium text-zinc-100">{request.action_type}</p>
-                  <span className="rounded-md border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 text-[10px] capitalize text-zinc-400">
+                  <p className="text-xs font-medium text-content">{request.action_type}</p>
+                  <span className="rounded-md border border-border-strong bg-panel px-1.5 py-0.5 text-[10px] capitalize text-muted">
                     {requestStatusLabel(request.status)}
                   </span>
                 </div>
-                {request.dm_response && <p className="mt-1 text-xs text-amber-200">DM: {request.dm_response}</p>}
+                {request.dm_response && <p className="mt-1 text-xs text-accent">DM: {request.dm_response}</p>}
               </div>
             ))
           )}
@@ -2923,11 +2923,11 @@ function InteractionMenu({
   const whisperPanel = (
     <div className="grid gap-3">
       <div>
-        <p className="text-sm font-semibold text-zinc-100">Whisper to Party Member</p>
-        <p className="mt-0.5 text-xs text-zinc-500">Send a private message to one party member.</p>
+        <p className="text-sm font-semibold text-content">Whisper to Party Member</p>
+        <p className="mt-0.5 text-xs text-faint">Send a private message to one party member.</p>
       </div>
       {partyMembers.length === 0 ? (
-        <p className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-500">
+        <p className="rounded-lg border border-border bg-panel p-3 text-xs text-faint">
           No other party members are available right now.
         </p>
       ) : (
@@ -2935,7 +2935,7 @@ function InteractionMenu({
           <select
             value={whisperRecipient}
             onChange={(event) => setWhisperRecipient(event.target.value)}
-            className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+            className="rounded-md border border-border-strong bg-panel px-3 py-2 text-sm text-content outline-none focus:border-accent"
           >
             <option value="">Choose a party member</option>
             {partyMembers.map((member) => (
@@ -2978,17 +2978,17 @@ function InteractionMenu({
       />
 
       <div className="fixed inset-0 z-50 flex items-end bg-black/45 p-3 backdrop-blur-sm md:hidden">
-        <div className="max-h-[82vh] w-full overflow-y-auto rounded-2xl border border-zinc-700 bg-zinc-950 p-4 shadow-2xl">
+        <div className="max-h-[82vh] w-full overflow-y-auto rounded-2xl border border-border-strong bg-canvas p-4 shadow-2xl">
           <div className="mb-3 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => section === 'root' ? onClose() : setSection('root')}
-              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted hover:bg-panel hover:text-content"
             >
               {section === 'root' ? <X className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
               {section === 'root' ? 'Close' : 'Back'}
             </button>
-            <p className="text-sm font-semibold text-zinc-100">Interaction Menu</p>
+            <p className="text-sm font-semibold text-content">Interaction Menu</p>
           </div>
           {section === 'root' ? (
             <div className="grid gap-2">
@@ -3001,10 +3001,10 @@ function InteractionMenu({
       </div>
 
       <div className="absolute bottom-16 left-3 z-40 hidden md:flex items-start gap-2">
-        <div className="w-80 rounded-xl border border-zinc-700 bg-zinc-950 p-3 shadow-2xl shadow-black/50">
+        <div className="w-80 rounded-xl border border-border-strong bg-canvas p-3 shadow-2xl shadow-black/50">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-zinc-100">Interaction Menu</p>
-            <button type="button" onClick={onClose} className="rounded-md p-1 text-zinc-500 hover:bg-zinc-900 hover:text-zinc-100" aria-label="Close interaction menu">
+            <p className="text-sm font-semibold text-content">Interaction Menu</p>
+            <button type="button" onClick={onClose} className="rounded-md p-1 text-faint hover:bg-panel hover:text-content" aria-label="Close interaction menu">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -3015,7 +3015,7 @@ function InteractionMenu({
           </div>
         </div>
         {detailPanel && (
-          <div className="max-h-[70vh] w-[28rem] overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-950 p-3 shadow-2xl shadow-black/50">
+          <div className="max-h-[70vh] w-[28rem] overflow-y-auto rounded-xl border border-border-strong bg-canvas p-3 shadow-2xl shadow-black/50">
             {detailPanel}
           </div>
         )}
@@ -3130,7 +3130,7 @@ function ActionSequenceOverlay({
     label: actionType,
     description: 'Describe exactly what you want the DM to adjudicate.',
     icon: <ScrollText className="h-4 w-4" aria-hidden="true" />,
-    tone: 'border-zinc-600 bg-zinc-900 text-zinc-100',
+    tone: 'border-border-strong bg-panel text-content',
   }
   const toolCopy = toolCopyForAction(actionType)
   const targetName = target?.name || target?.token_type || null
@@ -3139,15 +3139,15 @@ function ActionSequenceOverlay({
   const outOfRange = Boolean(actor && target && actor.distance > rangeFeet)
   const shortcutActionSelected = !isGuidedPlayerAction(actionType)
   const activeActionCardClass =
-    'relative overflow-hidden border-transparent bg-zinc-950 text-zinc-50 shadow-[0_0_24px_rgba(56,189,248,0.28)] ring-2 ring-fuchsia-400/40'
-  const inactiveActionCardClass = 'border-zinc-800 bg-zinc-900 text-zinc-300'
+    'relative overflow-hidden border-transparent bg-canvas text-content shadow-[0_0_24px_rgba(56,189,248,0.28)] ring-2 ring-fuchsia-400/40'
+  const inactiveActionCardClass = 'border-border bg-panel text-muted'
   const activeActionGlow = (
     <>
       <span
         className="pointer-events-none absolute -inset-12 animate-spin bg-[conic-gradient(from_0deg,rgba(236,72,153,0),rgba(236,72,153,0.65),rgba(56,189,248,0.7),rgba(236,72,153,0))] opacity-60 motion-reduce:animate-none"
         aria-hidden="true"
       />
-      <span className="pointer-events-none absolute inset-[1px] rounded-[7px] bg-zinc-950/95" aria-hidden="true" />
+      <span className="pointer-events-none absolute inset-[1px] rounded-[7px] bg-canvas/95" aria-hidden="true" />
     </>
   )
 
@@ -3162,19 +3162,19 @@ function ActionSequenceOverlay({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-stretch justify-center bg-black/65 p-2 backdrop-blur-sm sm:items-center sm:p-4">
-      <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-950 shadow-2xl shadow-black/60 transition-all duration-200 motion-reduce:transition-none sm:max-h-[calc(100vh-2rem)]">
-        <div className="shrink-0 flex items-start justify-between gap-3 border-b border-zinc-800 bg-zinc-900/80 px-4 py-3 sm:px-5 sm:py-4">
+      <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-strong bg-canvas shadow-2xl shadow-black/60 transition-all duration-200 motion-reduce:transition-none sm:max-h-[calc(100vh-2rem)]">
+        <div className="shrink-0 flex items-start justify-between gap-3 border-b border-border bg-panel/80 px-4 py-3 sm:px-5 sm:py-4">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300 sm:text-xs sm:tracking-[0.22em]">Player Action Request</p>
-            <h2 className="mt-1 text-xl font-bold text-zinc-50 sm:text-2xl">Resolve it at the table</h2>
-            <p className="mt-1 text-xs text-zinc-400 sm:text-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent sm:text-xs sm:tracking-[0.22em]">Player Action Request</p>
+            <h2 className="mt-1 text-xl font-bold text-content sm:text-2xl">Resolve it at the table</h2>
+            <p className="mt-1 text-xs text-muted sm:text-sm">
               {target ? `${target.name || target.token_type} is selected.` : 'Choose a visible map target.'}
             </p>
             {isChoosing && target && (
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-xs font-semibold text-zinc-200 transition hover:border-amber-500/60 hover:text-amber-100"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border-strong bg-canvas px-2.5 py-1.5 text-xs font-semibold text-content transition hover:border-accent/60 hover:text-accent"
               >
                 <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
                 Back to token menu
@@ -3184,7 +3184,7 @@ function ActionSequenceOverlay({
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-md p-3 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-100"
+            className="shrink-0 rounded-md p-3 text-faint transition hover:bg-panel-raised hover:text-content"
             aria-label="Close action request"
           >
             <X className="h-5 w-5" />
@@ -3198,15 +3198,15 @@ function ActionSequenceOverlay({
                 key={step.key}
                 className={`rounded-lg border px-2.5 py-2 transition sm:px-3 ${
                   step.active
-                    ? 'border-amber-400 bg-amber-500/10 text-amber-100'
+                    ? 'border-accent bg-accent/10 text-accent'
                     : step.done
                       ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
-                      : 'border-zinc-800 bg-zinc-900 text-zinc-500'
+                      : 'border-border bg-panel text-faint'
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span className={`flex h-7 w-7 items-center justify-center rounded-md border ${
-                    step.active ? 'border-amber-400/60 bg-amber-400/10' : 'border-zinc-700 bg-zinc-950'
+                    step.active ? 'border-accent/60 bg-accent-hover/10' : 'border-border-strong bg-canvas'
                   }`}>
                     {step.icon}
                   </span>
@@ -3218,15 +3218,15 @@ function ActionSequenceOverlay({
 
           {isChoosing && (
             <div className="grid gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-                <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500" htmlFor="guided-target">
+              <div className="rounded-xl border border-border bg-panel p-4">
+                <label className="text-xs font-semibold uppercase tracking-wide text-faint" htmlFor="guided-target">
                   Target
                 </label>
                 <select
                   id="guided-target"
                   value={target?.id ?? ''}
                   onChange={(event) => setTargetId(event.target.value)}
-                className="mt-2 min-h-11 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none focus:border-amber-500 sm:text-sm"
+                className="mt-2 min-h-11 w-full rounded-md border border-border-strong bg-canvas px-3 py-2 text-base text-content outline-none focus:border-accent sm:text-sm"
                 >
                   <option value="" disabled>Choose target</option>
                   {targets.map((item) => (
@@ -3235,9 +3235,9 @@ function ActionSequenceOverlay({
                     </option>
                   ))}
                 </select>
-                <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-                  <p className="text-xs font-medium text-zinc-300">{actor?.actor.name ?? 'No actor in range'}</p>
-                  <p className="mt-1 text-[11px] text-zinc-500">
+                <div className="mt-4 rounded-lg border border-border bg-canvas p-3">
+                  <p className="text-xs font-medium text-muted">{actor?.actor.name ?? 'No actor in range'}</p>
+                  <p className="mt-1 text-[11px] text-faint">
                     {actor
                       ? `${actor.distance} ft from target; range ${rangeFeet} ft`
                       : 'Link one of your character tokens to act.'}
@@ -3252,17 +3252,17 @@ function ActionSequenceOverlay({
 
               <div className="grid gap-4">
                 {shortcutActionSelected && (
-                  <div className="relative overflow-hidden rounded-lg border border-transparent bg-zinc-950 p-[1px] shadow-[0_0_24px_rgba(56,189,248,0.28)] ring-2 ring-fuchsia-400/40">
+                  <div className="relative overflow-hidden rounded-lg border border-transparent bg-canvas p-[1px] shadow-[0_0_24px_rgba(56,189,248,0.28)] ring-2 ring-fuchsia-400/40">
                     {activeActionGlow}
-                    <div className="relative z-10 rounded-[7px] bg-zinc-950/95 p-3">
+                    <div className="relative z-10 rounded-[7px] bg-canvas/95 p-3">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200">Selected shortcut</p>
                       <div className="mt-2 flex items-center gap-2">
                         <span className={`flex h-8 w-8 items-center justify-center rounded-md border ${selectedAction.tone}`}>
                           {selectedAction.icon}
                         </span>
                         <div>
-                          <p className="text-sm font-semibold text-zinc-50">{selectedAction.label}</p>
-                          <p className="text-xs text-zinc-400">This quick-menu action is active for the request below.</p>
+                          <p className="text-sm font-semibold text-content">{selectedAction.label}</p>
+                          <p className="text-xs text-muted">This quick-menu action is active for the request below.</p>
                         </div>
                       </div>
                     </div>
@@ -3276,7 +3276,7 @@ function ActionSequenceOverlay({
                         key={item.type}
                         type="button"
                         onClick={() => setActionType(item.type)}
-                        className={`relative min-h-24 overflow-hidden rounded-lg border p-3 text-left transition hover:border-amber-400/60 ${
+                        className={`relative min-h-24 overflow-hidden rounded-lg border p-3 text-left transition hover:border-accent/60 ${
                           active ? activeActionCardClass : inactiveActionCardClass
                         }`}
                       >
@@ -3293,26 +3293,26 @@ function ActionSequenceOverlay({
                   })}
                 </div>
 
-                <div className="relative overflow-hidden rounded-xl border border-transparent bg-zinc-950 p-[1px] shadow-[0_0_20px_rgba(236,72,153,0.16)]">
+                <div className="relative overflow-hidden rounded-xl border border-transparent bg-canvas p-[1px] shadow-[0_0_20px_rgba(236,72,153,0.16)]">
                   {activeActionGlow}
-                  <div className="relative z-10 rounded-[11px] bg-zinc-900 p-4">
+                  <div className="relative z-10 rounded-[11px] bg-panel p-4">
                     <div className="flex items-center gap-2">
                       <span className={`flex h-9 w-9 items-center justify-center rounded-md border ${selectedAction.tone}`}>
                         {selectedAction.icon}
                       </span>
                       <div>
-                        <p className="text-sm font-semibold text-zinc-100">{selectedAction.label}</p>
-                        <p className="text-xs text-zinc-500">{selectedAction.description}</p>
+                        <p className="text-sm font-semibold text-content">{selectedAction.label}</p>
+                        <p className="text-xs text-faint">{selectedAction.description}</p>
                       </div>
                     </div>
-                    <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-zinc-500" htmlFor="guided-tool">
+                    <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-faint" htmlFor="guided-tool">
                       {toolCopy.label}
                     </label>
                     <select
                       id="guided-tool"
                       value={selectedToolId}
                       onChange={(event) => setSelectedToolId(event.target.value)}
-                      className="mt-2 min-h-11 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none focus:border-amber-500 sm:text-sm"
+                      className="mt-2 min-h-11 w-full rounded-md border border-border-strong bg-canvas px-3 py-2 text-base text-content outline-none focus:border-accent sm:text-sm"
                     >
                       {toolsLoading && <option value="">Loading choices...</option>}
                       {!toolsLoading && toolOptions.length === 0 && <option value="">No choices available</option>}
@@ -3322,25 +3322,25 @@ function ActionSequenceOverlay({
                         </option>
                       ))}
                     </select>
-                    <p className="mt-1 text-xs text-zinc-500">{toolCopy.placeholder}</p>
-                    {selectedTool?.note && <p className="mt-1 text-[11px] text-amber-200">{selectedTool.note}</p>}
+                    <p className="mt-1 text-xs text-faint">{toolCopy.placeholder}</p>
+                    {selectedTool?.note && <p className="mt-1 text-[11px] text-accent">{selectedTool.note}</p>}
                     <textarea
                       value={message}
                       onChange={(event) => setMessage(event.target.value)}
                       rows={3}
                       maxLength={500}
                       placeholder="Describe what you are trying to do."
-                      className="mt-3 w-full resize-none rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none focus:border-amber-500 sm:text-sm"
+                      className="mt-3 w-full resize-none rounded-md border border-border-strong bg-canvas px-3 py-2 text-base text-content outline-none focus:border-accent sm:text-sm"
                     />
-                    <p className="mt-2 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-400">
-                      Request: <span className="font-medium text-zinc-100">{actionSummary}</span>
+                    <p className="mt-2 rounded-md border border-border bg-canvas px-3 py-2 text-xs text-muted">
+                      Request: <span className="font-medium text-content">{actionSummary}</span>
                     </p>
                     {error && <p className="mt-2 rounded-md border border-red-800 bg-red-950/50 px-3 py-2 text-xs text-red-200">{error}</p>}
                     <button
                       type="button"
                       disabled={!target || !actor || outOfRange || state === 'submitting_request'}
                       onClick={onSubmit}
-                      className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-45 sm:w-auto"
+                      className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-45 sm:w-auto"
                     >
                       <Send className="h-4 w-4" aria-hidden="true" />
                       {state === 'submitting_request' ? 'Sending...' : 'Send to DM'}
@@ -3352,17 +3352,17 @@ function ActionSequenceOverlay({
           )}
 
           {isAwaiting && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6 text-center">
-              <Mail className="mx-auto h-12 w-12 animate-pulse text-amber-300" aria-hidden="true" />
-              <h3 className="mt-3 text-xl font-bold text-amber-50">Waiting for the DM</h3>
-              <p className="mx-auto mt-2 max-w-xl text-sm text-amber-100/80">
+            <div className="rounded-xl border border-accent/30 bg-accent/10 p-6 text-center">
+              <Mail className="mx-auto h-12 w-12 animate-pulse text-accent" aria-hidden="true" />
+              <h3 className="mt-3 text-xl font-bold text-accent">Waiting for the DM</h3>
+              <p className="mx-auto mt-2 max-w-xl text-sm text-accent/80">
                 {actionSummary} request sent. Keep the outcome visible here while the DM reviews it.
               </p>
               <button
                 type="button"
                 disabled={nudgeBusy || isNudgeCoolingDown}
                 onClick={onNudge}
-                className="mt-5 inline-flex items-center justify-center gap-2 rounded-md border border-amber-400/50 bg-zinc-950 px-4 py-2 text-sm font-semibold text-amber-100 transition hover:border-amber-300 disabled:opacity-45"
+                className="mt-5 inline-flex items-center justify-center gap-2 rounded-md border border-accent/50 bg-canvas px-4 py-2 text-sm font-semibold text-accent transition hover:border-accent disabled:opacity-45"
               >
                 <Hourglass className="h-4 w-4" aria-hidden="true" />
                 {nudgeBusy ? 'Nudging...' : isNudgeCoolingDown ? 'Nudge sent' : 'Nudge DM'}
@@ -3385,7 +3385,7 @@ function ActionSequenceOverlay({
               <h3 className={`mt-3 text-xl font-bold ${isDenied || isCancelled ? 'text-red-50' : 'text-emerald-50'}`}>
                 {isCompleted ? 'Action Completed' : isDenied ? 'Action Denied' : isCancelled ? 'Action Cancelled' : 'Action Approved'}
               </h3>
-              <p className="mx-auto mt-2 max-w-2xl text-sm text-zinc-300">
+              <p className="mx-auto mt-2 max-w-2xl text-sm text-muted">
                 {intent?.dm_response || (isDenied ? 'The DM denied this request.' : 'The DM approved this request.')}
               </p>
               {npcReveal && !isDenied && !isCancelled && (
@@ -3398,7 +3398,7 @@ function ActionSequenceOverlay({
                   <button
                     type="button"
                     onClick={onBack}
-                    className="rounded-md border border-zinc-700 bg-zinc-950 px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:border-amber-500/60"
+                    className="rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-semibold text-content transition hover:border-accent/60"
                   >
                     Edit Request
                   </button>
@@ -3406,7 +3406,7 @@ function ActionSequenceOverlay({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-white"
+                  className="rounded-md bg-content px-4 py-2 text-sm font-semibold text-on-accent transition hover:bg-white"
                 >
                   Close
                 </button>
@@ -3427,11 +3427,11 @@ function ActionSequenceOverlay({
                   type="button"
                   onClick={onInlineRoll}
                   disabled={!showChoice || inlineRollBusy}
-                  className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl border border-emerald-400/50 bg-zinc-950 text-2xl font-bold text-emerald-300 shadow-lg shadow-emerald-950/40 transition hover:border-emerald-300 disabled:opacity-60"
+                  className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl border border-emerald-400/50 bg-canvas text-2xl font-bold text-emerald-300 shadow-lg shadow-emerald-950/40 transition hover:border-emerald-300 disabled:opacity-60"
                   aria-label="Roll now"
                 >
                   {inlineRollAnimating && inlineAnimNumber !== null ? (
-                    <span className="text-3xl text-amber-300">{inlineAnimNumber}</span>
+                    <span className="text-3xl text-accent">{inlineAnimNumber}</span>
                   ) : (
                     <Dices className={`h-14 w-14 ${inlineRollAnimating ? 'animate-spin' : ''}`} aria-hidden="true" />
                   )}
@@ -3440,7 +3440,7 @@ function ActionSequenceOverlay({
                 <p className="mt-1 text-sm font-semibold text-emerald-100">{actionSummary}</p>
 
                 {rollRequest && (
-                  <p className="mt-2 text-xs text-zinc-400">
+                  <p className="mt-2 text-xs text-muted">
                     {rollRequest.label}: d20 {rollRequest.modifier >= 0 ? `+${rollRequest.modifier}` : rollRequest.modifier}
                     {rollRequest.target_number !== null ? ` / target ${rollRequest.target_number}` : ''}
                     {rollRequest.advantage_state !== 'normal' ? ` · ${rollRequest.advantage_state}` : ''}
@@ -3449,7 +3449,7 @@ function ActionSequenceOverlay({
 
                 {showChoice && (
                   <>
-                    <p className="mx-auto mt-2 max-w-2xl text-sm text-zinc-300">
+                    <p className="mx-auto mt-2 max-w-2xl text-sm text-muted">
                       Tap the dice to roll automatically, or enter a roll you made yourself. Your
                       result stays visible here while the DM reviews it.
                     </p>
@@ -3466,7 +3466,7 @@ function ActionSequenceOverlay({
 
                 {showManual && (
                   <div className="mx-auto mt-4 flex max-w-xs flex-col gap-3 text-left">
-                    <label className="flex flex-col gap-1 text-xs text-zinc-400">
+                    <label className="flex flex-col gap-1 text-xs text-muted">
                       {hpEffect ? 'Dice total' : 'Natural d20 roll'}
                       <input
                         type="number"
@@ -3475,11 +3475,11 @@ function ActionSequenceOverlay({
                         inputMode="numeric"
                         value={inlineManualOne}
                         onChange={(event) => setInlineManualOne(event.target.value)}
-                        className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                        className="rounded-md border border-border-strong bg-panel px-3 py-2 text-sm text-content outline-none focus:border-accent"
                       />
                     </label>
                     {!hpEffect && needsSecond && (
-                      <label className="flex flex-col gap-1 text-xs text-zinc-400">
+                      <label className="flex flex-col gap-1 text-xs text-muted">
                         Second d20 roll ({rollRequest?.advantage_state})
                         <input
                           type="number"
@@ -3488,7 +3488,7 @@ function ActionSequenceOverlay({
                           inputMode="numeric"
                           value={inlineManualTwo}
                           onChange={(event) => setInlineManualTwo(event.target.value)}
-                          className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                          className="rounded-md border border-border-strong bg-panel px-3 py-2 text-sm text-content outline-none focus:border-accent"
                         />
                       </label>
                     )}
@@ -3497,7 +3497,7 @@ function ActionSequenceOverlay({
                         type="button"
                         onClick={onInlineManualToggle}
                         disabled={inlineRollBusy}
-                        className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 disabled:opacity-50"
+                        className="rounded-md border border-border-strong bg-panel px-3 py-2 text-sm text-content disabled:opacity-50"
                       >
                         Back
                       </button>
@@ -3505,7 +3505,7 @@ function ActionSequenceOverlay({
                         type="button"
                         onClick={onInlineManualSubmit}
                         disabled={inlineRollBusy}
-                        className="rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-50"
+                        className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent disabled:opacity-50"
                       >
                         Submit manual roll
                       </button>
@@ -3517,12 +3517,12 @@ function ActionSequenceOverlay({
                   <div className="mx-auto mt-4 flex max-w-xs flex-col gap-3 text-left">
                     <div className="rounded-md border border-emerald-800/60 bg-emerald-950/30 p-3">
                       <p className="text-xs font-medium text-emerald-100">Attack hits — enter damage.</p>
-                      <p className="mt-1 text-xs text-zinc-400">Damage formula: {inlinePendingDamage.formula}</p>
+                      <p className="mt-1 text-xs text-muted">Damage formula: {inlinePendingDamage.formula}</p>
                       {inlinePendingDamage.critical && (
-                        <p className="mt-1 text-[11px] text-amber-200">Critical hit: dice are doubled; modifier added once.</p>
+                        <p className="mt-1 text-[11px] text-accent">Critical hit: dice are doubled; modifier added once.</p>
                       )}
                     </div>
-                    <label className="flex flex-col gap-1 text-xs text-zinc-400">
+                    <label className="flex flex-col gap-1 text-xs text-muted">
                       Damage dice total
                       <input
                         type="number"
@@ -3531,14 +3531,14 @@ function ActionSequenceOverlay({
                         inputMode="numeric"
                         value={inlineDamageTotal}
                         onChange={(event) => setInlineDamageTotal(event.target.value)}
-                        className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+                        className="rounded-md border border-border-strong bg-panel px-3 py-2 text-sm text-content outline-none focus:border-accent"
                       />
                     </label>
                     <button
                       type="button"
                       onClick={onInlineDamageSubmit}
                       disabled={inlineRollBusy}
-                      className="rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-50"
+                      className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent disabled:opacity-50"
                     >
                       Submit damage
                     </button>
@@ -3546,7 +3546,7 @@ function ActionSequenceOverlay({
                 )}
 
                 {!canRoll && !inlineOutcome && !rollResult && !showDamage && (
-                  <p className="mx-auto mt-2 max-w-2xl text-sm text-zinc-300">
+                  <p className="mx-auto mt-2 max-w-2xl text-sm text-muted">
                     Approved — waiting for the DM to request your roll.
                   </p>
                 )}
@@ -3558,13 +3558,13 @@ function ActionSequenceOverlay({
                   </div>
                 ) : (
                   rollResult && (
-                    <div className="mx-auto mt-4 max-w-sm rounded-xl border border-emerald-500/40 bg-zinc-950 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Locked roll result</p>
+                    <div className="mx-auto mt-4 max-w-sm rounded-xl border border-emerald-500/40 bg-canvas p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-faint">Locked roll result</p>
                       <p className="mt-2 text-3xl font-bold text-emerald-100">{rollResult.total}</p>
-                      <p className="mt-1 text-sm text-zinc-300">
+                      <p className="mt-1 text-sm text-muted">
                         d20 {rollResult.used_natural_roll} {rollResult.modifier >= 0 ? `+ ${rollResult.modifier}` : `- ${Math.abs(rollResult.modifier)}`}
                       </p>
-                      <p className="mt-1 text-xs capitalize text-zinc-500">{rollResult.result.replace(/_/g, ' ')}</p>
+                      <p className="mt-1 text-xs capitalize text-faint">{rollResult.result.replace(/_/g, ' ')}</p>
                     </div>
                   )
                 )}
@@ -3588,12 +3588,12 @@ function NpcRevealCard({ reveal }: { reveal: NpcRevealPayload }) {
         : 'Map token fallback'
 
   return (
-    <div className="overflow-hidden rounded-xl border border-sky-400/35 bg-zinc-950 shadow-[0_0_32px_rgba(14,165,233,0.18)]">
-      <div className="border-b border-zinc-800 bg-gradient-to-r from-sky-500/15 via-fuchsia-500/10 to-zinc-950 px-4 py-3">
+    <div className="overflow-hidden rounded-xl border border-sky-400/35 bg-canvas shadow-[0_0_32px_rgba(14,165,233,0.18)]">
+      <div className="border-b border-border bg-gradient-to-r from-sky-500/15 via-fuchsia-500/10 to-canvas px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200">NPC Profile</p>
-            <h4 className="mt-1 text-lg font-bold text-zinc-50">{reveal.title}</h4>
+            <h4 className="mt-1 text-lg font-bold text-content">{reveal.title}</h4>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {reveal.role && (
@@ -3606,38 +3606,38 @@ function NpcRevealCard({ reveal }: { reveal: NpcRevealPayload }) {
             </span>
           </div>
         </div>
-        {reveal.summary && <p className="mt-2 text-sm leading-relaxed text-zinc-300">{reveal.summary}</p>}
+        {reveal.summary && <p className="mt-2 text-sm leading-relaxed text-muted">{reveal.summary}</p>}
       </div>
 
       <div className="grid gap-3 p-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Personality</p>
-          <p className="mt-1 text-sm leading-relaxed text-zinc-200">
+        <div className="rounded-lg border border-border bg-panel/70 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-faint">Personality</p>
+          <p className="mt-1 text-sm leading-relaxed text-content">
             {reveal.personality || 'No personality notes were revealed yet.'}
           </p>
         </div>
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Appearance</p>
-          <p className="mt-1 text-sm leading-relaxed text-zinc-200">
+        <div className="rounded-lg border border-border bg-panel/70 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-faint">Appearance</p>
+          <p className="mt-1 text-sm leading-relaxed text-content">
             {reveal.appearance || 'No appearance notes were revealed yet.'}
           </p>
         </div>
       </div>
 
-      <details className="border-t border-zinc-800 px-4 py-3">
-        <summary className="cursor-pointer text-sm font-semibold text-amber-100">
+      <details className="border-t border-border px-4 py-3">
+        <summary className="cursor-pointer text-sm font-semibold text-accent">
           Wares {reveal.wares.length > 0 ? `(${reveal.wares.length})` : ''}
         </summary>
         {reveal.wares.length > 0 ? (
           <div className="mt-3 grid gap-2">
             {reveal.wares.map((item, index) => (
-              <div key={`${item.name}-${index}`} className="rounded-lg border border-zinc-800 bg-zinc-900/70 px-3 py-2">
+              <div key={`${item.name}-${index}`} className="rounded-lg border border-border bg-panel/70 px-3 py-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-zinc-100">{item.name}</p>
-                  {item.price && <span className="text-xs font-semibold text-amber-200">{item.price}</span>}
+                  <p className="text-sm font-semibold text-content">{item.name}</p>
+                  {item.price && <span className="text-xs font-semibold text-accent">{item.price}</span>}
                 </div>
                 {(item.quantity || item.description) && (
-                  <p className="mt-1 text-xs text-zinc-400">
+                  <p className="mt-1 text-xs text-muted">
                     {[item.quantity ? `Qty ${item.quantity}` : null, item.description].filter(Boolean).join(' - ')}
                   </p>
                 )}
@@ -3645,7 +3645,7 @@ function NpcRevealCard({ reveal }: { reveal: NpcRevealPayload }) {
             ))}
           </div>
         ) : (
-          <p className="mt-2 text-xs text-zinc-500">No wares were revealed for this character.</p>
+          <p className="mt-2 text-xs text-faint">No wares were revealed for this character.</p>
         )}
       </details>
     </div>
@@ -3675,8 +3675,8 @@ function MessageForm({
     <div className="grid gap-3">
       {title && (
         <div>
-          <p className="text-sm font-semibold text-zinc-100">{title}</p>
-          <p className="mt-0.5 text-xs text-zinc-500">{description}</p>
+          <p className="text-sm font-semibold text-content">{title}</p>
+          <p className="mt-0.5 text-xs text-faint">{description}</p>
         </div>
       )}
       <textarea
@@ -3685,18 +3685,18 @@ function MessageForm({
         rows={3}
         maxLength={280}
         placeholder="Type a short message."
-        className="resize-none rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-500"
+        className="resize-none rounded-md border border-border-strong bg-panel px-3 py-2 text-sm text-content outline-none focus:border-accent"
       />
       <button
         type="button"
         disabled={busy || !value.trim()}
         onClick={onSubmit}
-        className="inline-flex items-center justify-center gap-2 rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-45"
+        className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-45"
       >
         <Send className="h-4 w-4" aria-hidden="true" />
         {busy ? 'Sending...' : buttonLabel}
       </button>
-      {feedback && <p className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-amber-200">{feedback}</p>}
+      {feedback && <p className="rounded-md border border-border bg-panel px-3 py-2 text-xs text-accent">{feedback}</p>}
     </div>
   )
 }

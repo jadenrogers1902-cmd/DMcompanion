@@ -90,13 +90,13 @@ export function AdventureSettingsPanel({ adventure }: AdventureSettingsPanelProp
     return (
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
-          <h1 className="text-2xl font-bold text-zinc-100">{adventure.title}</h1>
+          <h1 className="text-2xl font-bold text-content">{adventure.title}</h1>
           <Badge variant={adventureStatusBadgeVariant(adventure.status)}>
             {adventureStatusLabel(adventure.status)}
           </Badge>
         </div>
         {adventure.description && (
-          <p className="max-w-2xl text-sm text-zinc-400">{adventure.description}</p>
+          <p className="max-w-2xl text-sm text-muted">{adventure.description}</p>
         )}
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
@@ -117,7 +117,7 @@ export function AdventureSettingsPanel({ adventure }: AdventureSettingsPanelProp
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex max-w-xl flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+      <div className="flex max-w-xl flex-col gap-4 rounded-xl border border-border bg-panel p-4">
         <Input
           label="Title"
           value={title}

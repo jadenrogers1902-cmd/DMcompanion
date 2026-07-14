@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/Button'
@@ -9,6 +10,8 @@ import type { Encounter } from '@/lib/types/database'
 interface PageProps {
   params: Promise<{ id: string }>
 }
+
+export const metadata: Metadata = { title: 'Encounters' }
 
 export default async function EncountersPage({ params }: PageProps) {
   const { id } = await params

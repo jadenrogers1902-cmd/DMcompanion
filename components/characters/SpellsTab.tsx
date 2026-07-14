@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Plus, Sparkles, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -56,7 +57,8 @@ export function SpellsTab({ characterId, spells, canEdit }: SpellsTabProps) {
       {canEdit && (
         <div className="flex justify-end">
           <Button size="sm" variant="secondary" onClick={() => setShowForm((v) => !v)}>
-            {showForm ? 'Cancel' : '+ Add Spell'}
+            {showForm ? <X className="h-4 w-4" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
+            {showForm ? 'Cancel' : 'Add Spell'}
           </Button>
         </div>
       )}
@@ -88,7 +90,11 @@ export function SpellsTab({ characterId, spells, canEdit }: SpellsTabProps) {
       )}
 
       {sorted.length === 0 ? (
-        <EmptyState title="No spells yet" description={canEdit ? 'Add your first spell above.' : 'This character has no spells.'} />
+        <EmptyState
+          icon={<Sparkles className="h-12 w-12" aria-hidden="true" />}
+          title="No spells yet"
+          description={canEdit ? 'Add your first spell above.' : 'This character has no spells.'}
+        />
       ) : (
         <ul className="flex flex-col gap-2">
           {sorted.map((spell) => (
@@ -96,33 +102,36 @@ export function SpellsTab({ characterId, spells, canEdit }: SpellsTabProps) {
               key={spell.id}
               className="flex items-start justify-between gap-3 p-3 rounded-lg bg-shell border border-border"
             >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-content">{spell.name}</span>
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-panel-raised text-muted">
-                    {spellLevelLabel(spell.spell_level)}
-                  </span>
-                  {spell.prepared && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-accent/15 text-accent">Prepared</span>
-                  )}
-                  {spell.uses && (
-                    <span className="text-xs text-faint">{spell.uses}</span>
+              <div className="flex min-w-0 gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-accent/30 bg-accent/10 text-accent">
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-content">{spell.name}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-panel-raised text-muted">
+                      {spellLevelLabel(spell.spell_level)}
+                    </span>
+                    {spell.prepared && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-accent/15 text-accent">Prepared</span>
+                    )}
+                    {spell.uses && (
+                      <span className="text-xs text-faint">{spell.uses}</span>
+                    )}
+                  </div>
+                  {spell.description && (
+                    <p className="text-xs text-faint mt-1">{spell.description}</p>
                   )}
                 </div>
-                {spell.description && (
-                  <p className="text-xs text-faint mt-1">{spell.description}</p>
-                )}
               </div>
               {canEdit && (
                 <button
                   type="button"
                   onClick={() => handleDelete(spell.id)}
-                  className="text-faint hover:text-red-400 shrink-0"
+                  className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-faint transition hover:bg-danger/10 hover:text-danger"
                   aria-label="Delete spell"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                  </svg>
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
               )}
             </li>

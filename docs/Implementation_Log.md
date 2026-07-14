@@ -1,5 +1,33 @@
 # Implementation Log
 
+## Player UI Visual Navigation Pass (2026-07-14)
+
+Status: Implemented and statically verified. Public browser smoke passed; authenticated player runtime verification is pending fixture credentials.
+
+### What Changed
+
+- Centralized role-aware campaign destinations in `components/nav/campaign-navigation.ts` and reused them across desktop and mobile navigation. Player mobile navigation now has three primary links plus a focus-trapped More sheet; the unresolved-role state shows only neutral shared destinations.
+- Added artwork-led Campaign Home cards with `next/image`, visible ArrowRight cues, live-state treatment, and five generated 768x768 WebP assets under `public/player-ui/destinations/`.
+- Added progressive disclosure and visual category cues to player Story and Adventure Codex views. Complete player-safe content remains present inside native `details` sections.
+- Added safe player-media helpers. Local paths are resolved against a fixed application origin, Supabase media must match the exact configured origin, malformed/backslash/protocol-relative paths are rejected, and failed images retain icon/initial fallbacks.
+- Reworked character templates into recursive labeled lists and definition groups. All identity, core-stat, ability, saving-throw, skill, attack, spellcasting, feature, equipment, currency, proficiency, personality, lore, leveling, and customization fields remain visible.
+- Improved character tabs, empty states, item/spell/ability rows, condition controls, encounter turn order, HP semantics, and mobile touch targets without changing their mutations or stored values.
+- Clarified Adventure navigation and mode help, added player-safe token artwork, made live image replacement recover after an error, and moved travel/guided-action overlays onto the shared focus-managed modal shell.
+- Added neutral route metadata for shared Map, Story, and Codex routes plus descriptive titles for Campaign Home, dashboard, join, character, and encounter routes.
+
+### Compatibility and Privacy
+
+- No database schema, migration, RLS policy, RPC signature, server action, Supabase query scope, realtime subscription, or storage policy changed.
+- Story/Codex still consume the existing player-safe snapshots/publications. Map movement still uses `move_player_token`; hidden tokens never receive artwork in player or Center Screen render data.
+- Account Settings remains available to players. The campaign-level Settings dead end is no longer presented as a player campaign destination; the DM campaign Settings route and controls remain intact.
+
+### QA
+
+- `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run audit:theme`, `npm.cmd run test:unit` (18/18), `npm.cmd run build`, and `git diff --check` pass.
+- Production-server Playwright: 7 public tests passed; 5 authenticated tests skipped because `E2E_DM_*` and `E2E_PLAYER_*` fixtures are not configured.
+- The five destination assets were visually inspected and verified as 768x768 WebP files between 101,600 and 127,402 bytes.
+- See `docs/QA_Reports/PLAYER_VISUAL_NAVIGATION_QA_2026-07-14.md` for the evidence boundary and remaining authenticated checks.
+
 ## Account Theme Selection (2026-07-13)
 
 - Added five account-level semantic themes shared by DM and player experiences, with Emberforge as the public/new-account default and Golden Parchment as the light option.

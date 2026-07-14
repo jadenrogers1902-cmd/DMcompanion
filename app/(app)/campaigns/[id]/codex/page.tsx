@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { AdventureCodexWorkspace, type LiveObjectOption } from '@/components/codex/AdventureCodexWorkspace'
@@ -11,6 +12,8 @@ import type {
   PlayerVisibleCampaignDoc,
 } from '@/lib/types/database'
 import type { Adventure } from '@/lib/types/adventure'
+
+export const metadata: Metadata = { title: 'Campaign Codex' }
 
 interface PageProps {
   params: Promise<{ id: string }>

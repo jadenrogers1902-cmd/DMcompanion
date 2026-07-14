@@ -2,6 +2,22 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  CircleDot,
+  Dices,
+  Footprints,
+  HeartPulse,
+  MapPinned,
+  Play,
+  RotateCcw,
+  Shield,
+  SkipBack,
+  SkipForward,
+  Square,
+  Swords,
+  UserPlus,
+  X,
+} from 'lucide-react'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -156,22 +172,39 @@ export function EncounterManager({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl font-bold text-content">{encounter.name}</h1>
             <Badge variant={statusVariant(encounter.status)}>
               {encounter.status}
             </Badge>
             {encounter.map_id && (
-              <span className="text-xs text-faint">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-panel px-2 py-1 text-xs text-faint">
+                <MapPinned className="h-3.5 w-3.5" aria-hidden="true" />
                 {maps.find((m) => m.id === encounter.map_id)?.name ?? 'Linked map'}
               </span>
             )}
           </div>
-          <p className="text-sm text-faint mt-1">
-            Round {encounter.current_round}
-            {current ? ` - ${current.name}'s turn` : ' - no active turn'}
-          </p>
+          <div className="mt-4 grid max-w-2xl gap-2 sm:grid-cols-[10rem_minmax(0,1fr)]" aria-live="polite">
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-panel px-3 py-2.5">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-border-strong bg-canvas text-accent">
+                <RotateCcw className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block text-[10px] font-semibold uppercase tracking-wider text-faint">Round</span>
+                <span className="block text-xl font-bold leading-tight text-content">{encounter.current_round}</span>
+              </span>
+            </div>
+            <div className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${current ? 'border-accent/60 bg-accent/10' : 'border-border bg-panel'}`}>
+              <span className={`flex h-10 w-10 items-center justify-center rounded-lg border ${current ? 'border-accent/50 bg-accent/15 text-accent' : 'border-border-strong bg-canvas text-faint'}`}>
+                <Swords className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[10px] font-semibold uppercase tracking-wider text-faint">Current turn</span>
+                <span className="block truncate text-base font-bold text-content">{current?.name ?? 'No active turn'}</span>
+              </span>
+            </div>
+          </div>
         </div>
 
         {isDM && (
@@ -182,6 +215,7 @@ export function EncounterManager({
               disabled={busy || ordered.length === 0}
               onClick={() => run(() => moveEncounterTurn(campaignId, encounter.id, 'previous'))}
             >
+              <SkipBack className="h-4 w-4" aria-hidden="true" />
               Back
             </Button>
             <Button
@@ -189,6 +223,7 @@ export function EncounterManager({
               disabled={busy}
               onClick={() => run(() => startEncounter(campaignId, encounter.id))}
             >
+              {encounter.status === 'draft' ? <Play className="h-4 w-4" aria-hidden="true" /> : <RotateCcw className="h-4 w-4" aria-hidden="true" />}
               {encounter.status === 'draft' ? 'Start' : 'Restart'}
             </Button>
             <Button
@@ -197,6 +232,7 @@ export function EncounterManager({
               disabled={busy || ordered.length === 0}
               onClick={() => run(() => moveEncounterTurn(campaignId, encounter.id, 'next'))}
             >
+              <SkipForward className="h-4 w-4" aria-hidden="true" />
               Next Turn
             </Button>
             <Button
@@ -205,6 +241,7 @@ export function EncounterManager({
               disabled={busy || encounter.status === 'completed'}
               onClick={() => run(() => endEncounter(campaignId, encounter.id))}
             >
+              <Square className="h-4 w-4" aria-hidden="true" />
               End
             </Button>
           </div>
@@ -212,7 +249,7 @@ export function EncounterManager({
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-800 bg-red-950/50 px-4 py-3 text-sm text-red-200">
+        <div role="alert" className="rounded-lg border border-red-800 bg-red-950/50 px-4 py-3 text-sm text-red-200">
           {error}
         </div>
       )}
@@ -220,7 +257,10 @@ export function EncounterManager({
       <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5">
         <aside className="flex flex-col gap-4">
           <section className="bg-panel border border-border rounded-lg p-4">
-            <h2 className="text-sm font-semibold text-content mb-3">Turn Order</h2>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-content">
+              <Dices className="h-4 w-4 text-accent" aria-hidden="true" />
+              Turn Order
+            </h2>
             {ordered.length === 0 ? (
               <p className="text-sm text-faint">No participants yet.</p>
             ) : (
@@ -230,24 +270,30 @@ export function EncounterManager({
                   return (
                     <div
                       key={p.id}
-                      className={`flex items-center gap-3 rounded-md border px-3 py-2 ${
+                      aria-current={isCurrent ? 'step' : undefined}
+                      className={`relative flex min-h-16 items-center gap-3 overflow-hidden rounded-lg border px-3 py-2.5 ${
                         isCurrent
-                          ? 'border-accent bg-accent/10'
+                          ? 'border-accent bg-accent/10 ring-1 ring-accent/25'
                           : 'border-border bg-shell'
                       }`}
                     >
-                      <span className="w-6 text-center text-xs text-faint">
+                      {isCurrent && <span className="absolute inset-y-0 left-0 w-1 bg-accent" aria-hidden="true" />}
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border-strong bg-canvas text-xs font-semibold text-faint">
                         {index + 1}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-content">
+                        <p className="truncate text-sm font-semibold text-content">
                           {p.name}
                         </p>
-                        <p className="text-xs text-faint">
-                          Init {p.initiative ?? '-'}
-                        </p>
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {isCurrent && <span className="text-[10px] font-semibold uppercase tracking-wide text-accent">Current turn</span>}
+                          {p.is_defeated && <span className="text-[10px] font-semibold uppercase tracking-wide text-warning">Defeated</span>}
+                        </div>
                       </div>
-                      {p.is_defeated && <Badge variant="warning">Defeated</Badge>}
+                      <span className="shrink-0 text-right">
+                        <span className="block text-lg font-bold leading-none text-content">{p.initiative ?? '-'}</span>
+                        <span className="mt-1 block text-[9px] font-semibold uppercase tracking-wider text-faint">Initiative</span>
+                      </span>
                     </div>
                   )
                 })}
@@ -257,7 +303,8 @@ export function EncounterManager({
 
           {isDM && (
             <section className="bg-panel border border-border rounded-lg p-4">
-              <h2 className="text-sm font-semibold text-content mb-3">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-content">
+                <UserPlus className="h-4 w-4 text-accent" aria-hidden="true" />
                 Add Participants
               </h2>
               <div className="flex flex-col gap-3">
@@ -360,18 +407,23 @@ export function EncounterManager({
             return (
               <section
                 key={participant.id}
-                className={`rounded-lg border bg-panel p-4 ${
-                  isCurrent ? 'border-accent' : 'border-border'
+                className={`overflow-hidden rounded-xl border bg-panel ${
+                  isCurrent ? 'border-accent ring-1 ring-accent/25' : 'border-border'
                 } ${participant.is_defeated ? 'opacity-60' : ''}`}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                {isCurrent && (
+                  <div className="flex items-center gap-2 border-b border-accent/30 bg-accent/10 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-accent">
+                    <Swords className="h-4 w-4" aria-hidden="true" />
+                    Current turn
+                  </div>
+                )}
+                <div className="flex flex-wrap items-start justify-between gap-3 p-4 pb-0">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-content">{participant.name}</h3>
                       <Badge variant={participant.participant_type === 'enemy' ? 'warning' : 'default'}>
                         {participant.participant_type}
                       </Badge>
-                      {isCurrent && <Badge variant="warning">Current</Badge>}
                       {participant.is_defeated && <Badge variant="warning">Defeated</Badge>}
                       {!participant.is_visible_to_players && isDM && (
                         <Badge variant="default">Hidden</Badge>
@@ -392,12 +444,13 @@ export function EncounterManager({
                         )
                       }
                     >
+                      <X className="h-4 w-4" aria-hidden="true" />
                       Remove
                     </Button>
                   )}
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3">
+                <div className={`mx-4 mt-4 grid grid-cols-2 gap-3 ${isDM ? 'md:grid-cols-6' : 'sm:grid-cols-5'}`}>
                   {isDM ? (
                     <>
                       <Input
@@ -464,19 +517,32 @@ export function EncounterManager({
                     </>
                   ) : (
                     <>
-                      <Stat label="Initiative" value={participant.initiative ?? '-'} />
-                      <Stat label="AC" value={participant.armor_class} />
+                      <Stat label="Initiative" value={participant.initiative ?? '-'} icon={<Dices className="h-4 w-4" />} emphasized={isCurrent} />
+                      <Stat label="AC" value={participant.armor_class} icon={<Shield className="h-4 w-4" />} />
                       <Stat
                         label="HP"
                         value={`${participant.current_hp}/${participant.max_hp}`}
+                        icon={<HeartPulse className="h-4 w-4" />}
                       />
-                      <Stat label="Temp" value={participant.temp_hp} />
-                      <Stat label="Speed" value={`${participant.speed} ft`} />
+                      <Stat label="Temp" value={participant.temp_hp} icon={<CircleDot className="h-4 w-4" />} />
+                      <Stat label="Speed" value={`${participant.speed} ft`} icon={<Footprints className="h-4 w-4" />} />
                     </>
                   )}
                 </div>
 
-                <div className="mt-3 h-2 rounded-full bg-panel-raised overflow-hidden">
+                <div
+                  className="mx-4 mt-3 h-2 overflow-hidden rounded-full bg-panel-raised"
+                  role="progressbar"
+                  aria-label={`${participant.name} hit points`}
+                  aria-valuemin={participant.max_hp > 0 ? 0 : undefined}
+                  aria-valuemax={participant.max_hp > 0 ? participant.max_hp : undefined}
+                  aria-valuenow={participant.max_hp > 0
+                    ? Math.max(0, Math.min(participant.max_hp, participant.current_hp))
+                    : undefined}
+                  aria-valuetext={participant.max_hp > 0
+                    ? undefined
+                    : `${Math.max(0, participant.current_hp)} HP; maximum not set`}
+                >
                   <div
                     className={`h-full ${hpTone(participant.current_hp, participant.max_hp)}`}
                     style={{ width: `${pct}%` }}
@@ -484,7 +550,7 @@ export function EncounterManager({
                 </div>
 
                 {isDM && (
-                  <div className="mt-4 flex flex-wrap gap-4">
+                  <div className="mx-4 mt-4 flex flex-wrap gap-4">
                     <Checkbox
                       label="Visible to players"
                       checked={participant.is_visible_to_players}
@@ -506,28 +572,34 @@ export function EncounterManager({
                   </div>
                 )}
 
-                <div className="mt-4 flex flex-col gap-3">
+                <div className="mx-4 mt-4 flex flex-col gap-3">
                   <div className="flex flex-wrap gap-2">
-                    {participant.encounter_conditions.map((condition) => (
-                      <button
-                        key={condition.id}
-                        type="button"
-                        disabled={!isDM}
-                        onClick={() =>
-                          isDM &&
-                          run(() =>
-                            removeEncounterCondition(
-                              campaignId,
-                              encounter.id,
-                              condition.id,
-                            ),
-                          )
-                        }
-                        className="rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-xs text-accent disabled:cursor-default"
-                      >
-                        {condition.name}
-                      </button>
-                    ))}
+                    {participant.encounter_conditions.map((condition) =>
+                      isDM ? (
+                        <button
+                          key={condition.id}
+                          type="button"
+                          onClick={() =>
+                            run(() =>
+                              removeEncounterCondition(
+                                campaignId,
+                                encounter.id,
+                                condition.id,
+                              ),
+                            )
+                          }
+                          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-medium text-accent transition hover:border-danger/50 hover:bg-danger/10 hover:text-danger"
+                          aria-label={`Remove ${condition.name}`}
+                        >
+                          {condition.name}
+                          <X className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
+                      ) : (
+                        <span key={condition.id} className="inline-flex min-h-11 items-center rounded-full border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-medium text-accent">
+                          {condition.name}
+                        </span>
+                      ),
+                    )}
                     {participant.encounter_conditions.length === 0 && (
                       <span className="text-xs text-faint">No conditions</span>
                     )}
@@ -577,7 +649,7 @@ export function EncounterManager({
                 </div>
 
                 {isDM && (
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="mx-4 mt-4 grid grid-cols-1 gap-3 pb-4 md:grid-cols-2">
                     <Textarea
                       label="Player-visible note"
                       rows={2}
@@ -603,6 +675,7 @@ export function EncounterManager({
                     />
                   </div>
                 )}
+                {!isDM && <div className="h-4" aria-hidden="true" />}
               </section>
             )
           })}
@@ -612,11 +685,24 @@ export function EncounterManager({
   )
 }
 
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+function Stat({
+  label,
+  value,
+  icon,
+  emphasized = false,
+}: {
+  label: string
+  value: React.ReactNode
+  icon?: React.ReactNode
+  emphasized?: boolean
+}) {
   return (
-    <div className="rounded-md border border-border bg-shell px-3 py-2">
-      <p className="text-xs text-faint">{label}</p>
-      <p className="text-sm font-medium text-content">{value}</p>
+    <div className={`rounded-lg border px-3 py-2.5 ${emphasized ? 'border-accent/60 bg-accent/10' : 'border-border bg-shell'}`}>
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-faint">
+        {icon && <span className={emphasized ? 'text-accent' : 'text-muted'} aria-hidden="true">{icon}</span>}
+        {label}
+      </p>
+      <p className="mt-1 text-lg font-bold leading-tight text-content">{value}</p>
     </div>
   )
 }

@@ -3,9 +3,26 @@
 import Link from 'next/link'
 import { useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import {
+  BookOpen,
+  FileText,
+  Landmark,
+  MapPin,
+  MessageCircle,
+  Package,
+  Pin,
+  ScrollText,
+  Sparkles,
+  Swords,
+  Target,
+  UserRound,
+  UsersRound,
+  type LucideIcon,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardDescription, CardEyebrow, CardHeader, CardTitle } from '@/components/ui/Card'
+import { PlayerContentDisclosure } from '@/components/ui/PlayerContentCard'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import {
@@ -128,6 +145,42 @@ function safeSnippet(value: string | null | undefined) {
   return value?.trim() ? value : 'No player-safe summary yet.'
 }
 
+function playerDocTypeIcon(docType: string): LucideIcon {
+  switch (docType) {
+    case 'character':
+    case 'npc':
+      return UserRound
+    case 'boss':
+    case 'hostile_enemy':
+      return Swords
+    case 'location':
+      return MapPin
+    case 'sub_location':
+      return Landmark
+    case 'session':
+    case 'chapter':
+    case 'adventure':
+      return BookOpen
+    case 'rumor':
+      return MessageCircle
+    case 'side_quest':
+    case 'main_quest':
+      return Target
+    case 'faction':
+      return UsersRound
+    case 'item':
+    case 'loot':
+      return Package
+    case 'handout':
+      return ScrollText
+    case 'map_note':
+    case 'object_note':
+      return Pin
+    default:
+      return FileText
+  }
+}
+
 function sourceBadge(source: string) {
   if (source === 'notion') return <Badge variant="player">Notion</Badge>
   if (source === 'manual') return <Badge variant="warning">Local Manual</Badge>
@@ -243,34 +296,48 @@ function PlayerRevealedInfo({ docs }: { docs: PlayerVisibleCampaignDoc[] }) {
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {filtered.map((doc) => (
-            <Card key={doc.id} tone="panel">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-wide text-faint">
-                    {campaignDocTypeLabel(doc.doc_type)}
+          {filtered.map((doc) => {
+            const TypeIcon = playerDocTypeIcon(doc.doc_type)
+            return (
+              <Card key={doc.id} tone="panel" padding="sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-player-safe/25 bg-player-safe/10 text-player-safe"
+                      aria-hidden="true"
+                    >
+                      <TypeIcon className="h-5 w-5" strokeWidth={1.75} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-faint">
+                        {campaignDocTypeLabel(doc.doc_type)}
+                      </p>
+                      <h2 className="mt-1 text-lg font-semibold text-content">{doc.title}</h2>
+                    </div>
+                  </div>
+                  <span className="shrink-0">{visibilityBadge(doc.visibility)}</span>
+                </div>
+                {doc.reveal_message && (
+                  <p className="mt-3 flex items-start gap-2 rounded-lg border border-accent/20 bg-accent/10 px-3 py-2 text-sm text-accent">
+                    <Sparkles aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{doc.reveal_message}</span>
                   </p>
-                  <h2 className="mt-1 text-lg font-semibold text-content">{doc.title}</h2>
-                </div>
-                {visibilityBadge(doc.visibility)}
-              </div>
-              {doc.reveal_message && (
-                <p className="mt-3 rounded-lg border border-accent/20 bg-accent/10 px-3 py-2 text-sm text-accent">
-                  {doc.reveal_message}
-                </p>
-              )}
-              <p className="mt-3 whitespace-pre-wrap text-sm text-muted">
-                {safeSnippet(doc.player_summary)}
-              </p>
-              {doc.tags.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {doc.tags.map((tag) => (
-                    <Badge key={tag} variant="default">{tag}</Badge>
-                  ))}
-                </div>
-              )}
-            </Card>
-          ))}
+                )}
+                <PlayerContentDisclosure preview={safeSnippet(doc.player_summary)} label="Read full entry">
+                  <p className="whitespace-pre-wrap text-sm text-muted">
+                    {safeSnippet(doc.player_summary)}
+                  </p>
+                </PlayerContentDisclosure>
+                {doc.tags.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {doc.tags.map((tag) => (
+                      <Badge key={tag} variant="default">{tag}</Badge>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { EncounterManager } from '@/components/encounters/EncounterManager'
@@ -14,6 +15,8 @@ import type {
 interface PageProps {
   params: Promise<{ id: string; encounterId: string }>
 }
+
+export const metadata: Metadata = { title: 'Encounter Details' }
 
 export default async function EncounterPage({ params }: PageProps) {
   const { id, encounterId } = await params

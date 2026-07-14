@@ -24,6 +24,8 @@ export interface RenderToken {
   icon?: string | null
   /** Player-safe hint for not-yet-discovered tokens. */
   dimmed?: boolean
+  /** Validated player-safe image. The token label remains the accessible name. */
+  imageUrl?: string | null
 }
 
 export interface RenderArea {
@@ -1474,6 +1476,28 @@ export function MapCanvas({
                 >
                   {dimmedTokenHint ? '?' : t.icon || (t.name?.[0] ?? TYPE_INITIAL[t.token_type]).toUpperCase()}
                 </span>
+                {!dimmedTokenHint && t.imageUrl && (
+                  <img
+                    key={t.imageUrl}
+                    src={t.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none'
+                    }}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '9999px',
+                      objectFit: 'cover',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )}
                 {isAlerted && (
                   <span
                     className="action-alert-badge"

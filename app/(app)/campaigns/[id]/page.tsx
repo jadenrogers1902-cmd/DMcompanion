@@ -1,17 +1,24 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
+import { BookMarked, NotebookTabs, Swords, UserRound } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { MemberList } from '@/components/campaigns/MemberList'
 import { InviteCode } from '@/components/campaigns/InviteCode'
+import { PlayerDestinationCard } from '@/components/campaigns/PlayerDestinationCard'
 import { PlayerTabletopCard } from '@/components/campaigns/PlayerTabletopCard'
 import { DMUtilityPanel } from '@/components/nav/DMUtilityPanel'
 import type { CampaignMemberWithProfile } from '@/lib/types/database'
 
 interface PageProps {
   params: Promise<{ id: string }>
+}
+
+export const metadata: Metadata = {
+  title: 'Campaign Home',
 }
 
 // Active navigation card (links to a built feature)
@@ -259,7 +266,39 @@ export default async function CampaignPage({ params }: PageProps) {
       ) : (
         /* Player Layout */
         <div className="flex flex-col gap-6">
-          {/* Members */}
+          {/* Visual shortcuts put the player's next action first. */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <PlayerTabletopCard campaignId={id} className="sm:col-span-2" />
+            <PlayerDestinationCard
+              href={`/campaigns/${id}/characters`}
+              title="My Characters"
+              description="Create or update your character sheet."
+              imageSrc="/player-ui/destinations/characters.webp"
+              icon={UserRound}
+            />
+            <PlayerDestinationCard
+              href={`/campaigns/${id}/encounters`}
+              title="Encounters"
+              description="Check combat, initiative, and progress."
+              imageSrc="/player-ui/destinations/encounters.webp"
+              icon={Swords}
+            />
+            <PlayerDestinationCard
+              href={`/campaigns/${id}/story`}
+              title="Party Journal"
+              description="Find quests, notes, handouts, and recaps."
+              imageSrc="/player-ui/destinations/journal.webp"
+              icon={NotebookTabs}
+            />
+            <PlayerDestinationCard
+              href={`/campaigns/${id}/codex`}
+              title="Revealed Info"
+              description="Review lore and discoveries revealed to you."
+              imageSrc="/player-ui/destinations/revealed-info.webp"
+              icon={BookMarked}
+            />
+          </div>
+
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -269,31 +308,6 @@ export default async function CampaignPage({ params }: PageProps) {
             </CardHeader>
             <MemberList members={members} currentUserId={user.id} />
           </Card>
-
-          {/* Player feature sections */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FeatureCard
-              href={`/campaigns/${id}/characters`}
-              title="My Characters"
-              description="Create and manage your character sheets."
-            />
-            <PlayerTabletopCard campaignId={id} />
-            <FeatureCard
-              href={`/campaigns/${id}/encounters`}
-              title="Encounters"
-              description="See combat state, initiative, and encounter progress shared by the DM."
-            />
-            <FeatureCard
-              href={`/campaigns/${id}/story`}
-              title="Party Journal"
-              description="Read shared quests, NPC notes, locations, handouts, and recaps."
-            />
-            <FeatureCard
-              href={`/campaigns/${id}/codex`}
-              title="Revealed Info"
-              description="Review player-safe lore, discoveries, and revealed campaign details."
-            />
-          </div>
         </div>
       )}
     </div>

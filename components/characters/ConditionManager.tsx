@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { CircleAlert, Plus, X } from 'lucide-react'
 import { addCondition, removeCondition } from '@/lib/actions/characters'
 import { STANDARD_CONDITIONS, type Condition } from '@/lib/types/database'
 
@@ -44,17 +45,19 @@ export function ConditionManager({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-faint uppercase tracking-wider">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-faint">
+          <CircleAlert className="h-4 w-4 text-warning" aria-hidden="true" />
           Conditions
         </span>
         {canEdit && (
           <button
             type="button"
             onClick={() => setShowPicker((v) => !v)}
-            className="text-xs text-accent hover:text-accent-hover"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold text-accent transition hover:bg-accent/10 hover:text-accent-hover"
           >
-            {showPicker ? 'Close' : '+ Add'}
+            {showPicker ? <X className="h-4 w-4" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
+            {showPicker ? 'Close' : 'Add'}
           </button>
         )}
       </div>
@@ -66,7 +69,7 @@ export function ConditionManager({
           {conditions.map((c) => (
             <span
               key={c.id}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-orange-500/15 text-orange-300 border border-orange-500/30"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-orange-500/30 bg-orange-500/15 py-1 pl-3 text-xs font-medium text-orange-300"
             >
               {c.name}
               {canEdit && (
@@ -74,10 +77,10 @@ export function ConditionManager({
                   type="button"
                   onClick={() => remove(c.id)}
                   disabled={adding}
-                  className="text-orange-400/70 hover:text-orange-200"
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-orange-400/70 transition hover:bg-orange-500/15 hover:text-orange-200 disabled:opacity-50"
                   aria-label={`Remove ${c.name}`}
                 >
-                  ×
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </button>
               )}
             </span>
@@ -96,7 +99,7 @@ export function ConditionManager({
                   type="button"
                   disabled={isActive || adding}
                   onClick={() => add(name)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+                  className={`min-h-11 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
                     isActive
                       ? 'bg-panel-raised text-faint border-border cursor-not-allowed'
                       : 'bg-panel text-muted border-border-strong hover:border-orange-500/50 hover:text-orange-300'
@@ -107,7 +110,7 @@ export function ConditionManager({
               )
             })}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <input
               type="text"
               value={custom}
@@ -119,13 +122,13 @@ export function ConditionManager({
                 }
               }}
               placeholder="Custom condition…"
-              className="flex-1 rounded-lg border border-border-strong bg-panel px-3 py-1.5 text-sm text-content outline-none focus:border-accent"
+              className="min-h-11 flex-1 rounded-lg border border-border-strong bg-panel px-3 py-2 text-sm text-content outline-none focus:border-accent"
             />
             <button
               type="button"
               onClick={() => add(custom)}
               disabled={adding || !custom.trim()}
-              className="px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent-hover disabled:opacity-50"
+              className="min-h-11 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
             >
               Add
             </button>

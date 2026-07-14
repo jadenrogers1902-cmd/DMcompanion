@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -5,6 +6,8 @@ import { Button } from '@/components/ui/Button'
 import { CampaignCard } from '@/components/campaigns/CampaignCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { Campaign, CampaignWithRole } from '@/lib/types/database'
+
+export const metadata: Metadata = { title: 'Campaigns' }
 
 export default async function DashboardPage() {
   const supabase = await createClient()

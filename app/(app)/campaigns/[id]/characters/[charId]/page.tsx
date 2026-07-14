@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { CharacterSheet } from '@/components/characters/CharacterSheet'
@@ -13,6 +14,8 @@ import type {
 interface PageProps {
   params: Promise<{ id: string; charId: string }>
 }
+
+export const metadata: Metadata = { title: 'Character Details' }
 
 export default async function CharacterDetailPage({ params }: PageProps) {
   const { id, charId } = await params

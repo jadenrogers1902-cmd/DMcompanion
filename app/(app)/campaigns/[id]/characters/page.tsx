@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/Badge'
@@ -17,6 +18,8 @@ import type {
 interface PageProps {
   params: Promise<{ id: string }>
 }
+
+export const metadata: Metadata = { title: 'Characters' }
 
 function CharacterMiniCard({
   campaignId,

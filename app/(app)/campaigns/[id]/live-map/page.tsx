@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -27,6 +28,8 @@ import type {
   Profile,
   Spell,
 } from '@/lib/types/database'
+
+export const metadata: Metadata = { title: 'Campaign Map' }
 
 interface PageProps {
   params: Promise<{ id: string }>

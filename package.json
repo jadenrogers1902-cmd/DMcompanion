@@ -13,6 +13,7 @@
     "test:unit": "node --no-warnings --test \"tests/unit/*.test.mjs\"",
     "test:e2e": "playwright test",
     "test:e2e:auth": "npm run check:e2e-env && playwright test tests/e2e/dm-action-queue.auth.spec.ts --reporter=line",
+    "test:e2e:player": "playwright test tests/e2e/player-navigation.auth.spec.ts --reporter=line",
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {

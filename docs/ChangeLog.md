@@ -1,5 +1,15 @@
 # Adventure Codex + Notion Bridge — Change Log
 
+## Player Visual Navigation and Scanability (2026-07-14)
+
+- Reorganized the player phone shell around **Home**, **Characters**, **Adventure**, and an accessible **More** sheet containing every remaining player destination.
+- Rebuilt Campaign Home with five original destination illustrations, visible direction arrows, stable Adventure/live wording, and the existing Party list moved below the primary play choices.
+- Made Journal and Revealed Info entries easier to scan with category icons, short previews, expandable full text, safe NPC/handout imagery, and icon fallbacks.
+- Replaced raw character-template data blocks with labeled visual sections while preserving every template field; added icon tabs, clearer stat/item/spell/ability/condition groups, and 44px touch targets.
+- Emphasized encounter round, current turn, initiative, HP, and conditions; clarified Adventure controls with labeled Character/Actions launchers, a matching Hand/Move/Target/Actions legend, and accessible travel/action dialogs.
+- Preserved all routes, player features, DM features, forms, server actions, realtime subscriptions, queries, RLS, and RPC behavior. This pass adds no schema or migration.
+- Added player navigation/media unit contracts and an optional authenticated phone-navigation Playwright suite. Final results and blocked coverage are recorded in `docs/QA_Reports/PLAYER_VISUAL_NAVIGATION_QA_2026-07-14.md`.
+
 ## Account Theme Selection (2026-07-13)
 
 - Added Emberforge, Moonlit Grimoire, Emerald Enclave, Frostbound Archive, and Golden Parchment as account-wide choices for both DMs and players.

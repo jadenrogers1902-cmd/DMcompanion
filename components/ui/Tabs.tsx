@@ -5,6 +5,7 @@ import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'rea
 interface Tab {
   id: string
   label: string
+  icon?: ReactNode
   badge?: number
   content: ReactNode
 }
@@ -55,7 +56,7 @@ export function Tabs({ tabs, defaultTab }: TabsProps) {
             onClick={() => setActive(tab.id)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={`
-              relative whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors
+              relative min-h-11 whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors sm:px-4
               ${
                 active === tab.id
                   ? 'text-accent'
@@ -64,6 +65,11 @@ export function Tabs({ tabs, defaultTab }: TabsProps) {
             `.trim()}
           >
             <span className="flex items-center gap-2">
+              {tab.icon && (
+                <span className="shrink-0" aria-hidden="true">
+                  {tab.icon}
+                </span>
+              )}
               {tab.label}
               {tab.badge !== undefined && tab.badge > 0 && (
                 <span className="min-w-5 rounded-full border border-border bg-control px-1.5 py-0.5 text-center text-xs text-muted">

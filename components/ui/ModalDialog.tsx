@@ -16,6 +16,7 @@ interface ModalDialogProps {
   labelledBy: string
   describedBy?: string
   onClose: () => void
+  position?: 'fixed' | 'absolute'
   overlayClassName?: string
   panelClassName?: string
 }
@@ -30,6 +31,7 @@ export function ModalDialog({
   labelledBy,
   describedBy,
   onClose,
+  position = 'fixed',
   overlayClassName = '',
   panelClassName = '',
 }: ModalDialogProps) {
@@ -94,7 +96,7 @@ export function ModalDialog({
 
   return (
     <div
-      className={`fixed inset-0 ${overlayClassName}`.trim()}
+      className={`${position} inset-0 ${overlayClassName}`.trim()}
       onClick={(event) => {
         if (event.target === event.currentTarget) onCloseRef.current()
       }}

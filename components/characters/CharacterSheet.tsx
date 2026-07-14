@@ -2,6 +2,13 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import {
+  Backpack,
+  BookOpenText,
+  Gauge,
+  NotebookText,
+  Sparkles,
+} from 'lucide-react'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -90,7 +97,7 @@ export function CharacterSheet({
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-2xl font-bold text-content">{character.name}</h1>
@@ -102,7 +109,7 @@ export function CharacterSheet({
           {subtitle && <p className="text-sm text-faint mt-1">{subtitle}</p>}
         </div>
         {isOwner && (
-          <div className="flex gap-2 shrink-0">
+          <div className="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
             <Link href={`/campaigns/${campaignId}/characters/${character.id}/edit`}>
               <Button variant="secondary" size="sm">Edit</Button>
             </Link>
@@ -137,6 +144,12 @@ export function CharacterSheet({
           </Card>
 
           <Card>
+            <div className="mb-4 flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/30 bg-accent/10 text-accent">
+                <Gauge className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <h2 className="text-sm font-semibold text-content">Core stats</h2>
+            </div>
             <div className="grid grid-cols-3 gap-2 mb-4">
               <CoreStat label="AC" value={character.armor_class} />
               <CoreStat label="Speed" value={`${character.speed}ft`} />
@@ -175,6 +188,7 @@ export function CharacterSheet({
                 {
                   id: 'inventory',
                   label: 'Inventory',
+                  icon: <Backpack className="h-4 w-4" />,
                   badge: inventory.length,
                   content: (
                     <InventoryTab
@@ -187,6 +201,7 @@ export function CharacterSheet({
                 {
                   id: 'spells',
                   label: 'Spells',
+                  icon: <Sparkles className="h-4 w-4" />,
                   badge: spells.length,
                   content: (
                     <SpellsTab
@@ -199,6 +214,7 @@ export function CharacterSheet({
                 {
                   id: 'abilities',
                   label: 'Abilities',
+                  icon: <BookOpenText className="h-4 w-4" />,
                   badge: abilities.length,
                   content: (
                     <AbilitiesTab
@@ -211,6 +227,7 @@ export function CharacterSheet({
                 {
                   id: 'notes',
                   label: 'Notes',
+                  icon: <NotebookText className="h-4 w-4" />,
                   content: character.notes ? (
                     <p className="text-sm text-muted whitespace-pre-wrap leading-relaxed">
                       {character.notes}

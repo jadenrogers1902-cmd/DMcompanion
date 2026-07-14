@@ -52,7 +52,9 @@ import { getRollOutcomeVariant } from '@/lib/utils/roll-outcome-display'
 import { PlayerRollOutcomePanel, type PlayerRollOutcomeData } from '@/components/actions/RollOutcomeEffects'
 import { PlayerLinkedCodexDocsPanel } from '@/components/codex/CodexLinkedDocsPanel'
 import { Card, CardDescription, CardEyebrow } from '@/components/ui/Card'
+import { ModalDialog } from '@/components/ui/ModalDialog'
 import { buildPrivateMapImageUrl } from '@/lib/maps/live-map'
+import { safePlayerImageUrl } from '@/lib/utils/player-media'
 import { createClient } from '@/lib/supabase/client'
 import { actionsForToken, authorizePlayerActionTarget, distanceFeet } from '@/lib/utils/actions'
 import type { NpcRevealPayload } from '@/lib/notion/npc-profile'
@@ -711,6 +713,7 @@ export function PlayerMapView({
     is_defeated: t.is_defeated,
     showHealth: t.visible_to_players !== false && (t.max_hp ?? 0) > 0,
     dimmed: t.visible_to_players === false,
+    imageUrl: t.visible_to_players === false ? null : safePlayerImageUrl(t.image_url),
   }))
 
   const selected = tokens.find((t) => t.id === selectedId) ?? null
@@ -1603,14 +1606,17 @@ export function PlayerMapView({
             Movement locked by DM
           </span>
         ) : myControlled.length > 0 ? (
-          <span className="text-xs text-faint">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 py-1 text-xs font-medium text-muted">
+            {effectiveMapInteractionMode === 'move' ? (
+              <Move className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : effectiveMapInteractionMode === 'target' ? (
+              <Target className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : (
+              <Hand className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
             {effectiveMapInteractionMode === 'move'
-              ? combatMovementActive
-                ? 'Move mode: tap a square, then confirm.'
-                : 'Move mode: drag your token.'
-              : effectiveMapInteractionMode === 'target'
-                ? 'Target mode: tap tokens to interact.'
-                : 'Hand mode: pan and pinch the map.'}
+              ? combatMovementActive ? 'Move and confirm' : 'Move mode'
+              : effectiveMapInteractionMode === 'target' ? 'Target mode' : 'Hand mode'}
           </span>
         ) : (
           <span className="text-xs text-faint">
@@ -1725,7 +1731,7 @@ export function PlayerMapView({
               <button
                 type="button"
                 onClick={() => setSelectedId(null)}
-                className="shrink-0 text-faint hover:text-muted"
+                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-faint hover:bg-panel-raised hover:text-muted"
                 aria-label="Close token details"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1773,7 +1779,7 @@ export function PlayerMapView({
                         key={action}
                         type="button"
                         onClick={() => startActionDraft(action, selected.id)}
-                        className="rounded-md border border-border-strong bg-canvas px-2.5 py-1.5 text-xs font-medium text-content transition hover:border-accent/60 hover:text-accent disabled:opacity-40 disabled:hover:border-border-strong disabled:hover:text-content"
+                        className="min-h-11 rounded-md border border-border-strong bg-canvas px-2.5 py-2 text-xs font-medium text-content transition hover:border-accent/60 hover:text-accent disabled:opacity-40 disabled:hover:border-border-strong disabled:hover:text-content"
                       >
                         {action}
                       </button>
@@ -1783,7 +1789,7 @@ export function PlayerMapView({
                 <button
                   type="button"
                   onClick={() => openGuidedAction(selected.id)}
-                  className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-md border border-accent/50 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:border-accent hover:bg-accent/20 disabled:opacity-40"
+                  className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-accent/50 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:border-accent hover:bg-accent/20 disabled:opacity-40"
                 >
                   <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
                   More actions
@@ -1795,16 +1801,14 @@ export function PlayerMapView({
 
         {/* Portal token — dedicated travel popup */}
         {selected && isTransport && (
-          <div
-            className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
-            role="dialog"
-            aria-modal="true"
-            onClick={() => setSelectedId(null)}
+          <ModalDialog
+            labelledBy="player-travel-dialog-title"
+            describedBy="player-travel-dialog-description"
+            onClose={() => setSelectedId(null)}
+            position="absolute"
+            overlayClassName="z-40 flex items-center justify-center bg-black/50 p-4"
+            panelClassName="max-h-[calc(100dvh-2rem)] w-full max-w-xs overflow-y-auto rounded-2xl border border-violet-500/40 bg-canvas p-5 shadow-2xl"
           >
-            <div
-              className="w-full max-w-xs rounded-2xl border border-violet-500/40 bg-canvas p-5 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/15 text-lg">🌀</span>
@@ -1812,7 +1816,7 @@ export function PlayerMapView({
                     <p className="text-[11px] uppercase tracking-wide text-violet-300/80">
                       {selectedHiddenHint ? 'Unrevealed portal' : 'Travel'}
                     </p>
-                    <p className="truncate text-base font-semibold text-content">
+                    <p id="player-travel-dialog-title" className="truncate text-base font-semibold text-content">
                       {selectedHiddenHint ? 'Something is here' : selected.name || 'New location'}
                     </p>
                   </div>
@@ -1820,8 +1824,8 @@ export function PlayerMapView({
                 <button
                   type="button"
                   onClick={() => setSelectedId(null)}
-                  className="shrink-0 rounded-md p-1 text-faint hover:bg-panel-raised hover:text-content"
-                  aria-label="Close"
+                  className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-faint hover:bg-panel-raised hover:text-content"
+                  aria-label="Close travel dialog"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -1830,11 +1834,16 @@ export function PlayerMapView({
               </div>
 
               {selectedHiddenHint ? (
-                <p className="mt-3 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-sm text-violet-100">
+                <p id="player-travel-dialog-description" className="mt-3 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-sm text-violet-100">
                   You can tell there is something here, but it has not been fully discovered yet.
                 </p>
               ) : selected.public_description && (
-                <p className="mt-3 text-sm text-muted">{selected.public_description}</p>
+                <p id="player-travel-dialog-description" className="mt-3 text-sm text-muted">{selected.public_description}</p>
+              )}
+              {!selectedHiddenHint && !selected.public_description && (
+                <p id="player-travel-dialog-description" className="sr-only">
+                  Choose whether to travel to this revealed location.
+                </p>
               )}
 
               {selectedHiddenHint ? (
@@ -1857,7 +1866,7 @@ export function PlayerMapView({
                     type="button"
                     disabled={transportBusy}
                     onClick={handleTransportTravel}
-                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-violet-500/60 bg-violet-500/20 px-4 py-2.5 text-sm font-semibold text-violet-50 transition hover:border-violet-400 hover:bg-violet-500/30 disabled:opacity-50"
+                    className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-violet-500/60 bg-violet-500/20 px-4 py-2.5 text-sm font-semibold text-violet-50 transition hover:border-violet-400 hover:bg-violet-500/30 disabled:opacity-50"
                   >
                     🌀 {transportBusy
                       ? 'Working…'
@@ -1872,8 +1881,7 @@ export function PlayerMapView({
                   )}
                 </>
               )}
-            </div>
-          </div>
+          </ModalDialog>
         )}
 
         {characterCardOpen && (
@@ -1886,7 +1894,7 @@ export function PlayerMapView({
           />
         )}
 
-        <div className="absolute bottom-3 left-3 z-30 flex flex-col gap-2">
+        <div className="absolute bottom-3 left-3 z-30 flex flex-col items-start gap-2">
           <button
             type="button"
             onClick={() => {
@@ -1894,13 +1902,14 @@ export function PlayerMapView({
               setInteractionOpen(false)
             }}
             aria-label="Open character information"
-            className={`flex h-12 w-12 items-center justify-center rounded-full border shadow-xl backdrop-blur transition active:scale-95 ${
+            className={`flex min-h-12 items-center justify-center gap-2 rounded-full border px-3 shadow-xl backdrop-blur transition active:scale-95 ${
               characterCardOpen
                 ? 'border-sky-300 bg-sky-400 text-on-accent'
                 : 'border-border-strong bg-canvas/90 text-sky-200 hover:border-sky-400/70 hover:bg-panel'
             }`}
           >
             <UserCircle className="h-6 w-6" aria-hidden="true" />
+            <span className="text-xs font-semibold">Character</span>
           </button>
           <button
             type="button"
@@ -1910,13 +1919,14 @@ export function PlayerMapView({
               setCharacterCardOpen(false)
             }}
             aria-label="Open interaction menu"
-            className={`flex h-12 w-12 items-center justify-center rounded-full border shadow-xl backdrop-blur transition active:scale-95 ${
+            className={`flex min-h-12 items-center justify-center gap-2 rounded-full border px-3 shadow-xl backdrop-blur transition active:scale-95 ${
               interactionOpen
                 ? 'border-accent bg-accent text-on-accent'
                 : 'border-border-strong bg-canvas/90 text-accent hover:border-accent/70 hover:bg-panel'
             }`}
           >
             <Hand className="h-5 w-5" aria-hidden="true" />
+            <span className="text-xs font-semibold">Actions</span>
           </button>
         </div>
 
@@ -2017,10 +2027,35 @@ export function PlayerMapView({
         )}
       </div>
 
-      <p className="text-xs text-faint text-center">
-        Hand: pan/pinch - Move: drag your token - Target: tap to interact - 1 square = {map.grid_scale_feet} ft
-      </p>
+      <MapControlLegend gridScaleFeet={map.grid_scale_feet} />
 
+    </div>
+  )
+}
+
+function MapControlLegend({ gridScaleFeet }: { gridScaleFeet: number }) {
+  const items = [
+    { label: 'Hand', icon: <Hand className="h-3.5 w-3.5" aria-hidden="true" /> },
+    { label: 'Move', icon: <Move className="h-3.5 w-3.5" aria-hidden="true" /> },
+    { label: 'Target', icon: <Target className="h-3.5 w-3.5" aria-hidden="true" /> },
+    { label: 'Actions', icon: <Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> },
+  ]
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-faint" aria-label="Map controls legend">
+      {items.map((item) => (
+        <span key={item.label} className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-panel px-2.5">
+          {item.icon}
+          {item.label}
+        </span>
+      ))}
+      <details className="group rounded-xl border border-border bg-panel px-2.5">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center font-medium text-muted">Map help</summary>
+        <p className="mt-2 max-w-sm pb-1 text-left leading-relaxed text-faint">
+          Hand pans or pinches. Move lets you drag your token or tap an empty square, then confirm.
+          Target inspects visible tokens. Actions opens the request flow. One square is {gridScaleFeet} ft.
+        </p>
+      </details>
     </div>
   )
 }
@@ -2091,14 +2126,14 @@ function PendingMoveCard({
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-10 rounded-md border border-border-strong bg-panel px-3 text-sm font-semibold text-content transition hover:border-border-strong"
+          className="min-h-11 rounded-md border border-border-strong bg-panel px-3 text-sm font-semibold text-content transition hover:border-border-strong"
         >
           Cancel
         </button>
         <button
           type="button"
           onClick={onConfirm}
-          className="min-h-10 rounded-md bg-accent px-3 text-sm font-semibold text-on-accent transition hover:bg-accent-hover"
+          className="min-h-11 rounded-md bg-accent px-3 text-sm font-semibold text-on-accent transition hover:bg-accent-hover"
         >
           Confirm Move
         </button>
@@ -2159,7 +2194,7 @@ function CharacterInfoCard({
                 <select
                   value={summary.character.id}
                   onChange={(event) => onSelectCharacter(event.target.value)}
-                  className="min-h-10 rounded-lg border border-border-strong bg-panel px-3 text-sm text-content outline-none focus:border-sky-400"
+                  className="min-h-11 rounded-lg border border-border-strong bg-panel px-3 text-sm text-content outline-none focus:border-sky-400"
                 >
                   {summaries.map((item) => (
                     <option key={item.character.id} value={item.character.id}>
@@ -2251,7 +2286,7 @@ function CharacterInfoCard({
 
             <Link
               href={`/campaigns/${campaignId}/characters/${summary.character.id}`}
-              className="inline-flex min-h-10 items-center justify-center rounded-md border border-sky-400/40 bg-sky-500/10 px-3 text-sm font-semibold text-sky-100 transition hover:border-sky-300"
+              className="inline-flex min-h-11 items-center justify-center rounded-md border border-sky-400/40 bg-sky-500/10 px-3 text-sm font-semibold text-sky-100 transition hover:border-sky-300"
             >
               Open full sheet
             </Link>
@@ -2348,7 +2383,7 @@ function MobileMapControls({
         <button
           type="button"
           onClick={onCenter}
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border-strong bg-canvas/90 px-3 text-xs font-semibold text-content shadow-lg shadow-black/30 backdrop-blur transition hover:border-accent/70 hover:text-accent"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border-strong bg-canvas/90 px-3 text-xs font-semibold text-content shadow-lg shadow-black/30 backdrop-blur transition hover:border-accent/70 hover:text-accent"
         >
           <LocateFixed className="h-4 w-4" aria-hidden="true" />
           Me
@@ -2356,7 +2391,7 @@ function MobileMapControls({
         <button
           type="button"
           onClick={onFit}
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border-strong bg-canvas/90 px-3 text-xs font-semibold text-content shadow-lg shadow-black/30 backdrop-blur transition hover:border-accent/70 hover:text-accent"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border-strong bg-canvas/90 px-3 text-xs font-semibold text-content shadow-lg shadow-black/30 backdrop-blur transition hover:border-accent/70 hover:text-accent"
         >
           <MousePointer2 className="h-4 w-4" aria-hidden="true" />
           Fit
@@ -2643,7 +2678,7 @@ function InteractionMenu({
           <input
             value={partyName}
             onChange={(event) => setPartyName(event.target.value)}
-            className="mt-1 w-full rounded-md border border-border-strong bg-canvas px-3 py-2 text-sm text-content outline-none focus:border-accent"
+            className="mt-1 min-h-11 w-full rounded-md border border-border-strong bg-canvas px-3 py-2 text-sm text-content outline-none focus:border-accent"
           />
         </label>
         <label className="mt-3 block text-xs text-muted">
@@ -2651,7 +2686,7 @@ function InteractionMenu({
           <select
             value={nominatedLeaderId}
             onChange={(event) => setNominatedLeaderId(event.target.value)}
-            className="mt-1 w-full rounded-md border border-border-strong bg-canvas px-3 py-2 text-sm text-content outline-none focus:border-accent"
+            className="mt-1 min-h-11 w-full rounded-md border border-border-strong bg-canvas px-3 py-2 text-sm text-content outline-none focus:border-accent"
           >
             {allPlayerOptions.map((player) => (
               <option key={player.userId} value={player.userId}>{player.name}</option>
@@ -2675,7 +2710,7 @@ function InteractionMenu({
           type="button"
           disabled={travelBusy === 'create' || selectedPartyMemberIds.length === 0}
           onClick={submitCreateParty}
-          className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-45"
+          className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-45"
         >
           <Users className="h-4 w-4" aria-hidden="true" />
           {travelBusy === 'create' ? 'Creating...' : 'Create Party'}
@@ -2762,7 +2797,7 @@ function InteractionMenu({
           <button
             type="button"
             onClick={onTakeAction}
-            className="inline-flex min-h-10 items-center justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent transition hover:bg-accent-hover"
+            className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-on-accent transition hover:bg-accent-hover"
           >
             Open
           </button>
@@ -2780,7 +2815,7 @@ function InteractionMenu({
                 key={action}
                 type="button"
                 onClick={() => onStartAction(action, selected.id)}
-                className="rounded-md border border-border-strong bg-canvas px-3 py-2 text-xs font-semibold text-content transition hover:border-accent/60 hover:text-accent disabled:opacity-45"
+                className="min-h-11 rounded-md border border-border-strong bg-canvas px-3 py-2 text-xs font-semibold text-content transition hover:border-accent/60 hover:text-accent disabled:opacity-45"
               >
                 {action}
               </button>
@@ -2896,7 +2931,7 @@ function InteractionMenu({
             <button
               type="button"
               onClick={() => section === 'root' ? onClose() : setSection('root')}
-              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted hover:bg-panel hover:text-content"
+              className="flex min-h-11 items-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium text-muted hover:bg-panel hover:text-content"
             >
               {section === 'root' ? <X className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
               {section === 'root' ? 'Close' : 'Back'}
@@ -2917,7 +2952,7 @@ function InteractionMenu({
         <div className="w-80 rounded-xl border border-border-strong bg-canvas p-3 shadow-2xl shadow-black/50">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-content">Interaction Menu</p>
-            <button type="button" onClick={onClose} className="rounded-md p-1 text-faint hover:bg-panel hover:text-content" aria-label="Close interaction menu">
+            <button type="button" onClick={onClose} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-faint hover:bg-panel hover:text-content" aria-label="Close interaction menu">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -3074,20 +3109,25 @@ function ActionSequenceOverlay({
   ]
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-stretch justify-center bg-black/65 p-2 backdrop-blur-sm sm:items-center sm:p-4">
-      <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-strong bg-canvas shadow-2xl shadow-black/60 transition-all duration-200 motion-reduce:transition-none sm:max-h-[calc(100vh-2rem)]">
+    <ModalDialog
+      labelledBy="player-action-dialog-title"
+      describedBy="player-action-dialog-description"
+      onClose={onClose}
+      overlayClassName="z-[60] flex items-stretch justify-center bg-black/65 p-2 backdrop-blur-sm sm:items-center sm:p-4"
+      panelClassName="flex max-h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-strong bg-canvas shadow-2xl shadow-black/60 transition-all duration-200 motion-reduce:transition-none sm:max-h-[calc(100vh-2rem)]"
+    >
         <div className="shrink-0 flex items-start justify-between gap-3 border-b border-border bg-panel/80 px-4 py-3 sm:px-5 sm:py-4">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent sm:text-xs sm:tracking-[0.22em]">Player Action Request</p>
-            <h2 className="mt-1 text-xl font-bold text-content sm:text-2xl">Resolve it at the table</h2>
-            <p className="mt-1 text-xs text-muted sm:text-sm">
+            <h2 id="player-action-dialog-title" className="mt-1 text-xl font-bold text-content sm:text-2xl">Resolve it at the table</h2>
+            <p id="player-action-dialog-description" className="mt-1 text-xs text-muted sm:text-sm">
               {target ? `${target.name || target.token_type} is selected.` : 'Choose a visible map target.'}
             </p>
             {isChoosing && target && (
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border-strong bg-canvas px-2.5 py-1.5 text-xs font-semibold text-content transition hover:border-accent/60 hover:text-accent"
+                className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border-strong bg-canvas px-2.5 py-2 text-xs font-semibold text-content transition hover:border-accent/60 hover:text-accent"
               >
                 <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
                 Back to token menu
@@ -3311,7 +3351,7 @@ function ActionSequenceOverlay({
                   <button
                     type="button"
                     onClick={onBack}
-                    className="rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-semibold text-content transition hover:border-accent/60"
+                    className="min-h-11 rounded-md border border-border-strong bg-canvas px-4 py-2 text-sm font-semibold text-content transition hover:border-accent/60"
                   >
                     Edit Request
                   </button>
@@ -3487,8 +3527,7 @@ function ActionSequenceOverlay({
             )
           })()}
         </div>
-      </div>
-    </div>
+    </ModalDialog>
   )
 }
 

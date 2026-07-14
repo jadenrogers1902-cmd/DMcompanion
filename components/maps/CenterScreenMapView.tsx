@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Eye, Maximize2, RefreshCw } from 'lucide-react'
 import { MapCanvas, type RenderArea, type RenderRoomRegion, type RenderToken, type RenderWall } from './MapCanvas'
 import { buildPrivateMapImageUrl } from '@/lib/maps/live-map'
+import { safePlayerImageUrl } from '@/lib/utils/player-media'
 import type {
   GameMap,
   MapRevealedArea,
@@ -69,6 +70,7 @@ function tokenToCenterScreenToken(token: Token): RenderToken | null {
     is_defeated: visible ? token.is_defeated : false,
     showHealth: visible && token.max_hp > 0,
     dimmed: !visible,
+    imageUrl: visible ? safePlayerImageUrl(token.image_url) : null,
   }
 }
 

@@ -2,12 +2,24 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  BookOpenCheck,
+  ExternalLink,
+  ImageIcon,
+  MapPin,
+  NotebookText,
+  Target,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import { createClient } from '@/lib/supabase/client'
+import { isPlayerImageMimeType } from '@/lib/utils/player-media'
 import { Tabs } from '@/components/ui/Tabs'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardDescription, CardEyebrow, CardHeader, CardTitle } from '@/components/ui/Card'
+import { PlayerContentDisclosure, PlayerMediaThumbnail } from '@/components/ui/PlayerContentCard'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Checkbox } from '@/components/ui/Checkbox'
@@ -90,6 +102,13 @@ function formatBytes(bytes: number | null) {
   if (!bytes) return 'File'
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function previewText(...values: Array<string | null | undefined>) {
+  return values
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value))
+    .join('\n')
 }
 
 export function StoryWorkspace(props: StoryWorkspaceProps) {
@@ -205,46 +224,108 @@ function PlayerJournal({ quests, npcs, locations, notes, handouts, recaps }: Sto
       <Tabs
         tabs={[
           { id: 'quests', label: 'Quests', badge: quests.length, content: <PlayerCards items={quests} render={(quest) => (
-            <JournalCard title={quest.title} badge={<Badge variant="default">{quest.status}</Badge>}>
-              <p>{snippet(quest.player_visible_description)}</p>
-              {quest.rewards && <p className="mt-2 text-accent">Rewards: {quest.rewards}</p>}
+            <JournalCard title={quest.title} icon={Target} badge={<Badge variant="default">{quest.status}</Badge>}>
+              <PlayerContentDisclosure
+                preview={previewText(
+                  quest.player_visible_description,
+                  quest.rewards ? `Rewards: ${quest.rewards}` : null,
+                )}
+                label="Read full quest"
+              >
+                <PlayerDetail label="What the party knows" value={quest.player_visible_description} />
+                <PlayerDetail label="Rewards" value={quest.rewards} accent />
+              </PlayerContentDisclosure>
             </JournalCard>
           )} /> },
           { id: 'npcs', label: 'NPCs', badge: npcs.length, content: <PlayerCards items={npcs} render={(npc) => (
-            <JournalCard title={npc.name} badge={npc.role ? <Badge variant="default">{npc.role}</Badge> : null}>
-              {npc.relationship_to_party && <p className="mb-2 text-muted">{npc.relationship_to_party}</p>}
-              <p>{snippet(npc.player_visible_notes)}</p>
+            <JournalCard
+              title={npc.name}
+              icon={UserRound}
+              badge={npc.role ? <Badge variant="default">{npc.role}</Badge> : null}
+              media={(
+                <PlayerMediaThumbnail
+                  src={npc.portrait_url}
+                  alt={`Portrait of ${npc.name}`}
+                  fallbackIcon={UserRound}
+                  className="h-16 w-16 sm:h-20 sm:w-20"
+                />
+              )}
+            >
+              <PlayerContentDisclosure
+                preview={previewText(npc.relationship_to_party, npc.player_visible_notes)}
+                label="Read full NPC entry"
+              >
+                <PlayerDetail label="Relationship to the party" value={npc.relationship_to_party} />
+                <PlayerDetail label="What the party knows" value={npc.player_visible_notes} />
+              </PlayerContentDisclosure>
             </JournalCard>
           )} /> },
           { id: 'locations', label: 'Locations', badge: locations.length, content: <PlayerCards items={locations} render={(location) => (
-            <JournalCard title={location.name}>
-              {location.description && <p className="mb-2 text-muted">{location.description}</p>}
-              <p>{snippet(location.player_visible_notes)}</p>
+            <JournalCard title={location.name} icon={MapPin}>
+              <PlayerContentDisclosure
+                preview={previewText(location.description, location.player_visible_notes)}
+                label="Read full location"
+              >
+                <PlayerDetail label="Description" value={location.description} />
+                <PlayerDetail label="What the party knows" value={location.player_visible_notes} />
+              </PlayerContentDisclosure>
             </JournalCard>
           )} /> },
           { id: 'notes', label: 'Notes', badge: notes.length, content: <PlayerCards items={notes} render={(note) => (
-            <JournalCard title={note.title}>
-              <p>{snippet(note.content)}</p>
+            <JournalCard title={note.title} icon={NotebookText}>
+              <PlayerContentDisclosure preview={note.content} label="Read full note">
+                <p className="whitespace-pre-wrap">{snippet(note.content)}</p>
+              </PlayerContentDisclosure>
             </JournalCard>
           )} /> },
           { id: 'handouts', label: 'Handouts', badge: handouts.length, content: <PlayerCards items={handouts} render={(handout) => (
-            <JournalCard title={handout.title} badge={<Badge variant="success">Revealed</Badge>}>
-              <p>{snippet(handout.description)}</p>
+            <JournalCard
+              title={handout.title}
+              icon={ImageIcon}
+              badge={<Badge variant="success">Revealed</Badge>}
+              media={(
+                <PlayerMediaThumbnail
+                  src={isPlayerImageMimeType(handout.file_type) ? handout.signed_url : null}
+                  alt={`Preview of ${handout.title}`}
+                  fallbackIcon={ImageIcon}
+                  className="h-16 w-24 sm:h-20 sm:w-28"
+                />
+              )}
+            >
+              <PlayerContentDisclosure preview={handout.description} label="Read handout details">
+                <p className="whitespace-pre-wrap">{snippet(handout.description)}</p>
+              </PlayerContentDisclosure>
               {handout.signed_url && (
                 <a
                   href={handout.signed_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-3 inline-flex text-sm font-medium text-accent hover:text-accent-hover"
+                  className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-accent hover:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
+                  <ExternalLink aria-hidden="true" className="h-4 w-4" />
                   Open handout
+                  <span className="sr-only">: {handout.title}</span>
                 </a>
               )}
             </JournalCard>
           )} /> },
           { id: 'recaps', label: 'Recaps', badge: recaps.length, content: <PlayerCards items={recaps} render={(recap) => (
-            <JournalCard title={recap.session_title} badge={recap.session_date ? <Badge variant="default">{recap.session_date}</Badge> : null}>
-              <RecapBody recap={recap} includeDmNotes={false} />
+            <JournalCard
+              title={recap.session_title}
+              icon={BookOpenCheck}
+              badge={recap.session_date ? <Badge variant="default">{recap.session_date}</Badge> : null}
+            >
+              <PlayerContentDisclosure
+                preview={previewText(
+                  recap.what_happened,
+                  recap.quest_updates,
+                  recap.open_threads,
+                  recap.next_session_start,
+                )}
+                label="Read full recap"
+              >
+                <RecapBody recap={recap} includeDmNotes={false} />
+              </PlayerContentDisclosure>
             </JournalCard>
           )} /> },
         ]}
@@ -272,21 +353,56 @@ function PlayerCards<T extends { id: string }>({
 
 function JournalCard({
   title,
+  icon: Icon,
   badge,
+  media,
   children,
 }: {
   title: string
+  icon: LucideIcon
   badge?: React.ReactNode
+  media?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
-    <Card tone="panel">
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="text-lg font-semibold text-content">{title}</h2>
-        {badge}
+    <Card tone="panel" padding="sm">
+      <div className="flex items-start gap-3">
+        {media ?? (
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent"
+            aria-hidden="true"
+          >
+            <Icon className="h-5 w-5" strokeWidth={1.75} />
+          </span>
+        )}
+        <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+          <h2 className="min-w-0 text-lg font-semibold text-content">{title}</h2>
+          {badge && <span className="shrink-0">{badge}</span>}
+        </div>
       </div>
-      <div className="mt-3 text-sm text-faint whitespace-pre-wrap">{children}</div>
+      {children}
     </Card>
+  )
+}
+
+function PlayerDetail({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string
+  value: string | null
+  accent?: boolean
+}) {
+  if (!value?.trim()) return null
+
+  return (
+    <div className="mb-3 last:mb-0">
+      <p className={`text-xs font-semibold uppercase tracking-wide ${accent ? 'text-accent' : 'text-faint'}`}>
+        {label}
+      </p>
+      <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{value}</p>
+    </div>
   )
 }
 
@@ -354,7 +470,10 @@ function NpcTab({
           {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
         </Select>
         <Input name="relationship_to_party" label="Relationship to party" />
-        <Input name="portrait_url" label="Portrait URL" />
+        <Input name="portrait_url" label="Portrait URL (app or Supabase Storage)" />
+        <p className="-mt-2 text-xs text-faint">
+          Player portraits load only from this app or the campaign Storage origin.
+        </p>
         <Textarea name="player_visible_notes" label="Player notes" rows={3} />
         <Textarea name="dm_notes" label="DM notes" rows={3} />
         <Checkbox name="visible_to_players" label="Visible to players" />

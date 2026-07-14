@@ -1,5 +1,18 @@
 # Implementation Log
 
+## Account Theme Selection (2026-07-13)
+
+- Added five account-level semantic themes shared by DM and player experiences, with Emberforge as the public/new-account default and Golden Parchment as the light option.
+- Added a profile migration that preserves existing accounts on Moonlit Grimoire, defaults new accounts to Emberforge, constrains theme keys, and tracks completion of the required first-sign-in chooser.
+- Added the required “Choose Your Realm” dialog, live previews, persistent Account Settings, desktop/mobile navigation, browser color-scheme/theme-color synchronization, and an authoritative profile-backed server action with a same-site first-paint cookie.
+- Fixed confirmation-required registration so it shows a check-email state, uses the Supabase callback redirect, and reports invalid or incomplete confirmation links.
+- Added source-contract, public browser, and authenticated DM settings coverage plus `QA_Reports/ACCOUNT_THEME_QA.md`.
+
+### Release Boundary
+
+- Migration `20260714023612_account_theme_preferences.sql` is applied and recorded on the linked production Supabase project. Authenticated new-account, cross-device, and DM/player browser proof must still be recorded before calling the release runtime-complete.
+- Fixed the Windows migration runner to invoke npm's JavaScript CLI entrypoint through Node; direct `spawnSync('npx.cmd')` returned `EINVAL` and previously hid the launch error.
+
 ## Full App Audit Remediation
 
 Date: 2026-07-13

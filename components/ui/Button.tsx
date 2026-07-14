@@ -10,7 +10,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses = {
   primary:
-    'bg-accent text-on-accent hover:bg-accent-hover font-semibold shadow-[0_8px_24px_rgb(184_167_255/0.14)] disabled:opacity-50 disabled:shadow-none',
+    'bg-accent text-on-accent hover:bg-accent-hover font-semibold shadow-[0_8px_24px_color-mix(in_srgb,var(--theme-accent)_14%,transparent)] disabled:opacity-50 disabled:shadow-none',
   secondary:
     'border border-border-strong bg-control text-content hover:border-accent/55 hover:bg-hover disabled:opacity-50',
   ghost:

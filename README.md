@@ -44,7 +44,7 @@ npm.cmd run build
 npx.cmd playwright test tests/e2e/app-smoke.spec.ts
 ```
 
-`audit:theme` is the Moonlit Grimoire migration guardrail. It scans `app/` and
+`audit:theme` is the account-theme semantic-color guardrail. It scans `app/` and
 `components/` and fails when a non-allowlisted legacy `zinc-*` or `amber-*`
 Tailwind utility remains. Any gameplay-color exception must be an exact
 file/line/token allowlist entry with a documented reason; broad file exceptions
@@ -92,3 +92,4 @@ Notion API runtime QA also requires the relevant Supabase migrations plus server
 - `docs/QA_Reports/AdventureCodex_Phase12_Final_QA_Report.md` - final QA/regression report for Adventure Codex, Notion sync, and live-map bridge.
 - `docs/QA_Reports/OPTION3_THEME_FEATURE_BASELINE.md` - pre-theme DM/player route and feature-parity inventory.
 - `docs/QA_Reports/OPTION3_THEME_FINAL_QA.md` - Moonlit Grimoire gate results, runtime evidence, and remaining coverage gaps.
+- `docs/QA_Reports/ACCOUNT_THEME_QA.md` - five-theme onboarding, persistence, accessibility, and role-parity verification.

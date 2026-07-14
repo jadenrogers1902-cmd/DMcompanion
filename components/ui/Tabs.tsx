@@ -72,7 +72,7 @@ export function Tabs({ tabs, defaultTab }: TabsProps) {
               )}
             </span>
             {active === tab.id && (
-              <span className="absolute right-0 bottom-0 left-0 h-0.5 bg-accent shadow-[0_0_10px_rgb(184_167_255/0.6)]" />
+              <span className="absolute right-0 bottom-0 left-0 h-0.5 bg-accent shadow-[0_0_10px_color-mix(in_srgb,var(--theme-accent)_60%,transparent)]" />
             )}
           </button>
         ))}

@@ -68,7 +68,7 @@ async function main() {
   const findings = await auditLegacyThemeTokens()
 
   if (findings.length === 0) {
-    console.log('Theme audit passed: no non-allowlisted zinc/amber utilities remain in app/ or components/.')
+    console.log('Theme audit passed: semantic account themes contain no non-allowlisted zinc/amber utilities.')
     return
   }
 
@@ -77,7 +77,7 @@ async function main() {
     console.error(`${finding.file}:${finding.line}  ${finding.token}  ${finding.text}`)
   }
   console.error('')
-  console.error('Migrate each occurrence to a semantic Moonlit Grimoire token. If a gameplay color must remain, add an exact file + line + token exception with a reason.')
+  console.error('Migrate each occurrence to a semantic account-theme token. If a gameplay color must remain, add an exact file + line + token exception with a reason.')
   process.exitCode = 1
 }
 

@@ -75,7 +75,7 @@ export function Sidebar({ profile }: SidebarProps) {
     >
       {/* Logo */}
       <div className={`flex items-center gap-3 border-b border-border px-3 py-4 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/40 bg-accent/10 shadow-[0_0_24px_rgb(184_167_255/0.1)]">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/40 bg-accent/10 shadow-[0_0_24px_color-mix(in_srgb,var(--theme-accent)_10%,transparent)]">
           <svg className="h-4 w-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
@@ -170,14 +170,21 @@ export function Sidebar({ profile }: SidebarProps) {
         >
           {collapsed ? '>>' : 'Collapse'}
         </button>
-        <div className={`flex items-center gap-3 px-2 py-2 mb-1 ${collapsed ? 'justify-center' : ''}`}>
+        <Link
+          href="/settings"
+          title={collapsed ? 'Account Settings' : undefined}
+          className={`mb-1 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-hover/65 ${collapsed ? 'justify-center' : ''}`}
+        >
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-accent/40 bg-accent/15 text-xs font-semibold text-accent">
             {profile?.display_name?.[0]?.toUpperCase() ?? '?'}
           </div>
-          {!collapsed && <span className="truncate text-sm text-muted">
-            {profile?.display_name ?? 'Adventurer'}
-          </span>}
-        </div>
+          {!collapsed && (
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm text-muted">{profile?.display_name ?? 'Adventurer'}</span>
+              <span className="block text-[11px] text-faint">Account Settings</span>
+            </span>
+          )}
+        </Link>
         <form action={logout}>
           <button
             type="submit"

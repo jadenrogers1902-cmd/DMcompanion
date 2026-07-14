@@ -15,8 +15,8 @@ const paddingClasses = {
 }
 
 const toneClasses = {
-  default: 'border border-border bg-panel shadow-[inset_0_1px_rgb(242_236_255/0.025)]',
-  panel: 'border border-border bg-panel-raised/75 shadow-[inset_0_1px_rgb(242_236_255/0.025)]',
+  default: 'border border-border bg-panel shadow-[inset_0_1px_color-mix(in_srgb,var(--theme-content)_3%,transparent)]',
+  panel: 'border border-border bg-panel-raised/75 shadow-[inset_0_1px_color-mix(in_srgb,var(--theme-content)_3%,transparent)]',
   subtle: 'border border-border bg-shell/90',
   overlay: 'border border-border-strong bg-overlay/95 shadow-2xl backdrop-blur-xl',
   interactive: 'border border-border bg-panel transition hover:border-accent/50 hover:bg-panel-raised',

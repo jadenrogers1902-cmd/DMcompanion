@@ -21,7 +21,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           className={`
             w-full rounded-lg border border-border-strong bg-control px-3 py-2 text-sm text-content
             outline-none transition-[border-color,box-shadow,background-color]
-            focus:border-accent focus:shadow-[0_0_0_3px_rgb(184_167_255/0.1)]
+            focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--theme-accent)_10%,transparent)]
             disabled:cursor-not-allowed disabled:opacity-50 ${className}
           `.trim()}
           {...props}

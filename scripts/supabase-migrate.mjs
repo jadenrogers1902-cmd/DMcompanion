@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, readdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import nextEnv from '@next/env'
 
 const { loadEnvConfig } = nextEnv
@@ -24,6 +25,9 @@ function run(command, args) {
   if (result.stderr) process.stderr.write(result.stderr)
 
   if (result.status !== 0) {
+    if (result.error) {
+      console.error(`Could not start ${command}: ${result.error.message}`)
+    }
     const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`
       .split(/\r?\n/)
       .filter(Boolean)
@@ -40,6 +44,33 @@ function run(command, args) {
   }
 }
 
+function supabaseCommand() {
+  if (process.platform !== 'win32') {
+    return { command: 'npx', prefix: ['supabase'] }
+  }
+
+  // Node cannot spawn a .cmd shim directly with shell:false on Windows
+  // (spawnSync returns EINVAL). npm exposes the JavaScript CLI path while an
+  // npm script is running, so invoke the sibling npx entrypoint through Node.
+  // This preserves argument boundaries and avoids placing secrets in a shell
+  // command string.
+  const npmExecPath = process.env.npm_execpath
+  const npxCli = npmExecPath ? join(dirname(npmExecPath), 'npx-cli.js') : ''
+  if (!npxCli || !existsSync(npxCli)) {
+    console.error('Could not locate npm\'s npx-cli.js on Windows.')
+    console.error('Run this migration through: npm.cmd run db:migrate')
+    process.exit(1)
+  }
+
+  return { command: process.execPath, prefix: [npxCli, 'supabase'] }
+}
+
+const supabase = supabaseCommand()
+
+function runSupabase(args) {
+  run(supabase.command, [...supabase.prefix, ...args])
+}
+
 const projectRef = projectRefFromEnv()
 if (!projectRef) {
   console.error('Cannot determine Supabase project ref.')
@@ -48,23 +79,21 @@ if (!projectRef) {
 }
 
 if (!process.env.SUPABASE_ACCESS_TOKEN) {
-  console.warn('SUPABASE_ACCESS_TOKEN is not set.')
-  console.warn('If the Supabase CLI is not already logged in, link/db push will fail.')
-  console.warn('For CI or unattended runs, create a Supabase access token and set SUPABASE_ACCESS_TOKEN.')
+  console.warn('SUPABASE_ACCESS_TOKEN is not set; using the stored Supabase CLI login.')
+  console.warn('CI or unattended runs still require SUPABASE_ACCESS_TOKEN.')
 }
 
-const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx'
 const dbPassword = process.env.SUPABASE_DB_PASSWORD?.trim()
 const passwordArgs = dbPassword ? ['--password', dbPassword] : []
 const baselineBeforeVersion = process.env.SUPABASE_BASELINE_APPLIED_BEFORE_VERSION?.trim()
 
 if (!existsSync('supabase/config.toml')) {
   console.log('Initializing Supabase project config...')
-  run(npx, ['supabase', 'init', '--yes'])
+  runSupabase(['init', '--yes'])
 }
 
 console.log(`Linking Supabase project: ${projectRef}`)
-run(npx, ['supabase', 'link', '--project-ref', projectRef, ...passwordArgs, '--yes'])
+runSupabase(['link', '--project-ref', projectRef, ...passwordArgs, '--yes'])
 
 if (baselineBeforeVersion) {
   const baselineVersionNumber = Number(baselineBeforeVersion)
@@ -79,8 +108,7 @@ if (baselineBeforeVersion) {
   if (baselineVersions.length > 0) {
     console.log(`Marking baseline migrations as applied before ${baselineBeforeVersion}:`)
     console.log(baselineVersions.join(', '))
-    run(npx, [
-      'supabase',
+    runSupabase([
       'migration',
       'repair',
       '--status',
@@ -93,4 +121,4 @@ if (baselineBeforeVersion) {
 }
 
 console.log('Pushing Supabase migrations...')
-run(npx, ['supabase', 'db', 'push', ...passwordArgs, '--yes'])
+runSupabase(['db', 'push', ...passwordArgs, '--yes'])

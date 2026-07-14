@@ -34,6 +34,19 @@ test('DM action queue renders expandable action cards', async ({ page }) => {
   await expect(cards.first().getByRole('button', { name: 'Deny' })).toBeVisible()
 })
 
+test('DM account settings exposes all five account themes', async ({ page }) => {
+  await page.goto('/login')
+  await page.getByLabel('Email').fill(dmEmail ?? '')
+  await page.getByLabel('Password').fill(dmPassword ?? '')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+
+  await page.goto('/settings')
+  await expect(page.getByRole('heading', { name: 'Account Settings' })).toBeVisible()
+  await expect(page.getByRole('radiogroup', { name: 'Available themes' })).toBeVisible()
+  await expect(page.getByRole('radio')).toHaveCount(5)
+  await expect(page.getByText('Your choice applies to both DM and player views on every device.')).toBeVisible()
+})
+
 test('Clear Board uses one confirmed flow from the full queue when explicitly enabled', async ({ page }) => {
   test.skip(!allowClearBoard, 'Set E2E_ALLOW_CLEAR_BOARD=true only for a disposable campaign.')
 

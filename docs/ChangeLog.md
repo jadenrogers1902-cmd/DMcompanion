@@ -1,5 +1,12 @@
 # Adventure Codex + Notion Bridge — Change Log
 
+## Account Theme Selection (2026-07-13)
+
+- Added Emberforge, Moonlit Grimoire, Emerald Enclave, Frostbound Archive, and Golden Parchment as account-wide choices for both DMs and players.
+- New verified accounts receive a required theme chooser with Emberforge preselected; existing accounts retain Moonlit Grimoire.
+- Added Account Settings appearance controls, persistent profile/cookie synchronization, mobile/desktop access, light/dark browser color handling, and confirmation-aware signup/callback states.
+- Added migration, type, unit, public smoke, authenticated settings, documentation, and manual role/accessibility QA coverage.
+
 ## Full App Audit Hardening (2026-07-13)
 
 ### Security and Realtime

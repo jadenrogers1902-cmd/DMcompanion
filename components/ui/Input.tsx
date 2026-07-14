@@ -29,7 +29,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ${
               error
                 ? 'border-danger/65 focus:border-danger focus:shadow-[0_0_0_3px_rgb(240_113_155/0.1)]'
-                : 'border-border-strong focus:border-accent focus:shadow-[0_0_0_3px_rgb(184_167_255/0.1)]'
+                : 'border-border-strong focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--theme-accent)_10%,transparent)]'
             }
             disabled:cursor-not-allowed disabled:opacity-50
             ${className}
@@ -77,7 +77,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             ${
               error
                 ? 'border-danger/65 focus:border-danger focus:shadow-[0_0_0_3px_rgb(240_113_155/0.1)]'
-                : 'border-border-strong focus:border-accent focus:shadow-[0_0_0_3px_rgb(184_167_255/0.1)]'
+                : 'border-border-strong focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--theme-accent)_10%,transparent)]'
             }
             disabled:cursor-not-allowed disabled:opacity-50
             ${className}

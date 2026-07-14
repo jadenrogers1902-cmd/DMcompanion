@@ -25,6 +25,16 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    href: '/settings',
+    label: 'Settings',
+    icon: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.592c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.219.127.325.198.72.26 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.244a1.125 1.125 0 01-.26 1.431l-1.004.827a1.125 1.125 0 00-.43 1.023v.25c-.003.38.168.741.46.983l1.004.827c.424.35.534.955.26 1.431l-1.296 2.244a1.125 1.125 0 01-1.37.49l-1.217-.456a1.125 1.125 0 00-1.075.124 6.57 6.57 0 01-.219.127c-.332.184-.582.496-.645.87l-.213 1.281c-.09.542-.56.94-1.11.94h-2.592c-.55 0-1.02-.398-1.11-.94l-.213-1.281a1.125 1.125 0 00-.645-.87 6.52 6.52 0 01-.219-.127 1.125 1.125 0 00-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.244a1.125 1.125 0 01.26-1.431l1.004-.827c.293-.242.463-.604.46-.983v-.25a1.125 1.125 0 00-.43-1.023l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.244a1.125 1.125 0 011.37-.49l1.217.456c.355.136.75.074 1.075-.124.072-.044.145-.087.219-.127.332-.184.582-.496.645-.87l.213-1.281z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
 ]
 
 function campaignIdFromPath(pathname: string) {
@@ -94,6 +104,7 @@ export function MobileNav({ profile }: MobileNavProps) {
             </svg>
           ),
         },
+        navItems[2],
       ]
     : navItems
 
@@ -116,7 +127,7 @@ export function MobileNav({ profile }: MobileNavProps) {
             key={item.href}
             href={item.href}
             className={`
-              min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors
+              flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors
               ${isActive ? 'bg-accent/6' : 'hover:bg-hover/45'}
               ${colorClass}
             `.trim()}

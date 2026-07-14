@@ -43,6 +43,7 @@ Set these for **Production** (and Preview if you want preview deploys to work):
 | Variable | Value | Notes |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | your Supabase project URL | public |
+| `NEXT_PUBLIC_SITE_URL` | your canonical production origin, such as `https://companion.example.com` | recommended for deterministic signup confirmation redirects |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key | public |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase **service_role** key | **mandatory server-only secret — never prefix NEXT_PUBLIC**; required for protected map images, transport, validated player roll/result writes, and Notion operations |
 | `NOTION_WEBHOOK_SECRET` | Notion webhook verification token | **optional** — only if you enable webhook auto-sync |

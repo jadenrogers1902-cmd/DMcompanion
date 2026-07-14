@@ -1,50 +1,121 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Moonlit Grimoire semantic palette. Keep these names role-based so
-     feature colors (maps, tokens, health, and user selections) stay distinct. */
-  --color-canvas: #100d16;
-  --color-shell: #14101c;
-  --color-panel: #1b1524;
-  --color-panel-raised: #241b30;
-  --color-overlay: #15101f;
-  --color-control: #241b30;
-  --color-hover: #2b2038;
-  --color-content: #f2ecff;
-  --color-muted: #b8acc7;
-  --color-faint: #80758f;
-  --color-on-accent: #100d16;
-  --color-accent-foreground: #100d16;
-  --color-border: #3a2c49;
-  --color-border-strong: #59436f;
-  --color-accent: #b8a7ff;
-  --color-accent-hover: #c9bdff;
-  --color-accent-soft: #7565a8;
-  --color-success: #67e8c2;
-  --color-warning: #f5c06a;
-  --color-danger: #f0719b;
-  --color-info: #7cc7ff;
-  --color-live: #ff6f91;
-  --color-player-safe: #67e8c2;
-  --color-dm-only: #f0719b;
+  /* Tailwind utilities resolve through runtime theme variables. Feature
+     colors remain semantic so DM/player behavior never depends on a palette. */
+  --color-canvas: var(--theme-canvas);
+  --color-shell: var(--theme-shell);
+  --color-panel: var(--theme-panel);
+  --color-panel-raised: var(--theme-panel-raised);
+  --color-overlay: var(--theme-overlay);
+  --color-control: var(--theme-control);
+  --color-hover: var(--theme-hover);
+  --color-content: var(--theme-content);
+  --color-muted: var(--theme-muted);
+  --color-faint: var(--theme-faint);
+  --color-on-accent: var(--theme-on-accent);
+  --color-accent-foreground: var(--theme-on-accent);
+  --color-border: var(--theme-border);
+  --color-border-strong: var(--theme-border-strong);
+  --color-accent: var(--theme-accent);
+  --color-accent-hover: var(--theme-accent-hover);
+  --color-accent-soft: var(--theme-accent-soft);
+  --color-success: var(--theme-success);
+  --color-warning: var(--theme-warning);
+  --color-danger: var(--theme-danger);
+  --color-info: var(--theme-info);
+  --color-live: var(--theme-live);
+  --color-player-safe: var(--theme-player-safe);
+  --color-dm-only: var(--theme-dm-only);
 
-  /* Compatibility aliases for existing screens during the staged migration. */
-  --color-background: #100d16;
-  --color-surface: #1b1524;
-  --color-surface-2: #241b30;
-  --color-border-subtle: #2b2038;
-  --color-foreground: #f2ecff;
-  --color-primary: #b8a7ff;
-  --color-primary-hover: #c9bdff;
-  --color-primary-foreground: #100d16;
+  --color-background: var(--theme-canvas);
+  --color-surface: var(--theme-panel);
+  --color-surface-2: var(--theme-panel-raised);
+  --color-border-subtle: var(--theme-hover);
+  --color-foreground: var(--theme-content);
+  --color-primary: var(--theme-accent);
+  --color-primary-hover: var(--theme-accent-hover);
+  --color-primary-foreground: var(--theme-on-accent);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-cormorant-garamond);
 }
 
-:root {
+:root,
+[data-theme="emberforge"] {
+  --theme-canvas: #120f0e;
+  --theme-shell: #181311;
+  --theme-panel: #211917;
+  --theme-panel-raised: #2c211d;
+  --theme-overlay: #17110f;
+  --theme-control: #2c211d;
+  --theme-hover: #382923;
+  --theme-content: #fff4e6;
+  --theme-muted: #d6bea9;
+  --theme-faint: #9b806e;
+  --theme-on-accent: #1a0f08;
+  --theme-border: #4a362c;
+  --theme-border-strong: #705140;
+  --theme-accent: #e58a45;
+  --theme-accent-hover: #f2a35f;
+  --theme-accent-soft: #9f5d2e;
+  --theme-success: #78d6a3;
+  --theme-warning: #f4c264;
+  --theme-danger: #e06b68;
+  --theme-info: #77bde8;
+  --theme-live: #ff765f;
+  --theme-player-safe: #78d6a3;
+  --theme-dm-only: #e06b68;
   color-scheme: dark;
+}
+
+[data-theme="moonlit-grimoire"] {
+  --theme-canvas: #100d16; --theme-shell: #14101c; --theme-panel: #1b1524;
+  --theme-panel-raised: #241b30; --theme-overlay: #15101f; --theme-control: #241b30;
+  --theme-hover: #2b2038; --theme-content: #f2ecff; --theme-muted: #b8acc7;
+  --theme-faint: #91869f; --theme-on-accent: #100d16; --theme-border: #3a2c49;
+  --theme-border-strong: #59436f; --theme-accent: #b8a7ff; --theme-accent-hover: #c9bdff;
+  --theme-accent-soft: #7565a8; --theme-success: #67e8c2; --theme-warning: #f5c06a;
+  --theme-danger: #f0719b; --theme-info: #7cc7ff; --theme-live: #ff6f91;
+  --theme-player-safe: #67e8c2; --theme-dm-only: #f0719b;
+  color-scheme: dark;
+}
+
+[data-theme="emerald-enclave"] {
+  --theme-canvas: #0c1512; --theme-shell: #101b17; --theme-panel: #17251f;
+  --theme-panel-raised: #203229; --theme-overlay: #0f1915; --theme-control: #203229;
+  --theme-hover: #293e33; --theme-content: #effaf3; --theme-muted: #b7d8c3;
+  --theme-faint: #779687; --theme-on-accent: #07130d; --theme-border: #2d493b;
+  --theme-border-strong: #456b57; --theme-accent: #56c596; --theme-accent-hover: #6edbab;
+  --theme-accent-soft: #388264; --theme-success: #6edbab; --theme-warning: #d6a85f;
+  --theme-danger: #e77982; --theme-info: #73bde8; --theme-live: #ff7d75;
+  --theme-player-safe: #56c596; --theme-dm-only: #e77982;
+  color-scheme: dark;
+}
+
+[data-theme="frostbound-archive"] {
+  --theme-canvas: #0b111c; --theme-shell: #101827; --theme-panel: #15243a;
+  --theme-panel-raised: #1d304d; --theme-overlay: #0e1625; --theme-control: #1d304d;
+  --theme-hover: #263c5c; --theme-content: #edf6ff; --theme-muted: #b6cde3;
+  --theme-faint: #758ca5; --theme-on-accent: #08111c; --theme-border: #29435f;
+  --theme-border-strong: #3d6287; --theme-accent: #77c8ff; --theme-accent-hover: #99d7ff;
+  --theme-accent-soft: #4d8db9; --theme-success: #75dfc1; --theme-warning: #f1bd6b;
+  --theme-danger: #ec7892; --theme-info: #8d9cff; --theme-live: #ff7694;
+  --theme-player-safe: #75dfc1; --theme-dm-only: #ec7892;
+  color-scheme: dark;
+}
+
+[data-theme="golden-parchment"] {
+  --theme-canvas: #e8d8b7; --theme-shell: #dfcba5; --theme-panel: #f5e9cf;
+  --theme-panel-raised: #fff5df; --theme-overlay: #f1e3c6; --theme-control: #fff5df;
+  --theme-hover: #dec8a0; --theme-content: #3b2a22; --theme-muted: #684f41;
+  --theme-faint: #735747; --theme-on-accent: #fff8e9; --theme-border: #c3a77d;
+  --theme-border-strong: #9c7b55; --theme-accent: #9a3e45; --theme-accent-hover: #7f3037;
+  --theme-accent-soft: #c4878b; --theme-success: #24684f; --theme-warning: #895715;
+  --theme-danger: #a63142; --theme-info: #316b98; --theme-live: #b52f43;
+  --theme-player-safe: #24684f; --theme-dm-only: #9a3e45;
+  color-scheme: light;
 }
 
 html {
@@ -55,8 +126,8 @@ html {
 body {
   min-height: 100%;
   background:
-    radial-gradient(circle at 82% -12%, rgb(184 167 255 / 0.12), transparent 38rem),
-    radial-gradient(circle at -8% 88%, rgb(103 232 194 / 0.05), transparent 34rem),
+    radial-gradient(circle at 82% -12%, color-mix(in srgb, var(--theme-accent) 14%, transparent), transparent 38rem),
+    radial-gradient(circle at -8% 88%, color-mix(in srgb, var(--theme-player-safe) 6%, transparent), transparent 34rem),
     var(--color-canvas);
   color: var(--color-content);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
@@ -87,7 +158,7 @@ main h1 {
 }
 
 ::selection {
-  background: rgb(184 167 255 / 0.28);
+  background: color-mix(in srgb, var(--theme-accent) 28%, transparent);
   color: var(--color-content);
 }
 
@@ -102,12 +173,12 @@ main h1 {
 
 .moonlit-panel {
   background:
-    linear-gradient(145deg, rgb(184 167 255 / 0.035), transparent 48%),
-    rgb(27 21 36 / 0.94);
-  border: 1px solid rgb(89 67 111 / 0.72);
+    linear-gradient(145deg, color-mix(in srgb, var(--theme-accent) 4%, transparent), transparent 48%),
+    color-mix(in srgb, var(--theme-panel) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--theme-border-strong) 72%, transparent);
   box-shadow:
     0 24px 64px rgb(0 0 0 / 0.28),
-    inset 0 1px rgb(242 236 255 / 0.035);
+    inset 0 1px color-mix(in srgb, var(--theme-content) 4%, transparent);
 }
 
 /* Scrollbar */

@@ -28,7 +28,7 @@ export default function CampaignError({
         </Button>
         <Link
           href="/dashboard"
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-[0_8px_24px_rgb(184_167_255/0.14)] transition-colors hover:bg-accent-hover"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-[0_8px_24px_color-mix(in_srgb,var(--theme-accent)_14%,transparent)] transition-colors hover:bg-accent-hover"
         >
           Return to dashboard
         </Link>

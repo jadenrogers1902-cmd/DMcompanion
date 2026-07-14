@@ -1,10 +1,13 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 
 export type AuthFormState = {
   error: string | null
+  status?: 'check-email'
+  email?: string
 }
 
 export async function login(_prevState: AuthFormState, formData: FormData): Promise<AuthFormState> {
@@ -38,11 +41,18 @@ export async function register(_prevState: AuthFormState, formData: FormData): P
     return { error: 'Passwords do not match.' }
   }
 
-  const { error } = await supabase.auth.signUp({
+  const headerStore = await headers()
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
+  const requestOrigin = headerStore.get('origin')
+  const siteUrl = configuredSiteUrl || requestOrigin || 'http://localhost:3000'
+  const emailRedirectTo = new URL('/auth/callback?next=/dashboard', siteUrl).toString()
+
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { display_name: displayName.trim() },
+      emailRedirectTo,
     },
   })
 
@@ -50,7 +60,14 @@ export async function register(_prevState: AuthFormState, formData: FormData): P
     return { error: error.message }
   }
 
-  // Profile is auto-created by the database trigger
+  // Confirmation-required projects return a user without a session. Keep the
+  // visitor on the registration page with an explicit next step.
+  if (!data.session) {
+    return { error: null, status: 'check-email', email }
+  }
+
+  // Profiles are auto-created by the database trigger. The authenticated app
+  // layout will require the first theme choice.
   redirect('/dashboard')
 }
 

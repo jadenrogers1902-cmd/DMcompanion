@@ -1,12 +1,16 @@
 // ────────────────────────────────────────────────────────────
 // App-level type aliases (used throughout the codebase)
 // ────────────────────────────────────────────────────────────
+import type { ThemeKey } from '@/lib/themes'
+
 export type Role = 'dm' | 'player'
 
 export interface Profile {
   id: string
   display_name: string
   avatar_url: string | null
+  theme_key: ThemeKey
+  theme_onboarding_completed_at: string | null
   created_at: string
 }
 
@@ -1231,18 +1235,24 @@ export type Database = {
           id: string
           display_name: string
           avatar_url: string | null
+          theme_key: ThemeKey
+          theme_onboarding_completed_at: string | null
           created_at: string
         }
         Insert: {
           id: string
           display_name: string
           avatar_url?: string | null
+          theme_key?: ThemeKey
+          theme_onboarding_completed_at?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           display_name?: string
           avatar_url?: string | null
+          theme_key?: ThemeKey
+          theme_onboarding_completed_at?: string | null
           created_at?: string
         }
         Relationships: []
